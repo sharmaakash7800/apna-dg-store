@@ -577,6 +577,522 @@
         font-size: 44px;
       }
     }
+
+    /* Grocery-app style category navigation */
+    .store-content {
+      width: min(1440px, 96%);
+      margin: 0 auto 50px;
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr) 360px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .category-rail {
+      position: sticky;
+      top: 132px;
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+      padding: 8px 6px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      scrollbar-width: thin;
+    }
+
+    .category-rail-button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      padding: 10px 5px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+      position: relative;
+    }
+
+    .category-rail-button:hover {
+      background: #f8fafc;
+      color: var(--text);
+    }
+
+    .category-rail-button.active {
+      background: #fff7ed;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .category-rail-button.active::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 6px;
+      bottom: 6px;
+      width: 5px;
+      border-radius: 0 8px 8px 0;
+      background: var(--yellow);
+    }
+
+    .category-icon {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 30px;
+      background: linear-gradient(135deg, #eff6ff, #fff7ed);
+      border: 1px solid #eef2f7;
+    }
+
+    .catalog-area {
+      min-width: 0;
+    }
+
+    .catalog-controls {
+      padding: 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .catalog-controls select {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 12px;
+      background: white;
+      outline: 0;
+    }
+
+    .catalog-heading {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .catalog-heading h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .catalog-heading span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .product .add-btn.in-cart {
+      background: var(--green);
+      color: white;
+    }
+
+    @media (max-width: 1180px) {
+      .store-content {
+        grid-template-columns: 110px minmax(0, 1fr);
+      }
+
+      .store-content .cart-panel {
+        grid-column: 1 / -1;
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .hero { display: none; }
+
+      .category-bar,
+      .sidebar {
+        display: none;
+      }
+
+      .store-content {
+        width: 100%;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .category-rail {
+        top: 126px;
+        border-radius: 0 14px 14px 0;
+        max-height: calc(100vh - 136px);
+        border-left: 0;
+        padding-left: 3px;
+      }
+
+      .category-icon {
+        width: 54px;
+        height: 54px;
+        font-size: 26px;
+      }
+
+      .catalog-controls {
+        position: sticky;
+        top: 126px;
+        z-index: 10;
+        border-radius: 12px;
+        margin-right: 8px;
+      }
+
+      .products {
+        padding-right: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .product {
+        min-height: 300px;
+      }
+
+      .product-body {
+        padding: 10px;
+      }
+
+      .product h3 {
+        font-size: 14px;
+        min-height: 57px;
+      }
+
+      .product-visual {
+        min-height: 125px;
+      }
+
+      .price {
+        font-size: 19px;
+      }
+
+      .store-content .cart-panel {
+        grid-column: 1 / -1;
+        margin: 0 8px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .products {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .catalog-controls select {
+        flex: 1;
+        min-width: 105px;
+      }
+    }
+
+
+    .category-landing {
+      width: min(1200px, 94%);
+      margin: 24px auto 50px;
+    }
+
+    .category-landing-header {
+      margin-bottom: 18px;
+    }
+
+    .category-landing-header h2 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 4vw, 38px);
+    }
+
+    .category-landing-header p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .category-card {
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 18px;
+      padding: 22px 14px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      min-height: 165px;
+      box-shadow: var(--shadow);
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+      text-align: center;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .category-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--yellow);
+      box-shadow: 0 14px 30px rgba(15,23,42,.14);
+    }
+
+    .category-card-icon {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 40px;
+      background: linear-gradient(135deg, #eff6ff, #fff7ed);
+    }
+
+    .product-view {
+      display: none;
+    }
+
+    .product-view.active {
+      display: grid;
+    }
+
+    .back-categories-btn {
+      border: 0;
+      background: var(--navy);
+      color: white;
+      border-radius: 9px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    @media (max-width: 820px) {
+      .category-bar { display: none; }
+
+      .category-landing {
+        margin-top: 14px;
+      }
+
+      .category-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .category-card {
+        min-height: 132px;
+        padding: 14px 8px;
+        font-size: 12px;
+      }
+
+      .category-card-icon {
+        width: 64px;
+        height: 64px;
+        font-size: 32px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .category-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+
+    .account-button {
+      border: 0;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      text-align: left;
+      padding: 0;
+    }
+
+    .account-button strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(15, 23, 42, .66);
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .modal.open {
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.28);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      padding: 18px 20px;
+      background: var(--navy);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(255,255,255,.14);
+      color: white;
+      font-size: 21px;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .panel-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .panel-tab {
+      flex: 1;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .panel-tab.active {
+      background: var(--yellow);
+      border-color: var(--yellow);
+    }
+
+    .panel-view {
+      display: none;
+    }
+
+    .panel-view.active {
+      display: block;
+    }
+
+    .profile-summary {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .profile-summary p {
+      margin: 6px 0;
+      color: var(--muted);
+    }
+
+    .orders-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .order-history-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+    }
+
+    .order-history-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .payment-options {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .payment-option {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+    }
+
+    .payment-option:has(input:checked) {
+      border-color: var(--yellow);
+      background: #fff7ed;
+    }
+
+    .online-payment-box {
+      display: none;
+      margin-top: 10px;
+      padding: 13px;
+      border-radius: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    .online-payment-box.show {
+      display: block;
+    }
+
+    .pay-number {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      color: var(--blue-dark);
+      margin: 6px 0;
+    }
+
+    .save-profile-btn,
+    .logout-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .save-profile-btn {
+      background: var(--blue);
+      color: white;
+    }
+
+    .logout-btn {
+      background: #fee2e2;
+      color: #991b1b;
+      margin-top: 10px;
+    }
+
   </style>
 </head>
 
@@ -600,10 +1116,10 @@
       </div>
 
       <div class="header-actions">
-        <a class="header-action" href="#productsArea">
-          Hello, Customer
+        <button id="accountButton" class="header-action account-button" type="button">
+          <span id="accountHello">Hello, Customer</span>
           <strong>Your Account</strong>
-        </a>
+        </button>
         <button class="cart-button" type="button">
           🛍 Cart <span id="cartCount">0</span>
         </button>
@@ -615,37 +1131,38 @@
     </div>
   </header>
 
-  <section class="hero">
-    <div>
-      <h2>Daily essentials, ab online order karein</h2>
-      <p>Products search karein, category choose karein aur ek hi order mein multiple items add karein.</p>
+
+  
+  
+  <section id="categoryLanding" class="category-landing">
+    <div class="category-landing-header">
+      <h2>Shop by Category</h2>
+      <p>Category select karein ya upar search box se product search karein.</p>
     </div>
+    <div id="categoryLandingGrid" class="category-grid"></div>
   </section>
 
-  <main id="productsArea" class="layout">
-    <aside class="card sidebar">
-      <h3>Filters</h3>
+  <main id="productsArea" class="store-content product-view">
+    <aside id="categoryRail" class="category-rail" aria-label="Product categories"></aside>
 
-      <label for="sideCategoryFilter">Category</label>
-      <select id="sideCategoryFilter">
-        <option value="">All Categories</option>
-      </select>
-
-      <label for="sortProducts">Sort By</label>
-      <select id="sortProducts">
-        <option value="name-asc">Name: A to Z</option>
-        <option value="name-desc">Name: Z to A</option>
-        <option value="price-low">Price: Low to High</option>
-        <option value="price-high">Price: High to Low</option>
-      </select>
-    </aside>
-
-    <section class="product-section">
-      <div class="card toolbar">
-        <div>
-          <h2>Products</h2>
+    <section class="catalog-area">
+      <div class="card catalog-controls">
+        <button id="backToCategoriesBtn" class="back-categories-btn" type="button">← Categories</button>
+        <div class="catalog-heading">
+          <h2 id="activeCategoryTitle">All Products</h2>
           <span id="resultCount"></span>
         </div>
+
+        <select id="sideCategoryFilter" aria-label="Category filter">
+          <option value="">All Categories</option>
+        </select>
+
+        <select id="sortProducts" aria-label="Sort products">
+          <option value="name-asc">Name: A to Z</option>
+          <option value="name-desc">Name: Z to A</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+        </select>
       </div>
 
       <div id="products" class="products">
@@ -670,6 +1187,38 @@
           <input id="customerName" type="text" placeholder="Customer name" required />
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" required />
           <textarea id="address" placeholder="Delivery address" required></textarea>
+        </div>
+
+        <h3>Payment Method</h3>
+
+        <div class="payment-options">
+          <label class="payment-option">
+            <input type="radio" name="paymentMethod" value="COD" checked />
+            <span>
+              <strong>Cash on Delivery</strong><br />
+              <small>Order delivery ke time payment karein.</small>
+            </span>
+          </label>
+
+          <label class="payment-option">
+            <input type="radio" name="paymentMethod" value="ONLINE" />
+            <span>
+              <strong>Online Payment</strong><br />
+              <small>Payment karke transaction/reference number enter karein.</small>
+            </span>
+          </label>
+        </div>
+
+        <div id="onlinePaymentBox" class="online-payment-box">
+          <strong>Pay via UPI</strong>
+          <div class="pay-number">board.black@ibl</div>
+          <small>Google Pay / PhonePe / Paytm mein UPI ID board.black@ibl par payment karein.</small>
+          <a id="upiPayLink"
+             href="#"
+             style="display:block;text-align:center;margin-top:10px;padding:11px 12px;border-radius:9px;background:#16a34a;color:white;text-decoration:none;font-weight:800;">
+            Open UPI App
+          </a>
+          <input id="paymentReference" type="text" placeholder="Transaction / UTR number" style="margin-top:10px;" />
         </div>
 
         <button id="placeOrderBtn" class="place-btn" type="submit">
@@ -699,12 +1248,104 @@
     const sideCategoryFilterEl = document.getElementById("sideCategoryFilter");
     const sortProductsEl = document.getElementById("sortProducts");
     const categoryChipsEl = document.getElementById("categoryChips");
+    const categoryRailEl = document.getElementById("categoryRail");
+    const activeCategoryTitleEl = document.getElementById("activeCategoryTitle");
+    const categoryLandingEl = document.getElementById("categoryLanding");
+    const categoryLandingGridEl = document.getElementById("categoryLandingGrid");
+    const productsAreaEl = document.getElementById("productsArea");
+    const backToCategoriesBtn = document.getElementById("backToCategoriesBtn");
     const resultCountEl = document.getElementById("resultCount");
     const cartEl = document.getElementById("cart");
     const cartCountEl = document.getElementById("cartCount");
     const grandTotalEl = document.getElementById("grandTotal");
     const messageEl = document.getElementById("message");
     const placeOrderBtn = document.getElementById("placeOrderBtn");
+    const accountButton = document.getElementById("accountButton");
+    const accountModal = document.getElementById("accountModal");
+    const closeAccountModal = document.getElementById("closeAccountModal");
+    const accountHello = document.getElementById("accountHello");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const ordersList = document.getElementById("ordersList");
+    const onlinePaymentBox = document.getElementById("onlinePaymentBox");
+    const paymentReferenceEl = document.getElementById("paymentReference");
+    const upiPayLink = document.getElementById("upiPayLink");
+
+    const PROFILE_KEY = "apna_dg_customer_profile";
+    const ORDERS_KEY = "apna_dg_customer_orders";
+
+
+
+    function getSavedProfile() {
+      try {
+        return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function saveProfile(profile) {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      applySavedProfile();
+    }
+
+    function applySavedProfile() {
+      const profile = getSavedProfile();
+      if (!profile) {
+        accountHello.textContent = "Hello, Customer";
+        return;
+      }
+
+      document.getElementById("customerName").value = profile.name || "";
+      document.getElementById("mobile").value = profile.mobile || "";
+      document.getElementById("address").value = profile.address || "";
+
+      document.getElementById("panelCustomerName").value = profile.name || "";
+      document.getElementById("panelMobile").value = profile.mobile || "";
+      document.getElementById("panelAddress").value = profile.address || "";
+
+      accountHello.textContent = "Hello, " + (profile.name || "Customer");
+    }
+
+    function getSavedOrders() {
+      try {
+        return JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function saveOrderHistory(order) {
+      const orders = getSavedOrders();
+      orders.unshift(order);
+      localStorage.setItem(ORDERS_KEY, JSON.stringify(orders.slice(0, 50)));
+    }
+
+    function renderOrderHistory() {
+      const orders = getSavedOrders();
+
+      if (!orders.length) {
+        ordersList.innerHTML = '<div class="empty">Abhi koi purana order nahi hai.</div>';
+        return;
+      }
+
+      ordersList.innerHTML = orders.map(order => `
+        <article class="order-history-card">
+          <div class="order-history-top">
+            <div>
+              <strong>${escapeHtml(order.order_id)}</strong><br />
+              <small>${escapeHtml(order.date)}</small>
+            </div>
+            <span class="status-pill">${escapeHtml(order.status || "pending")}</span>
+          </div>
+          <div>${order.items.map(item =>
+            `${escapeHtml(item.name)} × ${item.quantity}`
+          ).join("<br>")}</div>
+          <p><strong>Total: ₹${Number(order.total).toFixed(2)}</strong></p>
+          <small>Payment: ${escapeHtml(order.payment_method)}</small>
+        </article>
+      `).join("");
+    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -715,23 +1356,47 @@
         .replaceAll("'", "&#039;");
     }
 
+    function normalizeCategory(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function categoryEmoji(category) {
+      const value = normalizeCategory(category);
+      const icons = {
+        "biscuits & snacks": "🍪",
+        "dairy products": "🥛",
+        "flour & staples": "🌾",
+        "fruits": "🍎",
+        "home care": "🧹",
+        "instant food": "🍜",
+        "oil & ghee": "🫙",
+        "personal care": "🧴",
+        "pulses & dal": "🫘",
+        "rice & grains": "🍚",
+        "sauces & spreads": "🥫",
+        "spices & masala": "🌶️"
+      };
+      return icons[value] || "📦";
+    }
+
     function showMessage(text, type) {
       messageEl.textContent = text;
       messageEl.className = "message " + type;
     }
 
     function fillCategories() {
-      const categories = [...new Set(
-        products
-          .map(product => String(product.category || "").trim())
-          .filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b));
+      const categoryMap = new Map();
 
-      const options =
-        '<option value="">All Categories</option>' +
-        categories.map(category =>
-          `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
-        ).join("");
+      products.forEach(product => {
+        const displayName = String(product.category || "").trim();
+        const key = normalizeCategory(displayName);
+        if (displayName && !categoryMap.has(key)) {
+          categoryMap.set(key, displayName);
+        }
+      });
+
+      const categories = [...categoryMap.values()]
+        .sort((a, b) => a.localeCompare(b));
 
       topCategoryFilterEl.innerHTML =
         '<option value="">All</option>' +
@@ -739,25 +1404,40 @@
           `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
         ).join("");
 
-      sideCategoryFilterEl.innerHTML = options;
+      sideCategoryFilterEl.innerHTML =
+        '<option value="">All Categories</option>' +
+        categories.map(category =>
+          `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
+        ).join("");
 
       categoryChipsEl.innerHTML =
         `<button class="category-chip active" data-category="">All Categories</button>` +
-        categories.slice(0, 14).map(category =>
+        categories.map(category =>
           `<button class="category-chip" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`
         ).join("");
 
-      categoryChipsEl.querySelectorAll(".category-chip").forEach(button => {
+      categoryRailEl.innerHTML =
+        `<button class="category-rail-button active" data-category="">
+          <span class="category-icon">🛒</span>
+          <span>All</span>
+        </button>` +
+        categories.map(category => `
+          <button class="category-rail-button" data-category="${escapeHtml(category)}">
+            <span class="category-icon">${categoryEmoji(category)}</span>
+            <span>${escapeHtml(category)}</span>
+          </button>
+        `).join("");
+
+      categoryLandingGridEl.innerHTML = categories.map(category => `
+        <button class="category-card" type="button" data-category="${escapeHtml(category)}">
+          <span class="category-card-icon">${categoryEmoji(category)}</span>
+          <span>${escapeHtml(category)}</span>
+        </button>
+      `).join("");
+
+      document.querySelectorAll("[data-category]").forEach(button => {
         button.addEventListener("click", () => {
-          selectedCategory = button.dataset.category;
-          topCategoryFilterEl.value = selectedCategory;
-          sideCategoryFilterEl.value = selectedCategory;
-
-          categoryChipsEl.querySelectorAll(".category-chip").forEach(chip => {
-            chip.classList.toggle("active", chip === button);
-          });
-
-          renderProducts();
+          syncCategory(button.dataset.category || "");
         });
       });
     }
@@ -768,11 +1448,12 @@
       let filtered = products.filter(product => {
         const name = String(product.name || "").toLowerCase();
         const sku = String(product.id || "").toLowerCase();
-        const category = String(product.category || "");
+        const category = normalizeCategory(product.category);
+        const activeCategory = normalizeCategory(selectedCategory);
 
         return (
           (!search || name.includes(search) || sku.includes(search)) &&
-          (!selectedCategory || category === selectedCategory)
+          (!activeCategory || category === activeCategory)
         );
       });
 
@@ -791,6 +1472,7 @@
       }
 
       resultCountEl.textContent = `${filtered.length} products found`;
+      activeCategoryTitleEl.textContent = selectedCategory || "All Products";
 
       if (!filtered.length) {
         productsEl.innerHTML =
@@ -842,21 +1524,119 @@
     }
 
     function syncCategory(value) {
-      selectedCategory = value;
-      topCategoryFilterEl.value = value;
-      sideCategoryFilterEl.value = value;
+      selectedCategory = value || "";
+      topCategoryFilterEl.value = selectedCategory;
+      sideCategoryFilterEl.value = selectedCategory;
 
-      categoryChipsEl.querySelectorAll(".category-chip").forEach(chip => {
-        chip.classList.toggle("active", chip.dataset.category === value);
+      document.querySelectorAll("[data-category]").forEach(button => {
+        button.classList.toggle(
+          "active",
+          normalizeCategory(button.dataset.category) === normalizeCategory(selectedCategory)
+        );
       });
 
+      categoryLandingEl.style.display = "none";
+      productsAreaEl.classList.add("active");
       renderProducts();
+
+      if (window.innerWidth <= 820) {
+        document.getElementById("productsArea").scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
     }
 
-    productSearchEl.addEventListener("input", renderProducts);
+    productSearchEl.addEventListener("input", () => {
+      const hasSearch = productSearchEl.value.trim().length > 0;
+
+      if (hasSearch) {
+        selectedCategory = "";
+        topCategoryFilterEl.value = "";
+        sideCategoryFilterEl.value = "";
+        categoryLandingEl.style.display = "none";
+        productsAreaEl.classList.add("active");
+        renderProducts();
+      } else if (!selectedCategory) {
+        productsAreaEl.classList.remove("active");
+        categoryLandingEl.style.display = "";
+      } else {
+        renderProducts();
+      }
+    });
     topCategoryFilterEl.addEventListener("change", event => syncCategory(event.target.value));
     sideCategoryFilterEl.addEventListener("change", event => syncCategory(event.target.value));
     sortProductsEl.addEventListener("change", renderProducts);
+
+
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
+      input.addEventListener("change", () => {
+        const isOnline =
+          document.querySelector('input[name="paymentMethod"]:checked').value === "ONLINE";
+
+        onlinePaymentBox.classList.toggle("show", isOnline);
+        paymentReferenceEl.required = isOnline;
+      });
+    });
+
+    accountButton.addEventListener("click", () => {
+      applySavedProfile();
+      renderOrderHistory();
+      accountModal.classList.add("open");
+      accountModal.setAttribute("aria-hidden", "false");
+    });
+
+    closeAccountModal.addEventListener("click", () => {
+      accountModal.classList.remove("open");
+      accountModal.setAttribute("aria-hidden", "true");
+    });
+
+    accountModal.addEventListener("click", event => {
+      if (event.target === accountModal) {
+        accountModal.classList.remove("open");
+      }
+    });
+
+    document.querySelectorAll(".panel-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".panel-tab").forEach(item =>
+          item.classList.toggle("active", item === tab)
+        );
+
+        document.querySelectorAll(".panel-view").forEach(panel =>
+          panel.classList.toggle("active", panel.id === tab.dataset.panel)
+        );
+
+        if (tab.dataset.panel === "ordersPanel") {
+          renderOrderHistory();
+        }
+      });
+    });
+
+    saveProfileBtn.addEventListener("click", () => {
+      const name = document.getElementById("panelCustomerName").value.trim();
+      const mobile = document.getElementById("panelMobile").value.trim();
+      const address = document.getElementById("panelAddress").value.trim();
+
+      if (!name || !/^\d{10}$/.test(mobile) || !address) {
+        alert("Name, valid 10-digit mobile aur address fill karein.");
+        return;
+      }
+
+      saveProfile({ name, mobile, address });
+      alert("Profile save ho gaya. Ab checkout par details dobara nahi bharni hongi.");
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(PROFILE_KEY);
+      document.getElementById("panelCustomerName").value = "";
+      document.getElementById("panelMobile").value = "";
+      document.getElementById("panelAddress").value = "";
+      document.getElementById("customerName").value = "";
+      document.getElementById("mobile").value = "";
+      document.getElementById("address").value = "";
+      accountHello.textContent = "Hello, Customer";
+    });
 
     window.addToCartById = function(productId) {
       const product = products.find(item => item.id === productId);
@@ -903,6 +1683,15 @@
       cartCountEl.textContent = count;
       grandTotalEl.textContent = total.toFixed(2);
 
+      const upiParams = new URLSearchParams({
+        pa: "board.black@ibl",
+        pn: "Apna DG Store",
+        am: total.toFixed(2),
+        cu: "INR",
+        tn: "Apna DG Store Order"
+      });
+      upiPayLink.href = "upi://pay?" + upiParams.toString();
+
       if (!cart.length) {
         cartEl.innerHTML = '<div class="empty">Cart empty hai.</div>';
         return;
@@ -945,11 +1734,30 @@
       const customerName = document.getElementById("customerName").value.trim();
       const mobile = document.getElementById("mobile").value.trim();
       const address = document.getElementById("address").value.trim();
+      const paymentMethod =
+        document.querySelector('input[name="paymentMethod"]:checked').value;
+      const paymentReference = paymentReferenceEl.value.trim();
 
       if (!customerName || !mobile || !address) {
         showMessage("Customer ki sab details fill karein.", "error");
         return;
       }
+
+      if (!/^\d{10}$/.test(mobile)) {
+        showMessage("Valid 10-digit mobile number enter karein.", "error");
+        return;
+      }
+
+      if (paymentMethod === "ONLINE" && !paymentReference) {
+        showMessage("Online payment ka transaction/UTR number enter karein.", "error");
+        return;
+      }
+
+      saveProfile({
+        name: customerName,
+        mobile,
+        address
+      });
 
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order save ho raha hai...";
@@ -965,7 +1773,9 @@
             customer_name: customerName,
             mobile,
             address,
-            status: "pending"
+            status: "pending",
+            payment_method: paymentMethod,
+            payment_reference: paymentMethod === "ONLINE" ? paymentReference : null
           })
           .select("id, order_id")
           .single();
@@ -986,6 +1796,24 @@
 
         if (itemsError) throw itemsError;
 
+        const finalTotal = cart.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
+
+        saveOrderHistory({
+          order_id: order.order_id,
+          date: new Date().toLocaleString("en-IN"),
+          status: "pending",
+          total: finalTotal,
+          payment_method: paymentMethod,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        });
+
         showMessage(
           "Order successfully place ho gaya. Order ID: " + order.order_id,
           "success"
@@ -994,6 +1822,8 @@
         cart = [];
         renderCart();
         event.target.reset();
+        onlinePaymentBox.classList.remove("show");
+        applySavedProfile();
       } catch (error) {
         console.error(error);
         showMessage("Order save nahi hua: " + error.message, "error");
@@ -1003,8 +1833,50 @@
       }
     });
 
+    backToCategoriesBtn.addEventListener("click", () => {
+      selectedCategory = "";
+      productSearchEl.value = "";
+      topCategoryFilterEl.value = "";
+      sideCategoryFilterEl.value = "";
+      productsAreaEl.classList.remove("active");
+      categoryLandingEl.style.display = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    applySavedProfile();
     renderCart();
     loadProducts();
   </script>
+
+  <div id="accountModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Customer Panel</h2>
+        <button id="closeAccountModal" class="modal-close" type="button">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-panel="profilePanel" type="button">My Profile</button>
+          <button class="panel-tab" data-panel="ordersPanel" type="button">My Orders</button>
+        </div>
+
+        <section id="profilePanel" class="panel-view active">
+          <div class="form-grid">
+            <input id="panelCustomerName" type="text" placeholder="Customer name" />
+            <input id="panelMobile" type="tel" placeholder="Mobile number" minlength="10" />
+            <textarea id="panelAddress" placeholder="Delivery address"></textarea>
+          </div>
+          <button id="saveProfileBtn" class="save-profile-btn" type="button">Save Profile</button>
+          <button id="logoutBtn" class="logout-btn" type="button">Clear Saved Profile</button>
+        </section>
+
+        <section id="ordersPanel" class="panel-view">
+          <div id="ordersList" class="orders-list"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
