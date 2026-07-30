@@ -3,167 +3,648 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#5b21b6" />
   <title>Apna DG Store</title>
+
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --primary: #6d28d9;
+      --primary-dark: #4c1d95;
+      --primary-soft: #ede9fe;
+      --secondary: #0891b2;
+      --accent: #f59e0b;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-solid: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+      --success: #15803d;
+      --shadow: 0 18px 50px rgba(76, 29, 149, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #1f2937;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(109, 40, 217, 0.15), transparent 32%),
+        radial-gradient(circle at top right, rgba(8, 145, 178, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
     }
-    header {
-      background: #15803d;
-      color: white;
-      padding: 18px 5%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
     }
-    header h1 { margin: 0; font-size: 24px; }
-    .cart-count {
-      background: white;
-      color: #15803d;
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-weight: bold;
-    }
-    main {
-      width: min(1180px, 92%);
-      margin: 28px auto;
-      display: grid;
-      grid-template-columns: 1.7fr 1fr;
-      gap: 24px;
-    }
-    .panel {
-      background: white;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 5px 18px rgba(0,0,0,.08);
-    }
-    h2 { margin-top: 0; }
-    .products {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 16px;
-    }
-    .product {
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .emoji { font-size: 42px; }
-    .product h3 { margin: 0; }
-    .muted { color: #6b7280; font-size: 14px; }
-    .price { font-size: 19px; font-weight: bold; color: #15803d; }
+
     button {
       border: 0;
-      border-radius: 9px;
-      padding: 11px 14px;
-      cursor: pointer;
-      font-weight: bold;
     }
-    .add-btn, .submit-btn {
-      background: #16a34a;
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 16px 5%;
+      background: rgba(76, 29, 149, 0.9);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(76, 29, 149, 0.22);
+    }
+
+    .topbar-inner {
+      width: min(1280px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       color: white;
     }
-    .add-btn:hover, .submit-btn:hover { background: #15803d; }
-    .submit-btn { width: 100%; margin-top: 12px; font-size: 16px; }
-    .submit-btn:disabled { opacity: .65; cursor: not-allowed; }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      font-size: 25px;
+      background: linear-gradient(135deg, #a78bfa, #22d3ee);
+      box-shadow: 0 10px 24px rgba(34, 211, 238, 0.25);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 28px);
+      letter-spacing: -0.03em;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .cart-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      background: white;
+      color: var(--primary-dark);
+      font-weight: 800;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .hero {
+      width: min(1280px, 92%);
+      margin: 28px auto 0;
+      padding: 28px;
+      border-radius: 28px;
+      color: white;
+      background:
+        linear-gradient(120deg, rgba(109, 40, 217, 0.96), rgba(8, 145, 178, 0.9)),
+        radial-gradient(circle at right, rgba(255,255,255,.2), transparent 40%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "🛍️";
+      position: absolute;
+      right: 36px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: clamp(60px, 10vw, 120px);
+      opacity: 0.18;
+    }
+
+    .hero h2 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 5vw, 46px);
+      line-height: 1.05;
+      max-width: 720px;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 650px;
+      color: rgba(255,255,255,.84);
+      font-size: 16px;
+    }
+
+    main {
+      width: min(1280px, 92%);
+      margin: 24px auto 44px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.85fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .panel-title h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .result-count {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--text);
+      border-radius: 14px;
+      outline: none;
+      transition: 0.2s ease;
+    }
+
+    input,
+    select {
+      min-height: 48px;
+      padding: 0 14px;
+    }
+
+    .search-input {
+      padding-left: 42px;
+    }
+
+    textarea {
+      min-height: 100px;
+      padding: 13px 14px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.12);
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .product {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 270px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface-solid);
+      overflow: hidden;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .product::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+
+    .product:hover {
+      transform: translateY(-6px);
+      border-color: rgba(109, 40, 217, 0.35);
+      box-shadow: 0 18px 34px rgba(76, 29, 149, 0.13);
+    }
+
+    .emoji-wrap {
+      width: 66px;
+      height: 66px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      font-size: 34px;
+      background: linear-gradient(145deg, #f5f3ff, #ecfeff);
+      border: 1px solid #ede9fe;
+    }
+
+    .product h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .sku {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .category-badge {
+      align-self: flex-start;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--primary-dark);
+      background: var(--primary-soft);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .price-row {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .price {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+
+    .add-btn,
+    .submit-btn {
+      cursor: pointer;
+      color: white;
+      font-weight: 800;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      box-shadow: 0 10px 20px rgba(109, 40, 217, 0.2);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .add-btn {
+      padding: 11px 14px;
+      white-space: nowrap;
+    }
+
+    .add-btn:hover,
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(109, 40, 217, 0.28);
+    }
+
+    .cart-panel {
+      position: sticky;
+      top: 94px;
+    }
+
+    .cart-summary {
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #faf5ff, #ecfeff);
+      border: 1px solid #ddd6fe;
+      margin-bottom: 18px;
+    }
+
     .cart-item {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: 8px;
-      padding: 12px 0;
-      border-bottom: 1px solid #e5e7eb;
+      gap: 10px;
+      padding: 14px 0;
+      border-bottom: 1px dashed var(--border);
     }
+
+    .cart-item:last-child {
+      border-bottom: 0;
+    }
+
     .qty-controls {
       display: flex;
       align-items: center;
       gap: 8px;
     }
+
     .qty-controls button {
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       padding: 0;
-      background: #e5e7eb;
+      cursor: pointer;
+      border-radius: 10px;
+      color: var(--primary-dark);
+      background: var(--primary-soft);
+      font-size: 18px;
+      font-weight: 900;
     }
+
     .remove-btn {
+      margin-top: 5px;
+      padding: 0;
+      cursor: pointer;
+      color: var(--danger);
       background: transparent;
-      color: #dc2626;
-      padding: 4px;
+      font-size: 13px;
+      font-weight: 800;
     }
+
     .total {
       display: flex;
       justify-content: space-between;
-      font-size: 20px;
-      font-weight: bold;
+      align-items: center;
       margin: 18px 0;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 22px;
+      font-weight: 900;
     }
-    input, textarea {
+
+    .customer-fields {
+      display: grid;
+      gap: 10px;
+    }
+
+    .submit-btn {
       width: 100%;
-      padding: 12px;
-      margin: 7px 0;
-      border: 1px solid #d1d5db;
-      border-radius: 9px;
-      font-size: 15px;
+      margin-top: 12px;
+      padding: 14px;
+      font-size: 16px;
     }
-    textarea { min-height: 90px; resize: vertical; }
+
+    .submit-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .message {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 9px;
       display: none;
+      margin-top: 14px;
+      padding: 13px 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      line-height: 1.45;
     }
-    .success { display: block; background: #dcfce7; color: #166534; }
-    .error { display: block; background: #fee2e2; color: #991b1b; }
-    .empty { color: #6b7280; text-align: center; padding: 18px; }
-    @media (max-width: 820px) {
-      main { grid-template-columns: 1fr; }
+
+    .success {
+      display: block;
+      color: #166534;
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+    }
+
+    .error {
+      display: block;
+      color: #991b1b;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: 32px 18px;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      background: rgba(248, 250, 252, 0.8);
+    }
+
+    .loading {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 160px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid #ddd6fe;
+      border-top-color: var(--primary);
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .cart-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        padding-inline: 4%;
+      }
+
+      .brand p {
+        display: none;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .hero::after {
+        right: 8px;
+      }
+
+      main {
+        width: min(94%, 1280px);
+      }
+
+      .panel {
+        padding: 16px;
+        border-radius: 20px;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .products {
+        grid-template-columns: 1fr;
+      }
+
+      .price-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .add-btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
+
 <body>
-  <header>
-    <h1>🛒 Apna DG Store</h1>
-    <div class="cart-count">Cart: <span id="cartCount">0</span></div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon">🛒</div>
+        <div>
+          <h1>Apna DG Store</h1>
+          <p>Daily needs, easy ordering</p>
+        </div>
+      </div>
+
+      <div class="cart-pill">
+        <span>🛍️</span>
+        <span>Cart:</span>
+        <span id="cartCount">0</span>
+      </div>
+    </div>
   </header>
+
+  <section class="hero">
+    <h2>Ghar baithe apni zaroorat ka samaan order karein</h2>
+    <p>Category choose karein, product search karein aur ek hi order mein multiple items add karein.</p>
+  </section>
 
   <main>
     <section class="panel">
-      <h2>Products</h2>
+      <div class="panel-title">
+        <h2>Products</h2>
+        <span id="resultCount" class="result-count"></span>
+      </div>
+
+      <div class="filters">
+        <div class="field">
+          <span class="field-icon">🔎</span>
+          <input
+            id="productSearch"
+            class="search-input"
+            type="search"
+            placeholder="Product name ya SKU search karein..."
+            autocomplete="off"
+          />
+        </div>
+
+        <select id="categoryFilter">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
       <div id="products" class="products">
-        <p>Products load ho rahe hain...</p>
+        <div class="loading">
+          <span class="spinner"></span>
+          Products load ho rahe hain...
+        </div>
       </div>
     </section>
 
-    <aside class="panel">
-      <h2>Your Cart</h2>
-      <div id="cart"></div>
-      <div class="total">
-        <span>Total</span>
-        <span>₹<span id="grandTotal">0</span></span>
+    <aside class="panel cart-panel">
+      <div class="panel-title">
+        <h2>Your Cart</h2>
       </div>
 
-      <h2>Customer Details</h2>
+      <div class="cart-summary">
+        <div id="cart"></div>
+
+        <div class="total">
+          <span>Total</span>
+          <span>₹<span id="grandTotal">0.00</span></span>
+        </div>
+      </div>
+
+      <div class="panel-title">
+        <h2>Customer Details</h2>
+      </div>
+
       <form id="orderForm">
-        <input id="customerName" type="text" placeholder="Customer name" required />
-        <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" required />
-        <textarea id="address" placeholder="Delivery address" required></textarea>
-        <button id="placeOrderBtn" class="submit-btn" type="submit">Place Order</button>
+        <div class="customer-fields">
+          <input id="customerName" type="text" placeholder="Customer name" required />
+          <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" required />
+          <textarea id="address" placeholder="Delivery address" required></textarea>
+        </div>
+
+        <button id="placeOrderBtn" class="submit-btn" type="submit">
+          Place Order
+        </button>
       </form>
+
       <div id="message" class="message"></div>
     </aside>
   </main>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
   <script>
-    // Supabase Dashboard → Project Settings → API se values copy karein.
-   const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
+    const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
 
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -171,6 +652,9 @@
     let cart = [];
 
     const productsEl = document.getElementById("products");
+    const productSearchEl = document.getElementById("productSearch");
+    const categoryFilterEl = document.getElementById("categoryFilter");
+    const resultCountEl = document.getElementById("resultCount");
     const cartEl = document.getElementById("cart");
     const cartCountEl = document.getElementById("cartCount");
     const grandTotalEl = document.getElementById("grandTotal");
@@ -191,6 +675,65 @@
         .replaceAll("'", "&#039;");
     }
 
+    function fillCategoryFilter() {
+      const categories = [...new Set(
+        products
+          .map(product => String(product.category || "").trim())
+          .filter(Boolean)
+      )].sort((a, b) => a.localeCompare(b));
+
+      categoryFilterEl.innerHTML =
+        '<option value="">All Categories</option>' +
+        categories.map(category => `
+          <option value="${escapeHtml(category)}">${escapeHtml(category)}</option>
+        `).join("");
+    }
+
+    function renderProducts() {
+      const searchText = productSearchEl.value.trim().toLowerCase();
+      const selectedCategory = categoryFilterEl.value;
+
+      const filteredProducts = products.filter(product => {
+        const name = String(product.name || "").toLowerCase();
+        const sku = String(product.id || "").toLowerCase();
+        const category = String(product.category || "");
+
+        return (
+          (!searchText || name.includes(searchText) || sku.includes(searchText)) &&
+          (!selectedCategory || category === selectedCategory)
+        );
+      });
+
+      resultCountEl.textContent = filteredProducts.length + " product(s) found";
+
+      if (!filteredProducts.length) {
+        productsEl.innerHTML =
+          '<p class="empty">Is search/category mein koi product nahi mila.</p>';
+        return;
+      }
+
+      productsEl.innerHTML = filteredProducts.map(product => `
+        <article class="product">
+          <div class="emoji-wrap">${escapeHtml(product.emoji || "📦")}</div>
+          <div class="sku">SKU: ${escapeHtml(product.id)}</div>
+          <h3>${escapeHtml(product.name)}</h3>
+          <span class="category-badge">${escapeHtml(product.category || "Other")}</span>
+          <div class="muted">${escapeHtml(product.unit || "")}</div>
+
+          <div class="price-row">
+            <div class="price">₹${Number(product.price).toFixed(2)}</div>
+            <button
+              class="add-btn"
+              type="button"
+              onclick='addToCartById(${JSON.stringify(product.id)})'
+            >
+              Add to Cart
+            </button>
+          </div>
+        </article>
+      `).join("");
+    }
+
     async function loadProducts() {
       const { data, error } = await db
         .from("products")
@@ -200,33 +743,24 @@
 
       if (error) {
         productsEl.innerHTML =
-          '<p class="error">Products load nahi hue: ' + escapeHtml(error.message) + "</p>";
+          '<p class="error">Products load nahi hue: ' +
+          escapeHtml(error.message) +
+          "</p>";
         return;
       }
 
       products = data || [];
-
-      if (!products.length) {
-        productsEl.innerHTML = '<p class="empty">Koi active product nahi mila.</p>';
-        return;
-      }
-
-      productsEl.innerHTML = products.map((p, index) => `
-        <article class="product">
-          <div class="emoji">${escapeHtml(p.emoji || "📦")}</div>
-          <h3>${escapeHtml(p.name)}</h3>
-          <div class="muted">${escapeHtml(p.category || "")}</div>
-          <div class="muted">${escapeHtml(p.unit || "")}</div>
-          <div class="price">₹${Number(p.price).toFixed(2)}</div>
-          <button class="add-btn" type="button" onclick="addToCart(${index})">
-            Add to Cart
-          </button>
-        </article>
-      `).join("");
+      fillCategoryFilter();
+      renderProducts();
     }
 
-    window.addToCart = function(index) {
-      const product = products[index];
+    productSearchEl.addEventListener("input", renderProducts);
+    categoryFilterEl.addEventListener("change", renderProducts);
+
+    window.addToCartById = function(productId) {
+      const product = products.find(item => item.id === productId);
+      if (!product) return;
+
       const existing = cart.find(item => item.id === product.id);
 
       if (existing) {
@@ -244,24 +778,29 @@
     };
 
     window.changeQuantity = function(productId, change) {
-      const item = cart.find(p => p.id === productId);
+      const item = cart.find(product => product.id === productId);
       if (!item) return;
 
       item.quantity += change;
+
       if (item.quantity <= 0) {
-        cart = cart.filter(p => p.id !== productId);
+        cart = cart.filter(product => product.id !== productId);
       }
+
       renderCart();
     };
 
     window.removeFromCart = function(productId) {
-      cart = cart.filter(p => p.id !== productId);
+      cart = cart.filter(product => product.id !== productId);
       renderCart();
     };
 
     function renderCart() {
       const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const total = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
 
       cartCountEl.textContent = count;
       grandTotalEl.textContent = total.toFixed(2);
@@ -275,20 +814,40 @@
         <div class="cart-item">
           <div>
             <strong>${escapeHtml(item.name)}</strong>
-            <div class="muted">₹${item.price.toFixed(2)} × ${item.quantity}</div>
-            <button class="remove-btn" type="button"
-              onclick='removeFromCart(${JSON.stringify(item.id)})'>Remove</button>
+            <div class="muted">
+              ₹${item.price.toFixed(2)} × ${item.quantity}
+            </div>
+            <button
+              class="remove-btn"
+              type="button"
+              onclick='removeFromCart(${JSON.stringify(item.id)})'
+            >
+              Remove
+            </button>
           </div>
+
           <div class="qty-controls">
-            <button type="button" onclick='changeQuantity(${JSON.stringify(item.id)}, -1)'>−</button>
-            <span>${item.quantity}</span>
-            <button type="button" onclick='changeQuantity(${JSON.stringify(item.id)}, 1)'>+</button>
+            <button
+              type="button"
+              onclick='changeQuantity(${JSON.stringify(item.id)}, -1)'
+            >
+              −
+            </button>
+
+            <strong>${item.quantity}</strong>
+
+            <button
+              type="button"
+              onclick='changeQuantity(${JSON.stringify(item.id)}, 1)'
+            >
+              +
+            </button>
           </div>
         </div>
       `).join("");
     }
 
-    document.getElementById("orderForm").addEventListener("submit", async (event) => {
+    document.getElementById("orderForm").addEventListener("submit", async event => {
       event.preventDefault();
       messageEl.className = "message";
 
@@ -297,9 +856,14 @@
         return;
       }
 
-      const customerName = document.getElementById("customerName").value.trim();
-      const mobile = document.getElementById("mobile").value.trim();
-      const address = document.getElementById("address").value.trim();
+      const customerName =
+        document.getElementById("customerName").value.trim();
+
+      const mobile =
+        document.getElementById("mobile").value.trim();
+
+      const address =
+        document.getElementById("address").value.trim();
 
       if (!customerName || !mobile || !address) {
         showMessage("Customer ki sab details fill karein.", "error");
@@ -309,12 +873,10 @@
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order save ho raha hai...";
 
-      // Date + random value se har order ki unique ID.
       const orderCode =
         "ORD-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 
       try {
-        // 1) Main order save karein aur generated numeric id lein.
         const { data: order, error: orderError } = await db
           .from("orders")
           .insert({
@@ -329,7 +891,6 @@
 
         if (orderError) throw orderError;
 
-        // 2) Ek hi order ke saare products order_items mein save karein.
         const orderItems = cart.map(item => ({
           order_id: order.id,
           product_id: item.id,
