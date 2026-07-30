@@ -893,206 +893,6 @@
       }
     }
 
-
-    .account-button {
-      border: 0;
-      background: transparent;
-      color: white;
-      cursor: pointer;
-      text-align: left;
-      padding: 0;
-    }
-
-    .account-button strong {
-      display: block;
-      font-size: 15px;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(15, 23, 42, .66);
-      padding: 18px;
-      overflow-y: auto;
-    }
-
-    .modal.open {
-      display: grid;
-      place-items: center;
-    }
-
-    .modal-card {
-      width: min(560px, 100%);
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 24px 70px rgba(0,0,0,.28);
-      overflow: hidden;
-    }
-
-    .modal-head {
-      padding: 18px 20px;
-      background: var(--navy);
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .modal-head h2 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .modal-close {
-      width: 36px;
-      height: 36px;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-      background: rgba(255,255,255,.14);
-      color: white;
-      font-size: 21px;
-    }
-
-    .modal-body {
-      padding: 20px;
-    }
-
-    .panel-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .panel-tab {
-      flex: 1;
-      border: 1px solid var(--border);
-      background: white;
-      border-radius: 10px;
-      padding: 10px;
-      cursor: pointer;
-      font-weight: 800;
-    }
-
-    .panel-tab.active {
-      background: var(--yellow);
-      border-color: var(--yellow);
-    }
-
-    .panel-view {
-      display: none;
-    }
-
-    .panel-view.active {
-      display: block;
-    }
-
-    .profile-summary {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 14px;
-    }
-
-    .profile-summary p {
-      margin: 6px 0;
-      color: var(--muted);
-    }
-
-    .orders-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .order-history-card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px;
-    }
-
-    .order-history-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .status-pill {
-      border-radius: 999px;
-      padding: 5px 9px;
-      background: #fef3c7;
-      color: #92400e;
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .payment-options {
-      display: grid;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .payment-option {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      cursor: pointer;
-    }
-
-    .payment-option:has(input:checked) {
-      border-color: var(--yellow);
-      background: #fff7ed;
-    }
-
-    .online-payment-box {
-      display: none;
-      margin-top: 10px;
-      padding: 13px;
-      border-radius: 12px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-    }
-
-    .online-payment-box.show {
-      display: block;
-    }
-
-    .pay-number {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: .5px;
-      color: var(--blue-dark);
-      margin: 6px 0;
-    }
-
-    .save-profile-btn,
-    .logout-btn {
-      width: 100%;
-      border: 0;
-      border-radius: 10px;
-      padding: 12px;
-      cursor: pointer;
-      font-weight: 800;
-    }
-
-    .save-profile-btn {
-      background: var(--blue);
-      color: white;
-    }
-
-    .logout-btn {
-      background: #fee2e2;
-      color: #991b1b;
-      margin-top: 10px;
-    }
-
   </style>
 </head>
 
@@ -1116,10 +916,10 @@
       </div>
 
       <div class="header-actions">
-        <button id="accountButton" class="header-action account-button" type="button">
-          <span id="accountHello">Hello, Customer</span>
+        <a class="header-action" href="#productsArea">
+          Hello, Customer
           <strong>Your Account</strong>
-        </button>
+        </a>
         <button class="cart-button" type="button">
           🛍 Cart <span id="cartCount">0</span>
         </button>
@@ -1189,38 +989,6 @@
           <textarea id="address" placeholder="Delivery address" required></textarea>
         </div>
 
-        <h3>Payment Method</h3>
-
-        <div class="payment-options">
-          <label class="payment-option">
-            <input type="radio" name="paymentMethod" value="COD" checked />
-            <span>
-              <strong>Cash on Delivery</strong><br />
-              <small>Order delivery ke time payment karein.</small>
-            </span>
-          </label>
-
-          <label class="payment-option">
-            <input type="radio" name="paymentMethod" value="ONLINE" />
-            <span>
-              <strong>Online Payment</strong><br />
-              <small>Payment karke transaction/reference number enter karein.</small>
-            </span>
-          </label>
-        </div>
-
-        <div id="onlinePaymentBox" class="online-payment-box">
-          <strong>Pay via UPI</strong>
-          <div class="pay-number">board.black@ibl</div>
-          <small>Google Pay / PhonePe / Paytm mein UPI ID board.black@ibl par payment karein.</small>
-          <a id="upiPayLink"
-             href="#"
-             style="display:block;text-align:center;margin-top:10px;padding:11px 12px;border-radius:9px;background:#16a34a;color:white;text-decoration:none;font-weight:800;">
-            Open UPI App
-          </a>
-          <input id="paymentReference" type="text" placeholder="Transaction / UTR number" style="margin-top:10px;" />
-        </div>
-
         <button id="placeOrderBtn" class="place-btn" type="submit">
           Place Order
         </button>
@@ -1260,92 +1028,6 @@
     const grandTotalEl = document.getElementById("grandTotal");
     const messageEl = document.getElementById("message");
     const placeOrderBtn = document.getElementById("placeOrderBtn");
-    const accountButton = document.getElementById("accountButton");
-    const accountModal = document.getElementById("accountModal");
-    const closeAccountModal = document.getElementById("closeAccountModal");
-    const accountHello = document.getElementById("accountHello");
-    const saveProfileBtn = document.getElementById("saveProfileBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const ordersList = document.getElementById("ordersList");
-    const onlinePaymentBox = document.getElementById("onlinePaymentBox");
-    const paymentReferenceEl = document.getElementById("paymentReference");
-    const upiPayLink = document.getElementById("upiPayLink");
-
-    const PROFILE_KEY = "apna_dg_customer_profile";
-    const ORDERS_KEY = "apna_dg_customer_orders";
-
-
-
-    function getSavedProfile() {
-      try {
-        return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
-      } catch {
-        return null;
-      }
-    }
-
-    function saveProfile(profile) {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      applySavedProfile();
-    }
-
-    function applySavedProfile() {
-      const profile = getSavedProfile();
-      if (!profile) {
-        accountHello.textContent = "Hello, Customer";
-        return;
-      }
-
-      document.getElementById("customerName").value = profile.name || "";
-      document.getElementById("mobile").value = profile.mobile || "";
-      document.getElementById("address").value = profile.address || "";
-
-      document.getElementById("panelCustomerName").value = profile.name || "";
-      document.getElementById("panelMobile").value = profile.mobile || "";
-      document.getElementById("panelAddress").value = profile.address || "";
-
-      accountHello.textContent = "Hello, " + (profile.name || "Customer");
-    }
-
-    function getSavedOrders() {
-      try {
-        return JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function saveOrderHistory(order) {
-      const orders = getSavedOrders();
-      orders.unshift(order);
-      localStorage.setItem(ORDERS_KEY, JSON.stringify(orders.slice(0, 50)));
-    }
-
-    function renderOrderHistory() {
-      const orders = getSavedOrders();
-
-      if (!orders.length) {
-        ordersList.innerHTML = '<div class="empty">Abhi koi purana order nahi hai.</div>';
-        return;
-      }
-
-      ordersList.innerHTML = orders.map(order => `
-        <article class="order-history-card">
-          <div class="order-history-top">
-            <div>
-              <strong>${escapeHtml(order.order_id)}</strong><br />
-              <small>${escapeHtml(order.date)}</small>
-            </div>
-            <span class="status-pill">${escapeHtml(order.status || "pending")}</span>
-          </div>
-          <div>${order.items.map(item =>
-            `${escapeHtml(item.name)} × ${item.quantity}`
-          ).join("<br>")}</div>
-          <p><strong>Total: ₹${Number(order.total).toFixed(2)}</strong></p>
-          <small>Payment: ${escapeHtml(order.payment_method)}</small>
-        </article>
-      `).join("");
-    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1568,76 +1250,6 @@
     sideCategoryFilterEl.addEventListener("change", event => syncCategory(event.target.value));
     sortProductsEl.addEventListener("change", renderProducts);
 
-
-    document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
-      input.addEventListener("change", () => {
-        const isOnline =
-          document.querySelector('input[name="paymentMethod"]:checked').value === "ONLINE";
-
-        onlinePaymentBox.classList.toggle("show", isOnline);
-        paymentReferenceEl.required = isOnline;
-      });
-    });
-
-    accountButton.addEventListener("click", () => {
-      applySavedProfile();
-      renderOrderHistory();
-      accountModal.classList.add("open");
-      accountModal.setAttribute("aria-hidden", "false");
-    });
-
-    closeAccountModal.addEventListener("click", () => {
-      accountModal.classList.remove("open");
-      accountModal.setAttribute("aria-hidden", "true");
-    });
-
-    accountModal.addEventListener("click", event => {
-      if (event.target === accountModal) {
-        accountModal.classList.remove("open");
-      }
-    });
-
-    document.querySelectorAll(".panel-tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".panel-tab").forEach(item =>
-          item.classList.toggle("active", item === tab)
-        );
-
-        document.querySelectorAll(".panel-view").forEach(panel =>
-          panel.classList.toggle("active", panel.id === tab.dataset.panel)
-        );
-
-        if (tab.dataset.panel === "ordersPanel") {
-          renderOrderHistory();
-        }
-      });
-    });
-
-    saveProfileBtn.addEventListener("click", () => {
-      const name = document.getElementById("panelCustomerName").value.trim();
-      const mobile = document.getElementById("panelMobile").value.trim();
-      const address = document.getElementById("panelAddress").value.trim();
-
-      if (!name || !/^\d{10}$/.test(mobile) || !address) {
-        alert("Name, valid 10-digit mobile aur address fill karein.");
-        return;
-      }
-
-      saveProfile({ name, mobile, address });
-      alert("Profile save ho gaya. Ab checkout par details dobara nahi bharni hongi.");
-    });
-
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem(PROFILE_KEY);
-      document.getElementById("panelCustomerName").value = "";
-      document.getElementById("panelMobile").value = "";
-      document.getElementById("panelAddress").value = "";
-      document.getElementById("customerName").value = "";
-      document.getElementById("mobile").value = "";
-      document.getElementById("address").value = "";
-      accountHello.textContent = "Hello, Customer";
-    });
-
     window.addToCartById = function(productId) {
       const product = products.find(item => item.id === productId);
       if (!product) return;
@@ -1683,15 +1295,6 @@
       cartCountEl.textContent = count;
       grandTotalEl.textContent = total.toFixed(2);
 
-      const upiParams = new URLSearchParams({
-        pa: "board.black@ibl",
-        pn: "Apna DG Store",
-        am: total.toFixed(2),
-        cu: "INR",
-        tn: "Apna DG Store Order"
-      });
-      upiPayLink.href = "upi://pay?" + upiParams.toString();
-
       if (!cart.length) {
         cartEl.innerHTML = '<div class="empty">Cart empty hai.</div>';
         return;
@@ -1734,30 +1337,11 @@
       const customerName = document.getElementById("customerName").value.trim();
       const mobile = document.getElementById("mobile").value.trim();
       const address = document.getElementById("address").value.trim();
-      const paymentMethod =
-        document.querySelector('input[name="paymentMethod"]:checked').value;
-      const paymentReference = paymentReferenceEl.value.trim();
 
       if (!customerName || !mobile || !address) {
         showMessage("Customer ki sab details fill karein.", "error");
         return;
       }
-
-      if (!/^\d{10}$/.test(mobile)) {
-        showMessage("Valid 10-digit mobile number enter karein.", "error");
-        return;
-      }
-
-      if (paymentMethod === "ONLINE" && !paymentReference) {
-        showMessage("Online payment ka transaction/UTR number enter karein.", "error");
-        return;
-      }
-
-      saveProfile({
-        name: customerName,
-        mobile,
-        address
-      });
 
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order save ho raha hai...";
@@ -1773,9 +1357,7 @@
             customer_name: customerName,
             mobile,
             address,
-            status: "pending",
-            payment_method: paymentMethod,
-            payment_reference: paymentMethod === "ONLINE" ? paymentReference : null
+            status: "pending"
           })
           .select("id, order_id")
           .single();
@@ -1796,24 +1378,6 @@
 
         if (itemsError) throw itemsError;
 
-        const finalTotal = cart.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
-
-        saveOrderHistory({
-          order_id: order.order_id,
-          date: new Date().toLocaleString("en-IN"),
-          status: "pending",
-          total: finalTotal,
-          payment_method: paymentMethod,
-          items: cart.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price
-          }))
-        });
-
         showMessage(
           "Order successfully place ho gaya. Order ID: " + order.order_id,
           "success"
@@ -1822,8 +1386,6 @@
         cart = [];
         renderCart();
         event.target.reset();
-        onlinePaymentBox.classList.remove("show");
-        applySavedProfile();
       } catch (error) {
         console.error(error);
         showMessage("Order save nahi hua: " + error.message, "error");
@@ -1843,40 +1405,8 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    applySavedProfile();
     renderCart();
     loadProducts();
   </script>
-
-  <div id="accountModal" class="modal" aria-hidden="true">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h2>Customer Panel</h2>
-        <button id="closeAccountModal" class="modal-close" type="button">×</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="panel-tabs">
-          <button class="panel-tab active" data-panel="profilePanel" type="button">My Profile</button>
-          <button class="panel-tab" data-panel="ordersPanel" type="button">My Orders</button>
-        </div>
-
-        <section id="profilePanel" class="panel-view active">
-          <div class="form-grid">
-            <input id="panelCustomerName" type="text" placeholder="Customer name" />
-            <input id="panelMobile" type="tel" placeholder="Mobile number" minlength="10" />
-            <textarea id="panelAddress" placeholder="Delivery address"></textarea>
-          </div>
-          <button id="saveProfileBtn" class="save-profile-btn" type="button">Save Profile</button>
-          <button id="logoutBtn" class="logout-btn" type="button">Clear Saved Profile</button>
-        </section>
-
-        <section id="ordersPanel" class="panel-view">
-          <div id="ordersList" class="orders-list"></div>
-        </section>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
