@@ -386,12 +386,34 @@
 
     .form-grid { display: grid; gap: 10px; }
 
-    .form-grid input, .form-grid textarea {
+    .form-grid input, .form-grid textarea, .form-grid select {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 9px 11px;
       outline: 0;
+    }
+
+    .payment-option-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #f8fafc;
+      margin-top: 4px;
+    }
+
+    .payment-option-box label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+
+    .payment-option-box label:last-child {
+      margin-bottom: 0;
     }
 
     .place-btn, .action-btn {
@@ -435,6 +457,7 @@
     }
 
     .order-status.completed { background: #dcfce7; color: #166534; }
+    .order-status.cancelled { background: #fee2e2; color: #991b1b; }
 
     .order-details-body {
       margin-top: 10px;
@@ -459,6 +482,50 @@
       border-top: 1px solid var(--border);
       font-weight: 800;
       font-size: 15px;
+    }
+
+    .cancel-btn {
+      background: var(--danger);
+      color: white;
+      border: 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    /* UPI Payment Modal */
+    .upi-box {
+      text-align: center;
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-top: 14px;
+    }
+
+    .upi-qr {
+      width: 180px;
+      height: 180px;
+      margin: 10px auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .upi-pay-btn {
+      background: #16a34a;
+      color: white;
+      border: 0;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 800;
+      width: 100%;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 8px;
     }
 
     .empty, .loading {
@@ -585,6 +652,7 @@
     </section>
   </main>
 
+  <!-- Cart Modal Overlay -->
   <div id="cartOverlay" class="modal-overlay">
     <aside class="modal-panel">
       <div class="modal-header">
@@ -605,6 +673,19 @@
           <input id="customerName" type="text" placeholder="Customer name" required />
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" maxlength="10" required />
           <textarea id="address" placeholder="Delivery address" required></textarea>
+
+          <!-- Payment Selection Option -->
+          <div class="payment-option-box">
+            <span style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Select Payment Method:</span>
+            <label>
+              <input type="radio" name="paymentMethod" value="cod" checked /> 
+              💵 Cash on Delivery (COD)
+            </label>
+            <label>
+              <input type="radio" name="paymentMethod" value="online" /> 
+              📱 Online Payment (UPI / QR)
+            </label>
+          </div>
         </div>
 
         <button id="placeOrderBtn" class="place-btn" type="submit">
@@ -614,6 +695,30 @@
     </aside>
   </div>
 
+  <!-- UPI Payment Modal -->
+  <div id="upiModal" class="modal-overlay">
+    <aside class="modal-panel" style="max-width:380px;">
+      <div class="modal-header">
+        <h2>Pay Online (UPI)</h2>
+        <button id="closeUpiBtn" class="close-btn" type="button">✕</button>
+      </div>
+
+      <div class="upi-box">
+        <p style="margin:0; font-size:13px; color:var(--muted);">Scan QR Code with Google Pay / PhonePe / Paytm</p>
+        <img id="upiQrCodeImg" class="upi-qr" src="" alt="UPI QR Code" />
+        <p style="font-weight:800; font-size:18px; margin:6px 0; color:var(--navy);" id="upiPayAmount">₹0.00</p>
+        <small style="color:var(--muted); display:block;">UPI ID: <strong>board.black@ibl</strong></small>
+        
+        <a id="directUpiLink" href="#" class="upi-pay-btn">📲 Pay via Mobile UPI App</a>
+      </div>
+
+      <button class="place-btn" onclick="finishPaymentProcess()" style="margin-top:16px;">
+        ✅ Complete Order
+      </button>
+    </aside>
+  </div>
+
+  <!-- Customer Account / Order History Overlay -->
   <div id="accountOverlay" class="modal-overlay">
     <aside class="modal-panel">
       <div class="modal-header">
@@ -642,6 +747,9 @@
     const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const MY_UPI_ID = "board.black@ibl";
+    const MY_STORE_NAME = "Apna DG Store";
+
     let products = [];
     let cart = [];
     let selectedCategory = "";
@@ -666,6 +774,9 @@
     const cartCountEl = document.getElementById("cartCount");
     const grandTotalEl = document.getElementById("grandTotal");
 
+    const upiModalEl = document.getElementById("upiModal");
+    const closeUpiBtn = document.getElementById("closeUpiBtn");
+
     const accountOverlayEl = document.getElementById("accountOverlay");
     const accountToggleBtn = document.getElementById("accountToggleBtn");
     const closeAccountBtn = document.getElementById("closeAccountBtn");
@@ -680,6 +791,8 @@
     accountToggleBtn.addEventListener("click", () => accountOverlayEl.classList.add("open"));
     closeAccountBtn.addEventListener("click", () => accountOverlayEl.classList.remove("open"));
     accountOverlayEl.addEventListener("click", (e) => { if (e.target === accountOverlayEl) accountOverlayEl.classList.remove("open"); });
+
+    closeUpiBtn.addEventListener("click", () => upiModalEl.classList.remove("open"));
 
     function categoryEmoji(cat) {
       const icons = {
@@ -807,7 +920,7 @@
       `).join("");
     }
 
-    /* Fixed Order Saving */
+    /* Order Submit Handling (COD & Online) */
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!cart.length) return alert("Pehle cart mein items add karein.");
@@ -816,6 +929,8 @@
       const rawMobile = document.getElementById("mobile").value.trim();
       const mobile = rawMobile.replace(/\D/g, "");
       const address = document.getElementById("address").value.trim();
+      
+      const paymentSelected = document.querySelector('input[name="paymentMethod"]:checked').value;
       const placeOrderBtn = document.getElementById("placeOrderBtn");
 
       placeOrderBtn.disabled = true;
@@ -826,7 +941,13 @@
       try {
         const { data: order, error: orderErr } = await db
           .from("orders")
-          .insert({ order_id: orderCode, customer_name: customerName, mobile: mobile, address: address, status: "pending" })
+          .insert({ 
+            order_id: orderCode, 
+            customer_name: customerName, 
+            mobile: mobile, 
+            address: `${address} [Method: ${paymentSelected.toUpperCase()}]`, 
+            status: "pending" 
+          })
           .select("id, order_id")
           .single();
 
@@ -843,11 +964,29 @@
         const { error: itemsErr } = await db.from("order_items").insert(orderItems);
         if (itemsErr) throw itemsErr;
 
-        alert("Order Successful! Order ID: " + order.order_id);
+        const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2);
+
+        if (paymentSelected === "online") {
+          // Setup UPI Online Payment Modal
+          const upiUri = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(MY_STORE_NAME)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(orderCode)}`;
+          const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+
+          document.getElementById("upiQrCodeImg").src = qrApiUrl;
+          document.getElementById("upiPayAmount").textContent = "₹" + totalAmount;
+          document.getElementById("directUpiLink").href = upiUri;
+
+          cartOverlayEl.classList.remove("open");
+          upiModalEl.classList.add("open");
+        } else {
+          // Cash On Delivery Success Message
+          alert(`Order Successfully Placed! (Cash On Delivery)\nOrder ID: ${order.order_id}`);
+          cartOverlayEl.classList.remove("open");
+        }
+
         cart = [];
         renderCart();
         e.target.reset();
-        cartOverlayEl.classList.remove("open");
+
       } catch (err) {
         alert("Order fail ho gaya: " + err.message);
       } finally {
@@ -856,7 +995,27 @@
       }
     });
 
-    /* SPECIFIC CONSTRAINT BASED FETCH FIX */
+    function finishPaymentProcess() {
+      upiModalEl.classList.remove("open");
+      alert("Aapka Order successfully place ho gaya hai!");
+    }
+
+    /* Customer Order Cancellation */
+    window.cancelCustomerOrder = async function(orderId) {
+      if (!confirm("Kya aap sach mein is order ko Cancel karna chahte hain?")) return;
+
+      try {
+        const { error } = await db.from("orders").update({ status: "cancelled" }).eq("id", orderId);
+        if (error) throw error;
+
+        alert("Order Cancel kar diya gaya hai.");
+        document.getElementById("fetchOrdersBtn").click();
+      } catch (err) {
+        alert("Cancel karne mein error aaya: " + err.message);
+      }
+    };
+
+    /* Fetch Orders */
     fetchOrdersBtn.addEventListener("click", async () => {
       const rawMobile = accountMobileInput.value.trim();
       if (!rawMobile) return alert("Mobile number enter karein.");
@@ -895,6 +1054,7 @@
           }, 0);
 
           const dateStr = order.created_at ? new Date(order.created_at).toLocaleDateString("hi-IN") : "N/A";
+          const isPending = (order.status || 'pending').toLowerCase() === 'pending';
 
           return `
             <div class="order-card">
@@ -928,6 +1088,8 @@
                 <span>Total Amount:</span>
                 <span style="color:var(--navy);">₹${totalCalculated.toFixed(2)}</span>
               </div>
+
+              ${isPending ? `<button class="cancel-btn" onclick="cancelCustomerOrder(${order.id})">❌ Cancel Order</button>` : ''}
             </div>
           `;
         }).join("");
