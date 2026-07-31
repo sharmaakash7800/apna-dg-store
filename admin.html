@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apna DG Store - Admin Dashboard</title>
+
+  <style>
+    :root {
+      --navy: #0f172a;
+      --navy-2: #1e293b;
+      --blue: #2563eb;
+      --yellow: #f59e0b;
+      --green: #16a34a;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #111827;
+      --muted: #64748b;
+      --danger: #dc2626;
+      --shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h1 { margin: 0; font-size: 20px; }
+
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+    }
+
+    .tab-btn {
+      background: #334155;
+      color: white;
+      border: 0;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab-btn.active {
+      background: var(--yellow);
+      color: #111827;
+    }
+
+    .container {
+      width: min(1200px, 94%);
+      margin: 24px auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    input, select, button, textarea {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      border: 0;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .order-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: white;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      font-weight: 800;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .customer-info {
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+
+    .status-select {
+      padding: 4px 8px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>⚙️ Apna DG Store - Admin Dashboard</h1>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('ordersTab', event)">📋 Orders & Customers</button>
+      <button class="tab-btn" onclick="switchTab('productsTab', event)">📦 Manage Products</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- TAB 1: ORDERS & CUSTOMER DETAILS -->
+    <section id="ordersTab" class="tab-content active">
+      <div class="card">
+        <h2>Customer Orders Management</h2>
+        <p style="color:var(--muted); font-size:13px;">यहाँ ग्राहकों के हालिया ऑर्डर और उनकी डिलीवरी डिटेल्स दिखेंगी।</p>
+        <button class="btn-primary" onclick="loadAdminOrders()" style="margin-bottom:12px;">🔄 Refresh Orders</button>
+        
+        <div id="adminOrdersContainer">
+          <div style="text-align:center; padding:30px;">Orders load हो रहे हैं...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: PRODUCT LISTING & PRICE EDIT -->
+    <section id="productsTab" class="tab-content">
+      <div class="card">
+        <h3>➕ Naya Product Add Karein</h3>
+        <form id="addProductForm">
+          <div class="form-grid">
+            <input id="prodId" type="text" placeholder="SKU / ID (e.g., GRO-025)" required />
+            <input id="prodName" type="text" placeholder="Product Name (e.g., Milk)" required />
+            <input id="prodCategory" type="text" placeholder="Category (e.g., Dairy)" required />
+            <input id="prodPrice" type="number" step="0.01" placeholder="Price (₹)" required />
+            <input id="prodEmoji" type="text" placeholder="Emoji (e.g., 🥛)" required />
+            <button class="btn-primary" type="submit">Save Product</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>📦 Existing Products List & Price Update</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>SKU / ID</th>
+              <th>Icon</th>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Price (₹)</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminProductsTable">
+            <tr><td colspan="7" style="text-align:center;">Products load हो रहे हैं...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let adminProducts = [];
+
+    function switchTab(tabId, evt) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      
+      document.getElementById(tabId).classList.add("active");
+      if(evt) evt.target.classList.add("active");
+
+      if (tabId === 'ordersTab') loadAdminOrders();
+      if (tabId === 'productsTab') loadAdminProducts();
+    }
+
+    async function loadAdminProducts() {
+      const tbody = document.getElementById("adminProductsTable");
+      const { data, error } = await db.from("products").select("*").order("name", { ascending: true });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger)">Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      adminProducts = data || [];
+
+      tbody.innerHTML = adminProducts.map(p => `
+        <tr>
+          <td><strong>${p.id}</strong></td>
+          <td style="font-size:20px;">${p.emoji || '📦'}</td>
+          <td>${p.name}</td>
+          <td>${p.category || 'Other'}</td>
+          <td>
+            <input type="number" id="price_input_${p.id}" value="${p.price}" style="width:90px;" step="0.01" />
+          </td>
+          <td>
+            <span style="color: ${p.active ? 'var(--green)' : 'var(--danger)'}; font-weight:800;">
+              ${p.active ? 'Active' : 'Inactive'}
+            </span>
+          </td>
+          <td>
+            <button class="btn-primary" onclick="updatePrice('${p.id}')" style="padding:4px 8px; font-size:12px;">Price Update</button>
+            <button class="btn-danger" onclick="toggleActive('${p.id}', ${!p.active})" style="padding:4px 8px;">
+              ${p.active ? 'Disable' : 'Enable'}
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function updatePrice(prodId) {
+      const newPrice = document.getElementById(`price_input_${prodId}`).value;
+      if (!newPrice) return alert("Sahi price enter karein.");
+
+      const { error } = await db.from("products").update({ price: Number(newPrice) }).eq("id", prodId);
+
+      if (error) alert("Price update fail: " + error.message);
+      else {
+        alert("Price successfully update ho gaya!");
+        loadAdminProducts();
+      }
+    }
+
+    async function toggleActive(prodId, newStatus) {
+      const { error } = await db.from("products").update({ active: newStatus }).eq("id", prodId);
+      if (!error) loadAdminProducts();
+    }
+
+    document.getElementById("addProductForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const newProd = {
+        id: document.getElementById("prodId").value.trim(),
+        name: document.getElementById("prodName").value.trim(),
+        category: document.getElementById("prodCategory").value.trim(),
+        price: Number(document.getElementById("prodPrice").value),
+        emoji: document.getElementById("prodEmoji").value.trim(),
+        active: true
+      };
+
+      const { error } = await db.from("products").insert([newProd]);
+
+      if (error) {
+        alert("Product add nahi hua: " + error.message);
+      } else {
+        alert("Product Successfully Add ho gaya!");
+        e.target.reset();
+        loadAdminProducts();
+      }
+    });
+
+    async function loadAdminOrders() {
+      const container = document.getElementById("adminOrdersContainer");
+      container.innerHTML = "Loading orders...";
+
+      try {
+        const { data: orders, error: orderErr } = await db
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (orderErr) throw orderErr;
+
+        if (!orders || orders.length === 0) {
+          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi order nahi mila.</div>";
+          return;
+        }
+
+        const orderIds = orders.map(o => o.id);
+        const { data: allItems } = await db
+          .from("order_items")
+          .select("*")
+          .in("order_id", orderIds);
+
+        const itemsMap = {};
+        (allItems || []).forEach(it => {
+          const k = String(it.order_id);
+          if (!itemsMap[k]) itemsMap[k] = [];
+          itemsMap[k].push(it);
+        });
+
+        container.innerHTML = orders.map(order => {
+          const items = itemsMap[String(order.id)] || [];
+          const totalCalculated = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+          const dateStr = order.created_at ? new Date(order.created_at).toLocaleString("hi-IN") : "N/A";
+
+          return `
+            <div class="order-card">
+              <div class="order-header">
+                <span>Order ID: ${order.order_id || ('#' + order.id)}</span>
+                <span>Date: ${dateStr}</span>
+                <div>
+                  Status: 
+                  <select class="status-select" onchange="updateOrderStatus(${order.id}, this.value)">
+                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                    <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="customer-info">
+                <strong>Customer:</strong> ${order.customer_name || 'N/A'} | 
+                <strong>Mobile:</strong> <a href="tel:${order.mobile}">${order.mobile}</a><br>
+                <strong>Address:</strong> ${order.address || 'N/A'}
+              </div>
+
+              <div style="font-weight:700; font-size:13px; margin-bottom:4px;">Items Ordered:</div>
+              <div style="font-size:13px;">
+                ${items.map(it => `
+                  <div style="display:flex; justify-content:space-between; padding:2px 0;">
+                    <span>• ${it.product_name} (×${it.quantity})</span>
+                    <span>₹${(Number(it.price) * Number(it.quantity)).toFixed(2)}</span>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div style="text-align:right; font-weight:900; font-size:16px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:6px;">
+                Total: ₹${totalCalculated.toFixed(2)}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        container.innerHTML = `<span style="color:var(--danger)">Error: ${err.message}</span>`;
+      }
+    }
+
+    async function updateOrderStatus(orderId, newStatus) {
+      const { error } = await db.from("orders").update({ status: newStatus }).eq("id", orderId);
+      if (error) alert("Status update fail: " + error.message);
+      else alert("Order status updated!");
+    }
+
+    loadAdminOrders();
+  </script>
+</body>
+</html>
