@@ -339,7 +339,7 @@
       font-size: 12px;
     }
 
-    /* Modals / Drawers */
+    /* Modals / Drawers Fixes */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -360,11 +360,12 @@
       max-width: 400px;
       height: 100%;
       background: white;
-      padding: 18px;
+      padding: 18px 18px 90px 18px; /* Extra bottom padding for mobile scroll/space */
       overflow-y: auto;
       box-shadow: -4px 0 20px rgba(0,0,0,0.15);
       display: flex;
       flex-direction: column;
+      -webkit-overflow-scrolling: touch;
     }
 
     .modal-header {
@@ -425,45 +426,52 @@
       font-weight: 900;
     }
 
-    .form-grid { display: grid; gap: 8px; }
+    .form-grid { display: grid; gap: 10px; }
 
     .form-grid input, .form-grid textarea, .form-grid select {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 9px;
+      padding: 10px;
       font-size: 13px;
       outline: 0;
+      background: #fff;
     }
 
     .payment-option-box {
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 10px;
       background: #f8fafc;
     }
 
     .payment-option-box label {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 8px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .place-btn, .action-btn {
       width: 100%;
-      margin-top: 8px;
+      margin-top: 12px;
+      margin-bottom: 25px; /* Added extra space below button */
       border: 0;
       cursor: pointer;
-      border-radius: 8px;
-      padding: 11px;
+      border-radius: 10px;
+      padding: 14px;
       color: white;
       background: var(--blue);
       font-weight: 800;
-      font-size: 14px;
+      font-size: 15px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .place-btn:active, .action-btn:active {
+      transform: scale(0.98);
     }
 
     .order-card {
@@ -584,6 +592,7 @@
     @media (max-width: 600px) {
       .category-grid { grid-template-columns: repeat(2, 1fr); }
       .products { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .modal-panel { width: 100%; max-width: 100%; }
     }
   </style>
 </head>
@@ -662,8 +671,8 @@
 
       <!-- Coupon Code Section -->
       <div style="margin-top: 12px; display: flex; gap: 6px;">
-        <input id="couponInput" type="text" placeholder="Coupon Code (e.g. WELCOME10)" style="text-transform:uppercase; border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
-        <button id="applyCouponBtn" type="button" class="action-btn" style="margin:0; width:90px; font-size:12px; padding:6px;">Apply</button>
+        <input id="couponInput" type="text" placeholder="COUPON CODE (E.G. WELCOME10)" style="text-transform:uppercase; border:1px solid var(--border); border-radius:6px; padding:8px; font-size:12px; width:100%;" />
+        <button id="applyCouponBtn" type="button" class="action-btn" style="margin:0; width:90px; font-size:12px; padding:8px;">Apply</button>
       </div>
       <div id="couponMsg" style="font-size:11px; margin-top:3px;"></div>
 
@@ -695,14 +704,14 @@
         <div id="phoneStep">
           <label style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:4px;">Login with Mobile (OTP):</label>
           <div style="display:flex; gap:6px;">
-            <input id="otpPhone" type="tel" placeholder="+91XXXXXXXXXX" style="border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
-            <button id="sendOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:6px;">Send OTP</button>
+            <input id="otpPhone" type="tel" placeholder="+91XXXXXXXXXX" style="border:1px solid var(--border); border-radius:6px; padding:8px; font-size:12px; width:100%;" />
+            <button id="sendOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:8px;">Send OTP</button>
           </div>
         </div>
         <div id="otpStep" style="display:none; margin-top:8px;">
           <div style="display:flex; gap:6px;">
-            <input id="otpCode" type="text" placeholder="6-digit OTP" style="border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
-            <button id="verifyOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:6px;">Verify</button>
+            <input id="otpCode" type="text" placeholder="6-digit OTP" style="border:1px solid var(--border); border-radius:6px; padding:8px; font-size:12px; width:100%;" />
+            <button id="verifyOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:8px;">Verify</button>
           </div>
         </div>
       </div>
@@ -711,19 +720,19 @@
         <div class="form-grid">
           <input id="customerName" type="text" placeholder="Customer name" required />
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" maxlength="10" required />
-          <textarea id="address" placeholder="Delivery address" required></textarea>
+          <textarea id="address" placeholder="Delivery address" rows="3" required></textarea>
 
           <label style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-top:2px;">
             <input type="checkbox" id="saveAddressCheck" checked /> Save/Update address for future orders
           </label>
 
           <div class="payment-option-box">
-            <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">Select Payment Method:</span>
+            <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:6px;">Select Payment Method:</span>
             <label>
               <input type="radio" name="paymentMethod" value="cod" checked /> 
               💵 Cash on Delivery (COD)
             </label>
-            <label>
+            <label style="margin-bottom:0;">
               <input type="radio" name="paymentMethod" value="online" /> 
               📱 Online Payment (UPI / QR)
             </label>
@@ -888,10 +897,14 @@
       const cleanMobile = user.phone ? user.phone.replace("+91", "") : "";
       document.getElementById("mobile").value = cleanMobile;
 
-      const { data: profile } = await db.from("customer_profiles").select("*").eq("id", user.id).single();
-      if (profile) {
-        document.getElementById("customerName").value = profile.full_name || "";
-        document.getElementById("address").value = profile.saved_address || "";
+      try {
+        const { data: profile } = await db.from("customer_profiles").select("*").eq("id", user.id).single();
+        if (profile) {
+          document.getElementById("customerName").value = profile.full_name || "";
+          document.getElementById("address").value = profile.saved_address || "";
+        }
+      } catch(e) {
+        console.log("Profile fetch skipped");
       }
     }
 
@@ -1060,7 +1073,7 @@
       `).join("");
     }
 
-    /* Order Submit Handling */
+    /* Fixed Smooth Order Submit Handling */
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!cart.length) return alert("Pehle cart mein items add karein.");
@@ -1073,20 +1086,27 @@
       const paymentSelected = document.querySelector('input[name="paymentMethod"]:checked').value;
       const placeOrderBtn = document.getElementById("placeOrderBtn");
 
-      // Save Address Checkbox Logic
-      if (currentUser && document.getElementById("saveAddressCheck").checked) {
-        await db.from("customer_profiles").upsert({
-          id: currentUser.id,
-          full_name: customerName,
-          saved_address: address,
-          phone: mobile
-        });
-      }
+      // Safe Save Address Logic
+      try {
+        if (currentUser && document.getElementById("saveAddressCheck").checked) {
+          await db.from("customer_profiles").upsert({
+            id: currentUser.id,
+            full_name: customerName,
+            saved_address: address,
+            phone: mobile
+          });
+        }
+      } catch(e) { console.log("Address autosave skipped"); }
 
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order Ho Raha Hai...";
 
       const orderCode = "ORD-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+
+      // Calculations
+      const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+      const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
+      const finalTotalAmount = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee);
 
       try {
         const { data: order, error: orderErr } = await db
@@ -1095,7 +1115,7 @@
             order_id: orderCode, 
             customer_name: customerName, 
             mobile: mobile, 
-            address: `${address} [Method: ${paymentSelected.toUpperCase()}]`, 
+            address: `${address} [Method: ${paymentSelected.toUpperCase()}] [Delivery: ₹${currentDeliveryFee}] [Discount: ₹${appliedDiscount}]`, 
             status: "pending" 
           })
           .select("id, order_id")
@@ -1114,22 +1134,20 @@
         const { error: itemsErr } = await db.from("order_items").insert(orderItems);
         if (itemsErr) throw itemsErr;
 
-        const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-        const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
-        const totalAmount = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee).toFixed(2);
+        const totalAmountStr = finalTotalAmount.toFixed(2);
 
         if (paymentSelected === "online") {
-          const upiUri = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(MY_STORE_NAME)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(orderCode)}`;
+          const upiUri = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(MY_STORE_NAME)}&am=${totalAmountStr}&cu=INR&tn=${encodeURIComponent(orderCode)}`;
           const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
 
           document.getElementById("upiQrCodeImg").src = qrApiUrl;
-          document.getElementById("upiPayAmount").textContent = "₹" + totalAmount;
+          document.getElementById("upiPayAmount").textContent = "₹" + totalAmountStr;
           document.getElementById("directUpiLink").href = upiUri;
 
           cartOverlayEl.classList.remove("open");
           upiModalEl.classList.add("open");
         } else {
-          alert(`Order Successfully Placed! (Cash On Delivery)\nOrder ID: ${order.order_id}`);
+          alert(`Order Successfully Placed!\nOrder ID: ${order.order_id}\nTotal Payable: ₹${totalAmountStr}`);
           cartOverlayEl.classList.remove("open");
         }
 
@@ -1163,7 +1181,7 @@
         alert("Order Cancel kar diya gaya hai.");
         document.getElementById("fetchOrdersBtn").click();
       } catch (err) {
-        alert("Cancel karne mein error aaya: " + err.message);
+        alert("Cancel karne mein error आया: " + err.message);
       }
     };
 
@@ -1194,7 +1212,7 @@
         orderHistoryContainer.innerHTML = orders.map(order => {
           let items = order.order_items || [];
 
-          let totalCalculated = items.reduce((sum, item) => {
+          let itemsSubtotal = items.reduce((sum, item) => {
             let price = Number(item.price || 0);
             let qty = Number(item.quantity || 1);
 
@@ -1204,6 +1222,9 @@
             }
             return sum + (price * qty);
           }, 0);
+
+          let calculatedDelivery = (itemsSubtotal >= freeDeliveryAbove || itemsSubtotal === 0) ? 0 : deliveryFee;
+          let grandTotal = itemsSubtotal + calculatedDelivery;
 
           const dateStr = order.created_at ? new Date(order.created_at).toLocaleDateString("hi-IN") : "N/A";
           const isPending = (order.status || 'pending').toLowerCase() === 'pending';
@@ -1234,11 +1255,16 @@
                     }).join('')
                   : '<div style="font-size:11px; color:var(--muted);">No item details in DB</div>'
                 }
+
+                <div class="order-item-row" style="color:var(--muted); border-top:1px dashed #e2e8f0; margin-top:4px; padding-top:4px;">
+                  <span>Delivery Charge:</span>
+                  <span>${calculatedDelivery > 0 ? '₹' + calculatedDelivery.toFixed(2) : 'FREE'}</span>
+                </div>
               </div>
 
               <div class="order-footer">
-                <span>Total Amount:</span>
-                <span style="color:var(--navy);">₹${totalCalculated.toFixed(2)}</span>
+                <span>Total Payable Amount:</span>
+                <span style="color:var(--navy);">₹${grandTotal.toFixed(2)}</span>
               </div>
 
               ${isPending ? `<button class="cancel-btn" onclick="cancelCustomerOrder(${order.id})">❌ Cancel Order</button>` : ''}
