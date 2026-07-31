@@ -893,6 +893,153 @@
       }
     }
 
+
+    /* Mobile content-cut fix: keep all existing functions/design unchanged */
+    @media (max-width: 820px) {
+      html,
+      body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .top-header,
+      .top-row,
+      .search-wrap,
+      .store-content,
+      .catalog-area,
+      .products,
+      .cart-panel {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .store-content {
+        grid-template-columns: 88px minmax(0, 1fr);
+        overflow: visible;
+      }
+
+      /* Sticky rail was covering the cart while scrolling */
+      .category-rail {
+        position: static;
+        top: auto;
+        max-height: none;
+        height: auto;
+        overflow: visible;
+        align-self: start;
+        z-index: 1;
+      }
+
+      .catalog-area {
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .catalog-controls {
+        position: static;
+        top: auto;
+        width: calc(100% - 8px);
+        min-width: 0;
+      }
+
+      .products {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .product {
+        min-width: 0;
+      }
+
+      /* Cart now opens below the category/product row at full mobile width */
+      .store-content .cart-panel {
+        grid-column: 1 / -1;
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        margin: 12px 8px 0;
+        position: static;
+        max-height: none;
+        overflow: visible;
+        z-index: 5;
+      }
+
+      .cart-item {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .cart-item > div:first-child,
+      .form-grid,
+      .form-grid input,
+      .form-grid textarea,
+      .place-btn {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .total {
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .top-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .brand h1 {
+        font-size: 20px;
+      }
+
+      .cart-button {
+        padding: 10px 11px;
+      }
+
+      .search-wrap {
+        width: 100%;
+        grid-template-columns: 92px minmax(0, 1fr) 48px;
+      }
+
+      .search-wrap select,
+      .search-wrap input {
+        min-width: 0;
+      }
+
+      .store-content {
+        grid-template-columns: 82px minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      .category-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+      }
+
+      .category-rail-button {
+        padding: 8px 3px;
+        font-size: 11px;
+      }
+
+      .catalog-controls {
+        margin-right: 4px;
+        padding: 10px;
+      }
+
+      .products {
+        padding-right: 4px;
+        gap: 6px;
+      }
+
+      .product-body {
+        padding: 9px;
+      }
+    }
+
   </style>
 </head>
 
