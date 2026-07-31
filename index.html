@@ -196,7 +196,7 @@
       border-color: var(--yellow);
     }
 
-    /* Store Grid Layout with FULL SCROLLABLE SIDEBAR */
+    /* Store Grid Layout */
     .store-content {
       width: min(1200px, 94%);
       margin: 14px auto 50px;
@@ -206,7 +206,6 @@
       align-items: start;
     }
 
-    /* CATEGORY SIDEBAR FIX: Last tak scroll hone ke liye */
     .category-rail {
       position: sticky;
       top: 115px;
@@ -419,10 +418,10 @@
     .total {
       display: flex;
       justify-content: space-between;
-      margin: 14px 0;
-      padding-top: 10px;
+      margin: 8px 0 14px;
+      padding-top: 8px;
       border-top: 2px solid var(--border);
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 900;
     }
 
@@ -582,16 +581,9 @@
       font-size: 12px;
     }
 
-    /* Mobile Responsive Optimizations */
     @media (max-width: 600px) {
-      .category-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .products {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-      }
+      .category-grid { grid-template-columns: repeat(2, 1fr); }
+      .products { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     }
   </style>
 </head>
@@ -634,7 +626,6 @@
   </section>
 
   <main id="productsArea" class="store-content" style="display:none;">
-    <!-- LEFT SIDEBAR CATEGORY RAIL: Fixed Scrolling -->
     <aside id="categoryRail" class="category-rail"></aside>
 
     <section class="catalog-area">
@@ -659,7 +650,7 @@
     </section>
   </main>
 
-  <!-- Cart Modal Overlay -->
+  <!-- Cart & Checkout Modal Overlay -->
   <div id="cartOverlay" class="modal-overlay">
     <aside class="modal-panel">
       <div class="modal-header">
@@ -669,17 +660,62 @@
 
       <div id="cart"></div>
 
-      <div class="total">
-        <span>Total</span>
-        <span>₹<span id="grandTotal">0.00</span></span>
+      <!-- Coupon Code Section -->
+      <div style="margin-top: 12px; display: flex; gap: 6px;">
+        <input id="couponInput" type="text" placeholder="Coupon Code (e.g. WELCOME10)" style="text-transform:uppercase; border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
+        <button id="applyCouponBtn" type="button" class="action-btn" style="margin:0; width:90px; font-size:12px; padding:6px;">Apply</button>
+      </div>
+      <div id="couponMsg" style="font-size:11px; margin-top:3px;"></div>
+
+      <!-- Total Price Breakdown -->
+      <div style="margin-top:14px; border-top:1px dashed var(--border); padding-top:8px; font-size:12px; color:#334155;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>Subtotal</span>
+          <span>₹<span id="subTotal">0.00</span></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:var(--green);">
+          <span>Discount</span>
+          <span>- ₹<span id="discountAmt">0.00</span></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>Delivery Charge</span>
+          <span>₹<span id="deliveryAmt">0.00</span></span>
+        </div>
+        <div class="total">
+          <span>Total Payable</span>
+          <span>₹<span id="grandTotal">0.00</span></span>
+        </div>
       </div>
 
+      <!-- Customer Details Form & Auth -->
       <h3>Customer Details</h3>
+      
+      <!-- OTP Authentication Area -->
+      <div id="authBox" style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);">
+        <div id="phoneStep">
+          <label style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:4px;">Login with Mobile (OTP):</label>
+          <div style="display:flex; gap:6px;">
+            <input id="otpPhone" type="tel" placeholder="+91XXXXXXXXXX" style="border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
+            <button id="sendOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:6px;">Send OTP</button>
+          </div>
+        </div>
+        <div id="otpStep" style="display:none; margin-top:8px;">
+          <div style="display:flex; gap:6px;">
+            <input id="otpCode" type="text" placeholder="6-digit OTP" style="border:1px solid var(--border); border-radius:6px; padding:6px; font-size:12px; width:100%;" />
+            <button id="verifyOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:6px;">Verify</button>
+          </div>
+        </div>
+      </div>
+
       <form id="orderForm">
         <div class="form-grid">
           <input id="customerName" type="text" placeholder="Customer name" required />
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" maxlength="10" required />
           <textarea id="address" placeholder="Delivery address" required></textarea>
+
+          <label style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <input type="checkbox" id="saveAddressCheck" checked /> Save/Update address for future orders
+          </label>
 
           <div class="payment-option-box">
             <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">Select Payment Method:</span>
@@ -724,7 +760,7 @@
     </aside>
   </div>
 
-  <!-- Customer Account / Order History Overlay -->
+  <!-- Account Overlay -->
   <div id="accountOverlay" class="modal-overlay">
     <aside class="modal-panel">
       <div class="modal-header">
@@ -759,6 +795,12 @@
     let products = [];
     let cart = [];
     let selectedCategory = "";
+    
+    // Dynamic Delivery & Coupon Variables
+    let deliveryFee = 40;
+    let freeDeliveryAbove = 500;
+    let appliedDiscount = 0;
+    let currentUser = null;
 
     const productsEl = document.getElementById("products");
     const productSearchEl = document.getElementById("productSearch");
@@ -778,7 +820,6 @@
     const closeCartBtn = document.getElementById("closeCartBtn");
     const cartEl = document.getElementById("cart");
     const cartCountEl = document.getElementById("cartCount");
-    const grandTotalEl = document.getElementById("grandTotal");
 
     const upiModalEl = document.getElementById("upiModal");
     const closeUpiBtn = document.getElementById("closeUpiBtn");
@@ -799,6 +840,90 @@
     accountOverlayEl.addEventListener("click", (e) => { if (e.target === accountOverlayEl) accountOverlayEl.classList.remove("open"); });
 
     closeUpiBtn.addEventListener("click", () => upiModalEl.classList.remove("open"));
+
+    // Fetch Dynamic Delivery Charges from DB
+    async function fetchStoreSettings() {
+      try {
+        const { data } = await db.from("store_settings").select("*");
+        if (data) {
+          data.forEach(item => {
+            if (item.key === "delivery_fee") deliveryFee = Number(item.value);
+            if (item.key === "free_delivery_above") freeDeliveryAbove = Number(item.value);
+          });
+        }
+      } catch (err) {
+        console.log("Settings load error:", err);
+      }
+    }
+    fetchStoreSettings();
+
+    // OTP Auth Handlers
+    document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+      const phone = document.getElementById("otpPhone").value.trim();
+      if (!phone) return alert("Pehle mobile number enter karein (+91 ke saath).");
+
+      const { error } = await db.auth.signInWithOtp({ phone });
+      if (error) alert("OTP Bhejane mein error: " + error.message);
+      else {
+        alert("OTP " + phone + " par bhej diya gaya hai.");
+        document.getElementById("otpStep").style.display = "block";
+      }
+    });
+
+    document.getElementById("verifyOtpBtn").addEventListener("click", async () => {
+      const phone = document.getElementById("otpPhone").value.trim();
+      const token = document.getElementById("otpCode").value.trim();
+
+      const { data, error } = await db.auth.verifyOtp({ phone, token, type: 'sms' });
+      if (error) alert("Verification Fail: " + error.message);
+      else {
+        alert("Login Successful!");
+        currentUser = data.user;
+        loadUserProfile(currentUser);
+      }
+    });
+
+    async function loadUserProfile(user) {
+      document.getElementById("authBox").style.display = "none";
+      const cleanMobile = user.phone ? user.phone.replace("+91", "") : "";
+      document.getElementById("mobile").value = cleanMobile;
+
+      const { data: profile } = await db.from("customer_profiles").select("*").eq("id", user.id).single();
+      if (profile) {
+        document.getElementById("customerName").value = profile.full_name || "";
+        document.getElementById("address").value = profile.saved_address || "";
+      }
+    }
+
+    // Coupon Apply Handler
+    document.getElementById("applyCouponBtn").addEventListener("click", async () => {
+      const code = document.getElementById("couponInput").value.trim().toUpperCase();
+      const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+      if (!code) return;
+
+      const { data: coupon, error } = await db.from("coupons").select("*").eq("code", code).eq("active", true).single();
+
+      const msgEl = document.getElementById("couponMsg");
+      if (error || !coupon) {
+        msgEl.style.color = "red";
+        msgEl.textContent = "Galat ya expired coupon code.";
+        appliedDiscount = 0;
+      } else if (subtotal < coupon.min_order_amount) {
+        msgEl.style.color = "red";
+        msgEl.textContent = `Ye coupon ₹${coupon.min_order_amount} se upar ke order par hi chalega.`;
+        appliedDiscount = 0;
+      } else {
+        if (coupon.discount_type === "percentage") {
+          appliedDiscount = (subtotal * coupon.discount_value) / 100;
+        } else {
+          appliedDiscount = Number(coupon.discount_value);
+        }
+        msgEl.style.color = "green";
+        msgEl.textContent = `Coupon '${code}' apply ho gaya!`;
+      }
+      renderCart();
+    });
 
     function categoryEmoji(cat) {
       const icons = {
@@ -905,7 +1030,15 @@
 
     function renderCart() {
       cartCountEl.textContent = cart.reduce((s, i) => s + i.quantity, 0);
-      grandTotalEl.textContent = cart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2);
+
+      const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+      const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
+      const grandTotal = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee);
+
+      document.getElementById("subTotal").textContent = subtotal.toFixed(2);
+      document.getElementById("discountAmt").textContent = appliedDiscount.toFixed(2);
+      document.getElementById("deliveryAmt").textContent = currentDeliveryFee.toFixed(2);
+      document.getElementById("grandTotal").textContent = grandTotal.toFixed(2);
 
       if (!cart.length) {
         cartEl.innerHTML = '<div class="empty">Cart khali hai.</div>';
@@ -940,6 +1073,16 @@
       const paymentSelected = document.querySelector('input[name="paymentMethod"]:checked').value;
       const placeOrderBtn = document.getElementById("placeOrderBtn");
 
+      // Save Address Checkbox Logic
+      if (currentUser && document.getElementById("saveAddressCheck").checked) {
+        await db.from("customer_profiles").upsert({
+          id: currentUser.id,
+          full_name: customerName,
+          saved_address: address,
+          phone: mobile
+        });
+      }
+
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order Ho Raha Hai...";
 
@@ -971,7 +1114,9 @@
         const { error: itemsErr } = await db.from("order_items").insert(orderItems);
         if (itemsErr) throw itemsErr;
 
-        const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2);
+        const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
+        const totalAmount = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee).toFixed(2);
 
         if (paymentSelected === "online") {
           const upiUri = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(MY_STORE_NAME)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(orderCode)}`;
@@ -989,8 +1134,10 @@
         }
 
         cart = [];
+        appliedDiscount = 0;
+        document.getElementById("couponInput").value = "";
+        document.getElementById("couponMsg").textContent = "";
         renderCart();
-        e.target.reset();
 
       } catch (err) {
         alert("Order fail ho gaya: " + err.message);
@@ -1016,7 +1163,7 @@
         alert("Order Cancel kar diya gaya hai.");
         document.getElementById("fetchOrdersBtn").click();
       } catch (err) {
-        alert("Cancel karne mein error आया: " + err.message);
+        alert("Cancel karne mein error aaya: " + err.message);
       }
     };
 
