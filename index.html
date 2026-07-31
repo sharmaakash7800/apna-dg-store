@@ -2,7 +2,7 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0f172a" />
   <title>Apna DG Store</title>
 
@@ -14,155 +14,211 @@
       --blue-dark: #1d4ed8;
       --yellow: #f59e0b;
       --green: #16a34a;
-      --bg: #f1f5f9;
+      --bg: #f8fafc;
       --surface: #ffffff;
       --border: #e2e8f0;
-      --text: #111827;
+      --text: #0f172a;
       --muted: #64748b;
       --danger: #dc2626;
-      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Inter, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background: var(--bg);
+      -webkit-tap-highlight-color: transparent;
     }
 
     button, input, select, textarea { font: inherit; }
 
-    /* Header */
+    /* Modern Responsive Header */
     .top-header {
       position: sticky;
       top: 0;
       z-index: 50;
       background: var(--navy);
       color: white;
-      box-shadow: 0 3px 14px rgba(0,0,0,.2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      padding: 10px 0;
+    }
+
+    .header-container {
+      width: min(1200px, 94%);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .top-row {
-      width: min(1440px, 96%);
-      margin: auto;
-      min-height: 70px;
-      display: grid;
-      grid-template-columns: auto minmax(200px, 1fr) auto;
-      gap: 14px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      white-space: nowrap;
+      gap: 8px;
       cursor: pointer;
+      text-decoration: none;
+      color: white;
     }
 
     .brand-logo {
-      width: 44px;
-      height: 44px;
+      width: 38px;
+      height: 38px;
       display: grid;
       place-items: center;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #f59e0b, #f97316);
-      font-size: 23px;
-    }
-
-    .brand h1 { margin: 0; font-size: 22px; }
-    .brand small { display: block; color: #cbd5e1; font-size: 11px; }
-
-    .search-wrap {
-      display: grid;
-      grid-template-columns: 130px 1fr 50px;
-      background: white;
       border-radius: 10px;
-      overflow: hidden;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      font-size: 20px;
     }
 
-    .search-wrap select,
-    .search-wrap input {
-      border: 0;
-      outline: 0;
-      min-height: 44px;
-      background: white;
-    }
-
-    .search-wrap select {
-      padding: 0 10px;
-      border-right: 1px solid var(--border);
-      color: #334155;
-    }
-
-    .search-wrap input { padding: 0 12px; min-width: 0; }
-
-    .search-btn {
-      border: 0;
-      cursor: pointer;
-      background: var(--yellow);
-      font-size: 18px;
-    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.1; }
+    .brand small { display: block; color: #94a3b8; font-size: 10px; }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
 
     .account-button {
-      background: transparent;
-      border: 0;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
       color: white;
       cursor: pointer;
-      text-align: left;
-      font-size: 12px;
-      line-height: 1.2;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      text-align: right;
     }
 
     .account-button strong {
       display: block;
-      font-size: 14px;
+      font-size: 12px;
       color: var(--yellow);
     }
 
     .cart-button {
       border: 0;
       cursor: pointer;
-      border-radius: 10px;
-      padding: 10px 16px;
-      background: #fff;
-      color: var(--navy);
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: var(--yellow);
+      color: #111827;
       font-weight: 800;
+      font-size: 13px;
       white-space: nowrap;
     }
 
-    /* Layout */
-    .store-content {
-      width: min(1440px, 96%);
-      margin: 18px auto 50px;
+    /* Mobile Optimized Search Bar */
+    .search-wrap {
       display: grid;
-      grid-template-columns: 90px minmax(0, 1fr);
-      gap: 18px;
+      grid-template-columns: 110px 1fr 44px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .search-wrap select,
+    .search-wrap input {
+      border: 0;
+      outline: 0;
+      height: 40px;
+      background: white;
+      font-size: 13px;
+    }
+
+    .search-wrap select {
+      padding: 0 6px;
+      border-right: 1px solid var(--border);
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .search-wrap input { padding: 0 10px; min-width: 0; }
+
+    .search-btn {
+      border: 0;
+      cursor: pointer;
+      background: var(--yellow);
+      font-size: 16px;
+      display: grid;
+      place-items: center;
+    }
+
+    /* Category Landing Page */
+    .category-landing {
+      width: min(1200px, 92%);
+      margin: 18px auto 40px;
+    }
+
+    .category-landing h2 {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0 0 14px 0;
+      color: var(--navy);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .category-card {
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 14px;
+      padding: 16px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .category-card:active {
+      transform: scale(0.97);
+      border-color: var(--yellow);
+    }
+
+    /* Store Grid Layout */
+    .store-content {
+      width: min(1200px, 92%);
+      margin: 16px auto 50px;
+      display: grid;
+      grid-template-columns: 80px minmax(0, 1fr);
+      gap: 12px;
       align-items: start;
     }
 
     .category-rail {
       position: sticky;
-      top: 85px;
-      max-height: calc(100vh - 100px);
+      top: 110px;
+      max-height: calc(100vh - 120px);
       overflow-y: auto;
-      padding: 8px 4px;
+      padding: 6px 2px;
       background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      z-index: 10;
+      gap: 6px;
       scrollbar-width: thin;
     }
 
@@ -172,20 +228,17 @@
       background: transparent;
       cursor: pointer;
       padding: 6px 2px;
-      border-radius: 12px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       line-height: 1.2;
       text-align: center;
-      position: relative;
     }
-
-    .category-rail-button:hover { background: #f8fafc; color: var(--text); }
 
     .category-rail-button.active {
       background: #fff7ed;
@@ -193,24 +246,13 @@
       font-weight: 800;
     }
 
-    .category-rail-button.active::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 6px;
-      bottom: 6px;
-      width: 4px;
-      border-radius: 0 4px 4px 0;
-      background: var(--yellow);
-    }
-
     .category-icon {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      font-size: 22px;
+      font-size: 20px;
       background: linear-gradient(135deg, #eff6ff, #fff7ed);
       border: 1px solid #e2e8f0;
     }
@@ -219,80 +261,81 @@
 
     .card {
       background: var(--surface);
-      border-radius: 16px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
       border: 1px solid var(--border);
     }
 
     .catalog-controls {
-      padding: 14px;
-      margin-bottom: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
-    .catalog-heading { flex: 1; min-width: 160px; }
-    .catalog-heading h2 { margin: 0; font-size: 20px; }
-    .catalog-heading span { color: var(--muted); font-size: 13px; }
+    .catalog-heading { flex: 1; min-width: 140px; }
+    .catalog-heading h2 { margin: 0; font-size: 18px; }
+    .catalog-heading span { color: var(--muted); font-size: 12px; }
 
     .catalog-controls select {
-      min-height: 40px;
+      height: 36px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 0 10px;
+      padding: 0 8px;
       background: white;
-      outline: 0;
+      font-size: 12px;
     }
 
     .products {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
     }
 
     .product {
       background: white;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      min-height: 330px;
+      min-height: 280px;
     }
 
     .product-visual {
-      min-height: 140px;
+      min-height: 110px;
       display: grid;
       place-items: center;
       background: linear-gradient(135deg, #eff6ff, #fff7ed);
-      font-size: 50px;
+      font-size: 42px;
     }
 
     .product-body {
-      padding: 12px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       flex: 1;
     }
 
-    .product h3 { margin: 0; font-size: 15px; min-height: 38px; }
-    .price { margin-top: auto; font-size: 18px; font-weight: 900; }
+    .product h3 { margin: 0; font-size: 13px; min-height: 34px; line-height: 1.3; }
+    .price { margin-top: auto; font-size: 16px; font-weight: 900; color: var(--navy); }
 
     .add-btn {
       width: 100%;
       border: 0;
       cursor: pointer;
-      border-radius: 8px;
-      padding: 10px;
+      border-radius: 6px;
+      padding: 8px;
       background: var(--yellow);
       color: #111827;
       font-weight: 800;
+      font-size: 12px;
     }
 
-    /* Modal Overlay */
+    /* Modals / Drawers */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -303,48 +346,42 @@
       z-index: 100;
       display: none;
       justify-content: flex-end;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(3px);
     }
 
     .modal-overlay.open { display: flex; }
 
     .modal-panel {
       width: 100%;
-      max-width: 440px;
+      max-width: 400px;
       height: 100%;
       background: white;
-      padding: 20px;
+      padding: 18px;
       overflow-y: auto;
       box-shadow: -4px 0 20px rgba(0,0,0,0.15);
       display: flex;
       flex-direction: column;
-      animation: slideIn 0.25s ease-out;
-    }
-
-    @keyframes slideIn {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
     }
 
     .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--border);
     }
 
-    .modal-header h2 { margin: 0; font-size: 20px; }
+    .modal-header h2 { margin: 0; font-size: 18px; }
 
     .close-btn {
       border: 0;
       background: #f1f5f9;
       cursor: pointer;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
       color: var(--muted);
     }
@@ -354,22 +391,22 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid var(--border);
     }
 
     .qty-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .qty-controls button {
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border: 0;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 4px;
       background: #e2e8f0;
       font-weight: 800;
     }
@@ -377,65 +414,60 @@
     .total {
       display: flex;
       justify-content: space-between;
-      margin: 16px 0;
-      padding-top: 12px;
+      margin: 14px 0;
+      padding-top: 10px;
       border-top: 2px solid var(--border);
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 900;
     }
 
-    .form-grid { display: grid; gap: 10px; }
+    .form-grid { display: grid; gap: 8px; }
 
     .form-grid input, .form-grid textarea, .form-grid select {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 9px 11px;
+      padding: 9px;
+      font-size: 13px;
       outline: 0;
     }
 
     .payment-option-box {
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px 10px;
       background: #f8fafc;
-      margin-top: 4px;
     }
 
     .payment-option-box label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      gap: 6px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      margin-bottom: 6px;
-    }
-
-    .payment-option-box label:last-child {
-      margin-bottom: 0;
+      margin-bottom: 4px;
     }
 
     .place-btn, .action-btn {
       width: 100%;
-      margin-top: 10px;
+      margin-top: 8px;
       border: 0;
       cursor: pointer;
       border-radius: 8px;
-      padding: 12px;
+      padding: 11px;
       color: white;
       background: var(--blue);
       font-weight: 800;
+      font-size: 14px;
     }
 
-    /* Order History Styling */
     .order-card {
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
       background: #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
     .order-card-header {
@@ -443,74 +475,72 @@
       justify-content: space-between;
       align-items: center;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .order-status {
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
       text-transform: uppercase;
       background: #fef3c7;
       color: #92400e;
-      font-weight: 800;
     }
 
     .order-status.completed { background: #dcfce7; color: #166534; }
     .order-status.cancelled { background: #fee2e2; color: #991b1b; }
 
     .order-details-body {
-      margin-top: 10px;
-      padding-top: 8px;
+      margin-top: 8px;
+      padding-top: 6px;
       border-top: 1px dashed var(--border);
     }
 
     .order-item-row {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
+      font-size: 12px;
       color: #334155;
-      padding: 4px 0;
+      padding: 3px 0;
     }
 
     .order-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 8px;
-      padding-top: 8px;
+      margin-top: 6px;
+      padding-top: 6px;
       border-top: 1px solid var(--border);
       font-weight: 800;
-      font-size: 15px;
+      font-size: 14px;
     }
 
     .cancel-btn {
       background: var(--danger);
       color: white;
       border: 0;
-      padding: 6px 12px;
+      padding: 6px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: 6px;
       width: 100%;
     }
 
-    /* UPI Payment Modal */
     .upi-box {
       text-align: center;
       background: #f8fafc;
-      padding: 16px;
-      border-radius: 12px;
+      padding: 14px;
+      border-radius: 10px;
       border: 1px solid var(--border);
-      margin-top: 14px;
     }
 
     .upi-qr {
-      width: 180px;
-      height: 180px;
-      margin: 10px auto;
+      width: 160px;
+      height: 160px;
+      margin: 8px auto;
       border: 1px solid var(--border);
       border-radius: 8px;
     }
@@ -519,62 +549,44 @@
       background: #16a34a;
       color: white;
       border: 0;
-      padding: 10px 16px;
-      border-radius: 8px;
+      padding: 9px;
+      border-radius: 6px;
       font-weight: 800;
+      font-size: 13px;
       width: 100%;
       text-decoration: none;
       display: inline-block;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
     .empty, .loading {
-      padding: 30px;
+      padding: 24px;
       text-align: center;
       color: var(--muted);
-      background: white;
-      border-radius: 14px;
+      font-size: 13px;
     }
 
     .back-categories-btn {
       border: 0;
       background: var(--navy);
       color: white;
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 6px;
+      padding: 6px 10px;
       cursor: pointer;
       font-weight: 800;
+      font-size: 12px;
     }
 
-    .category-landing {
-      width: min(1200px, 94%);
-      margin: 24px auto 50px;
-    }
+    /* Mobile Layout Optimizations */
+    @media (max-width: 600px) {
+      .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
 
-    .category-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 14px;
-    }
-
-    .category-card {
-      border: 1px solid var(--border);
-      background: white;
-      border-radius: 16px;
-      padding: 16px 8px;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      gap: 6px;
-      text-align: center;
-      font-weight: 800;
-    }
-
-    @media (max-width: 650px) {
       .store-content {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
 
       .category-rail {
@@ -583,23 +595,41 @@
         max-height: none;
         flex-direction: row;
         overflow-x: auto;
-        padding: 8px;
-        border-radius: 12px;
+        padding: 6px;
+        border-radius: 10px;
       }
 
-      .category-rail-button { flex: 0 0 70px; }
+      .category-rail-button { flex: 0 0 64px; }
+      
+      .products {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
     }
   </style>
 </head>
 
 <body>
   <header class="top-header">
-    <div class="top-row">
-      <div id="brandHome" class="brand">
-        <div class="brand-logo">🛒</div>
-        <div>
-          <h1>Apna DG Store</h1>
-          <small>Sab kuch, ek jagah</small>
+    <div class="header-container">
+      <div class="top-row">
+        <div id="brandHome" class="brand">
+          <div class="brand-logo">🛒</div>
+          <div>
+            <h1>Apna DG Store</h1>
+            <small>Sab kuch, ek jagah</small>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="accountToggleBtn" class="account-button" type="button">
+            Hello, Customer
+            <strong>Your Orders</strong>
+          </button>
+
+          <button id="cartToggleBtn" class="cart-button" type="button">
+            🛍 Cart <span id="cartCount">0</span>
+          </button>
         </div>
       </div>
 
@@ -607,17 +637,6 @@
         <select id="topCategoryFilter"><option value="">All</option></select>
         <input id="productSearch" type="search" placeholder="Search products..." />
         <button class="search-btn" type="button">🔍</button>
-      </div>
-
-      <div class="header-actions">
-        <button id="accountToggleBtn" class="account-button" type="button">
-          Hello, Customer
-          <strong>Your Orders</strong>
-        </button>
-
-        <button id="cartToggleBtn" class="cart-button" type="button">
-          🛍 Cart <span id="cartCount">0</span>
-        </button>
       </div>
     </div>
   </header>
@@ -674,9 +693,8 @@
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" maxlength="10" required />
           <textarea id="address" placeholder="Delivery address" required></textarea>
 
-          <!-- Payment Selection Option -->
           <div class="payment-option-box">
-            <span style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Select Payment Method:</span>
+            <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">Select Payment Method:</span>
             <label>
               <input type="radio" name="paymentMethod" value="cod" checked /> 
               💵 Cash on Delivery (COD)
@@ -697,22 +715,22 @@
 
   <!-- UPI Payment Modal -->
   <div id="upiModal" class="modal-overlay">
-    <aside class="modal-panel" style="max-width:380px;">
+    <aside class="modal-panel" style="max-width:360px;">
       <div class="modal-header">
         <h2>Pay Online (UPI)</h2>
         <button id="closeUpiBtn" class="close-btn" type="button">✕</button>
       </div>
 
       <div class="upi-box">
-        <p style="margin:0; font-size:13px; color:var(--muted);">Scan QR Code with Google Pay / PhonePe / Paytm</p>
+        <p style="margin:0; font-size:12px; color:var(--muted);">Scan QR Code with Google Pay / PhonePe / Paytm</p>
         <img id="upiQrCodeImg" class="upi-qr" src="" alt="UPI QR Code" />
-        <p style="font-weight:800; font-size:18px; margin:6px 0; color:var(--navy);" id="upiPayAmount">₹0.00</p>
+        <p style="font-weight:800; font-size:16px; margin:4px 0; color:var(--navy);" id="upiPayAmount">₹0.00</p>
         <small style="color:var(--muted); display:block;">UPI ID: <strong>board.black@ibl</strong></small>
         
         <a id="directUpiLink" href="#" class="upi-pay-btn">📲 Pay via Mobile UPI App</a>
       </div>
 
-      <button class="place-btn" onclick="finishPaymentProcess()" style="margin-top:16px;">
+      <button class="place-btn" onclick="finishPaymentProcess()" style="margin-top:12px;">
         ✅ Complete Order
       </button>
     </aside>
@@ -726,11 +744,11 @@
         <button id="closeAccountBtn" class="close-btn" type="button">✕</button>
       </div>
 
-      <div class="form-grid" style="margin-bottom: 16px;">
-        <label style="font-size: 12px; font-weight: 700; color: var(--muted);">Mobile Number se purane orders dekhein:</label>
-        <div style="display:flex; gap:8px;">
+      <div class="form-grid" style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 700; color: var(--muted);">Mobile Number se purane orders dekhein:</label>
+        <div style="display:flex; gap:6px;">
           <input id="accountMobileInput" type="tel" placeholder="Mobile number enter karein" />
-          <button id="fetchOrdersBtn" class="action-btn" type="button" style="margin:0; width: 100px;">Search</button>
+          <button id="fetchOrdersBtn" class="action-btn" type="button" style="margin:0; width: 90px;">Search</button>
         </div>
       </div>
 
@@ -823,7 +841,8 @@
 
       categoryLandingGridEl.innerHTML = categories.map(c => `
         <button class="category-card" type="button" data-category="${c}">
-          <span class="category-icon">${categoryEmoji(c)}</span><span>${c}</span>
+          <span class="category-card-icon" style="font-size:28px;">${categoryEmoji(c)}</span>
+          <span>${c}</span>
         </button>`).join("");
 
       document.querySelectorAll("[data-category]").forEach(btn => {
@@ -909,7 +928,7 @@
         <div class="cart-item">
           <div>
             <strong>${i.name}</strong>
-            <div>₹${i.price} × ${i.quantity}</div>
+            <div style="font-size:11px; color:var(--muted)">₹${i.price} × ${i.quantity}</div>
           </div>
           <div class="qty-controls">
             <button onclick='changeQuantity("${i.id}", -1)'>-</button>
@@ -920,7 +939,7 @@
       `).join("");
     }
 
-    /* Order Submit Handling (COD & Online) */
+    /* Order Submit Handling */
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!cart.length) return alert("Pehle cart mein items add karein.");
@@ -967,7 +986,6 @@
         const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2);
 
         if (paymentSelected === "online") {
-          // Setup UPI Online Payment Modal
           const upiUri = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(MY_STORE_NAME)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(orderCode)}`;
           const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
 
@@ -978,7 +996,6 @@
           cartOverlayEl.classList.remove("open");
           upiModalEl.classList.add("open");
         } else {
-          // Cash On Delivery Success Message
           alert(`Order Successfully Placed! (Cash On Delivery)\nOrder ID: ${order.order_id}`);
           cartOverlayEl.classList.remove("open");
         }
@@ -1062,10 +1079,10 @@
                 <span>ID: ${order.order_id || ('#' + order.id)}</span>
                 <span class="order-status ${order.status || 'pending'}">${order.status || 'Pending'}</span>
               </div>
-              <div style="font-size:11px; color:var(--muted); margin-top:4px;">Date: ${dateStr}</div>
+              <div style="font-size:11px; color:var(--muted); margin-top:3px;">Date: ${dateStr}</div>
               
               <div class="order-details-body">
-                <div style="font-size:12px; font-weight:700; margin-bottom:6px; color:var(--navy);">Purchased Items:</div>
+                <div style="font-size:11px; font-weight:700; margin-bottom:4px; color:var(--navy);">Purchased Items:</div>
                 ${items.length > 0 
                   ? items.map(it => {
                       let itemPrice = Number(it.price || 0);
@@ -1080,7 +1097,7 @@
                         </div>
                       `;
                     }).join('')
-                  : '<div style="font-size:12px; color:var(--muted);">No item details in DB</div>'
+                  : '<div style="font-size:11px; color:var(--muted);">No item details in DB</div>'
                 }
               </div>
 
