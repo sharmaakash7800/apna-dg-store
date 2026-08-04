@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
+  
+  <!-- Select2 & jQuery CDN for Searchable Dropdowns -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
   <style>
     :root {
       --navy: #0f172a;
@@ -161,6 +167,18 @@
       color: white;
       background: #25d366;
     }
+
+    /* Select2 UI adjustments */
+    .select2-container .select2-selection--single {
+      height: 42px !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 40px !important;
+    }
   </style>
 </head>
 <body>
@@ -221,9 +239,9 @@
             <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Select Karein:</label>
-            <select id="poProductSelect" onchange="loadLastPurchasePrice()">
-              <option value="">-- Select Product --</option>
+            <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Select/Search Karein:</label>
+            <select id="poProductSelect">
+              <option value="">-- Search Product / SKU --</option>
             </select>
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
@@ -501,8 +519,20 @@
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
       const select = document.getElementById("poProductSelect");
-      select.innerHTML = '<option value="">-- Select Product --</option>' +
-        productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.id})</option>`).join("");
+      select.innerHTML = '<option value="">-- Search Product / SKU --</option>' +
+        productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || p.id})</option>`).join("");
+
+      // Initialize Select2 plugin for instant product search
+      $('#poProductSelect').select2({
+        placeholder: "-- Type Product Name or SKU --",
+        allowClear: true,
+        width: '100%'
+      });
+
+      // Update purchase price on select2 change
+      $('#poProductSelect').off('change').on('change', function() {
+        loadLastPurchasePrice();
+      });
     }
 
     function loadLastPurchasePrice() {
@@ -594,6 +624,7 @@
       alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
       supplierSelect.value = "";
+      $('#poProductSelect').val('').trigger('change');
       document.getElementById("selectedSupplierActions").style.display = "none";
       renderPoCart();
       loadPurchaseOrders();
