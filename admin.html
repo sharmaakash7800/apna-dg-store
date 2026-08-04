@@ -161,10 +161,10 @@
       </div>
     </section>
 
-    <!-- TAB 2: SUPPLIER REORDERS -->
+    <!-- TAB 2: SUPPLIER REORDERS & MANAGEMENT -->
     <section id="supplierTab" class="tab-content">
       
-      <!-- ADD NEW SUPPLIER SECTION WITH PHONE -->
+      <!-- ADD NEW SUPPLIER SECTION -->
       <div class="card" style="background:#e0f2fe; border-color:#bae6fd;">
         <h3>➕ Master Supplier Add Karein</h3>
         <div class="form-grid">
@@ -174,6 +174,15 @@
         </div>
       </div>
 
+      <!-- SUPPLIERS EDIT / DELETE LIST -->
+      <div class="card" style="background:#f8fafc;">
+        <h3>👥 Master Suppliers List (Edit / Delete)</h3>
+        <div id="suppliersMasterList">
+          <div style="text-align:center; padding:10px; color:var(--muted);">Suppliers load ho rahe hain...</div>
+        </div>
+      </div>
+
+      <!-- CREATE NEW REORDER -->
       <div class="card" style="background:#f1f5f9;">
         <h2>➕ Naya Supplier Reorder Banayein</h2>
         <div class="form-grid">
@@ -218,6 +227,7 @@
         </div>
       </div>
 
+      <!-- REORDER HISTORY -->
       <div class="card">
         <h2>📋 Supplier Reorders History</h2>
         <div id="purchaseOrdersList">
@@ -248,16 +258,38 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
-    /* 1. SUPPLIERS MASTER */
+    /* 1. SUPPLIERS MASTER (FETCH, ADD, EDIT, DELETE) */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
       suppliersList = data || [];
+      
+      // Update Select Dropdown
       const select = document.getElementById("poSupplierSelect");
       select.innerHTML = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
           const phoneTxt = s.phone ? ` (${s.phone})` : '';
-          return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
+          return `<option value="${s.name}">${s.name}${phoneTxt}</option>`;
         }).join("");
+
+      // Render Master List with Edit/Delete
+      const masterContainer = document.getElementById("suppliersMasterList");
+      if (suppliersList.length === 0) {
+        masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--muted); padding:8px;'>Koi supplier added nahi hai.</div>";
+        return;
+      }
+
+      masterContainer.innerHTML = suppliersList.map(s => `
+        <div class="item-row">
+          <div>
+            <strong>${s.name}</strong>
+            ${s.phone ? `<br><small style="color:var(--muted);">📞 <a href="tel:${s.phone}">${s.phone}</a></small>` : ''}
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-primary" style="width:auto; padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
+            <button class="btn-danger" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+          </div>
+        </div>
+      `).join("");
     }
 
     async function addNewSupplierMaster() {
@@ -276,7 +308,40 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS (ROBUST FETCH WITH FALLBACK) */
+    async function editSupplier(id, oldName, oldPhone) {
+      const newName = prompt("Supplier ka naya naam:", oldName);
+      if (newName === null) return; // Cancelled
+      
+      const newPhone = prompt("Supplier ka naya phone number:", oldPhone);
+      if (newPhone === null) return;
+
+      if (!newName.trim()) return alert("Supplier ka naam khaali nahi ho sakta.");
+
+      const { error } = await db.from("suppliers").update({ 
+        name: newName.trim(), 
+        phone: newPhone.trim() || null 
+      }).eq("id", id);
+
+      if (error) {
+        alert("Update karne mein error aaya: " + error.message);
+      } else {
+        alert("Supplier Update ho gaya!");
+        loadSuppliers();
+      }
+    }
+
+    async function deleteSupplier(id) {
+      if (!confirm("Kya aap sach mein is supplier ko delete karna chahte hain?")) return;
+
+      const { error } = await db.from("suppliers").delete().eq("id", id);
+      if (error) alert("Error: " + error.message);
+      else {
+        alert("Supplier Delete ho gaya!");
+        loadSuppliers();
+      }
+    }
+
+    /* 2. CUSTOMER ORDERS (WITH STATUS UPDATE) */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
@@ -311,12 +376,13 @@
           const items = itemsMap[String(ord.id)] || [];
           const totalAmount = items.reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
           const dateStr = ord.created_at ? new Date(ord.created_at).toLocaleString("hi-IN") : 'N/A';
+          const isCompleted = String(ord.status).toLowerCase() === 'completed';
 
           return `
             <div class="order-card">
               <div class="order-header">
                 <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
-                <span class="badge ${ord.status === 'completed' ? 'badge-received' : 'badge-pending'}">${ord.status || 'Pending'}</span>
+                <span class="badge ${isCompleted ? 'badge-received' : 'badge-pending'}">${ord.status || 'PENDING'}</span>
               </div>
               <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">
                 📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 ${dateStr}<br>
@@ -326,12 +392,18 @@
                 ${items.length > 0 ? items.map(it => `
                   <div class="item-row">
                     <span>• ${it.product_name} (×${it.quantity || 1})</span>
-                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
+                    <strong>₹${(Number(i.price || 0) * Number(i.quantity || 1)).toFixed(2)}</strong>
                   </div>
                 `).join('') : '<div style="font-size:11px; color:var(--muted);">No item details found</div>'}
               </div>
-              <div style="text-align:right; font-weight:bold; font-size:13px; margin-top:8px; border-top:1px solid #eee; padding-top:4px; color:var(--navy);">
-                Total Amount: ₹${totalAmount.toFixed(2)}
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; border-top:1px solid #eee; padding-top:6px;">
+                ${!isCompleted ? 
+                  `<button class="btn-green" style="width:auto; padding:6px 12px; font-size:11px;" onclick="markOrderCompleted(${ord.id})">✅ Mark Completed</button>` : 
+                  `<span style="color:var(--green); font-weight:bold; font-size:11px;">✔️ Order Completed</span>`
+                }
+                <div style="font-weight:bold; font-size:13px; color:var(--navy);">
+                  Total Amount: ₹${totalAmount.toFixed(2)}
+                </div>
               </div>
             </div>
           `;
@@ -340,6 +412,17 @@
       } catch (err) {
         console.error("Error loading customer orders:", err);
         container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function markOrderCompleted(id) {
+      if(!confirm("Kya aap is order ko COMPLETED mark karna chahte hain?")) return;
+
+      const { error } = await db.from("orders").update({ status: "completed" }).eq("id", id);
+      if (error) alert("Error: " + error.message);
+      else {
+        alert("Order Status Complete Ho Gaya!");
+        loadCustomerOrders();
       }
     }
 
