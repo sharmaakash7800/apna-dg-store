@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
   
-  <!-- Select2 & jQuery CDN for Fast Searchable Dropdowns -->
+  <!-- Select2 & jQuery CDN -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -168,16 +168,31 @@
       background: #25d366;
     }
 
-    /* Select2 UI fixes */
+    /* Select2 Mobile UI Fixes */
+    .select2-container {
+      width: 100% !important;
+    }
     .select2-container .select2-selection--single {
       height: 42px !important;
       border: 1px solid var(--border) !important;
       border-radius: 8px !important;
-      display: flex !important;
-      align-items: center !important;
+      padding: 6px 10px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 28px !important;
+      color: var(--text) !important;
+      padding-left: 0 !important;
+      padding-right: 20px !important;
     }
     .select2-container--default .select2-selection--single .select2-selection__arrow {
       height: 40px !important;
+      right: 6px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+      float: right !important;
+      margin-right: 15px !important;
+      line-height: 28px !important;
+      font-weight: bold;
     }
     
     .status-timestamps {
@@ -314,7 +329,6 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
-    /* Helper for Date Formatting */
     function formatTime(dtStr) {
       if (!dtStr) return '';
       return new Date(dtStr).toLocaleString("hi-IN", {
@@ -431,7 +445,7 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS WITH STATUS TIMESTAMPS */
+    /* 2. CUSTOMER ORDERS WITH TIMESTAMPS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
@@ -474,7 +488,6 @@
           else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
           else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
 
-          // Build status change history line
           let timeHistoryHtml = '';
           if (ord.processing_at) timeHistoryHtml += `🔄 Processed: <b>${formatTime(ord.processing_at)}</b> &nbsp;`;
           if (ord.completed_at) timeHistoryHtml += `✅ Completed: <b>${formatTime(ord.completed_at)}</b> &nbsp;`;
@@ -537,7 +550,6 @@
       const currentTime = new Date().toISOString();
       const updateData = { status: newStatus };
 
-      // Set timestamp according to status
       if (newStatus === 'processing') updateData.processing_at = currentTime;
       if (newStatus === 'completed') updateData.completed_at = currentTime;
       if (newStatus === 'cancelled') updateData.cancelled_at = currentTime;
@@ -558,7 +570,6 @@
       select.innerHTML = '<option value="">-- Search Product / SKU --</option>' +
         productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || p.id})</option>`).join("");
 
-      // Re-initialize Select2 safely
       if ($.fn.select2 && $('#poProductSelect').hasClass("select2-hidden-accessible")) {
         $('#poProductSelect').select2('destroy');
       }
@@ -569,13 +580,8 @@
         width: '100%'
       });
 
-      // Bind directly to select2 selection event
-      $('#poProductSelect').off('select2:select').on('select2:select', function(e) {
+      $('#poProductSelect').off('change select2:select').on('change select2:select', function() {
         loadLastPurchasePrice();
-      });
-
-      $('#poProductSelect').off('select2:unselect').on('select2:unselect', function(e) {
-        document.getElementById("poPrice").value = 0;
       });
     }
 
@@ -676,7 +682,6 @@
       poCart = [];
       supplierSelect.value = "";
       
-      // Reset Select2 drop-down
       $('#poProductSelect').val('').trigger('change');
       document.getElementById("poPrice").value = "";
       document.getElementById("selectedSupplierActions").style.display = "none";
