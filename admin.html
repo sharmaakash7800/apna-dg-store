@@ -310,7 +310,7 @@
 
     async function editSupplier(id, oldName, oldPhone) {
       const newName = prompt("Supplier ka naya naam:", oldName);
-      if (newName === null) return; // Cancelled
+      if (newName === null) return;
       
       const newPhone = prompt("Supplier ka naya phone number:", oldPhone);
       if (newPhone === null) return;
@@ -374,7 +374,7 @@
 
         container.innerHTML = orders.map(ord => {
           const items = itemsMap[String(ord.id)] || [];
-          const totalAmount = items.reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+          const totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
           const dateStr = ord.created_at ? new Date(ord.created_at).toLocaleString("hi-IN") : 'N/A';
           const isCompleted = String(ord.status).toLowerCase() === 'completed';
 
@@ -392,7 +392,7 @@
                 ${items.length > 0 ? items.map(it => `
                   <div class="item-row">
                     <span>• ${it.product_name} (×${it.quantity || 1})</span>
-                    <strong>₹${(Number(i.price || 0) * Number(i.quantity || 1)).toFixed(2)}</strong>
+                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
                   </div>
                 `).join('') : '<div style="font-size:11px; color:var(--muted);">No item details found</div>'}
               </div>
