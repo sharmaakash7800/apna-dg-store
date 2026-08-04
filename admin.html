@@ -173,7 +173,7 @@
       display: inline-block;
     }
 
-    /* Custom Search Box UI for 800+ SKUs */
+    /* Custom Search Box UI */
     .search-select-wrapper { position: relative; }
     .search-results-list {
       position: absolute;
@@ -199,6 +199,27 @@
       background: #e0f2fe;
       color: var(--blue);
       font-weight: 600;
+    }
+
+    /* EDIT REORDER MODAL UI */
+    .modal-overlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(15, 23, 42, 0.6);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .modal-card {
+      background: white;
+      border-radius: 12px;
+      width: min(100%, 650px);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
   </style>
 </head>
@@ -263,7 +284,7 @@
           <!-- Product Search Input Field -->
           <div class="search-select-wrapper">
             <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Search Karein (Name / SKU):</label>
-            <input type="text" id="poProductSearch" placeholder="🔍 Type Product Name or SKU..." oninput="filterProducts()" onfocus="filterProducts()" autocomplete="off" />
+            <input type="text" id="poProductSearch" placeholder="🔍 Type Product Name or SKU..." oninput="filterProducts('')" onfocus="filterProducts('')" autocomplete="off" />
             <input type="hidden" id="selectedProductId" />
             <div id="searchResultsList" class="search-results-list"></div>
           </div>
@@ -308,6 +329,53 @@
 
   </div>
 
+  <!-- EDIT SUPPLIER REORDER MODAL -->
+  <div id="editPoModal" class="modal-overlay">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:16px;">✏️ Supplier Order Edit Karein (<span id="editPoNumberText"></span>)</h3>
+        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:#e2e8f0; color:#0f172a; border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
+      </div>
+
+      <input type="hidden" id="editPoId" />
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Select Karein:</label>
+        <select id="editPoSupplierSelect"></select>
+      </div>
+
+      <!-- Add New Item Section inside Edit Modal -->
+      <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
+        <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Order me Naya Item Add Karein:</strong>
+        <div class="form-grid">
+          <div class="search-select-wrapper">
+            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product or SKU..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
+            <input type="hidden" id="editSelectedProductId" />
+            <div id="editSearchResultsList" class="search-results-list"></div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            <input id="editPoQty" type="number" min="1" value="1" placeholder="Qty" />
+            <input id="editPoPrice" type="number" step="0.01" placeholder="Rate (₹)" />
+          </div>
+          <button class="btn-primary" onclick="addItemToEditPoCart()">+ Add to Order</button>
+        </div>
+      </div>
+
+      <!-- Edit Items List -->
+      <strong style="font-size:12px; color:var(--muted);">Order Items List:</strong>
+      <div id="editPoCartItems" style="max-height: 200px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:8px;">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:2px solid #cbd5e1;">
+        <div>
+          <small style="display:block; color:var(--muted); font-size:10px;">REVISED TOTAL BILL</small>
+          <strong style="font-size:18px; color:var(--navy);">₹<span id="editPoTotalBill">0.00</span></strong>
+        </div>
+        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto; padding:10px 18px;">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
@@ -317,6 +385,7 @@
     let productsList = [];
     let suppliersList = [];
     let poCart = [];
+    let editPoCart = []; // Temporary cart for Edit Modal
 
     function switchTab(tabId, evt) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -342,11 +411,16 @@
       suppliersList = data || [];
       
       const select = document.getElementById("poSupplierSelect");
-      select.innerHTML = '<option value="">-- Select Supplier --</option>' +
+      const editSelect = document.getElementById("editPoSupplierSelect");
+
+      const options = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
           const phoneTxt = s.phone ? ` (${s.phone})` : ' (No No.)';
           return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
         }).join("");
+
+      select.innerHTML = options;
+      editSelect.innerHTML = options;
 
       const masterContainer = document.getElementById("suppliersMasterList");
       if (suppliersList.length === 0) {
@@ -561,15 +635,18 @@
       }
     }
 
-    /* 3. SUPPLIER REORDER LOGIC (FAST SEARCH FOR 800+ SKUs) */
+    /* 3. SUPPLIER REORDER LOGIC */
     async function loadProductsForReorder() {
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
     }
 
-    function filterProducts() {
-      const searchVal = document.getElementById("poProductSearch").value.toLowerCase().trim();
-      const resultsDiv = document.getElementById("searchResultsList");
+    function filterProducts(prefix) {
+      const searchInputId = prefix ? `${prefix.toLowerCase()}PoProductSearch` : 'poProductSearch';
+      const resultsDivId = prefix ? `${prefix.toLowerCase()}SearchResultsList` : 'searchResultsList';
+
+      const searchVal = document.getElementById(searchInputId).value.toLowerCase().trim();
+      const resultsDiv = document.getElementById(resultsDivId);
 
       if (!searchVal) {
         resultsDiv.style.display = "none";
@@ -589,7 +666,7 @@
       }
 
       resultsDiv.innerHTML = filtered.slice(0, 50).map(p => `
-        <div class="search-results-item" onclick="selectProductFromList('${p.id}')">
+        <div class="search-results-item" onclick="selectProductFromList('${p.id}', '${prefix}')">
           <strong>${p.name}</strong> <small style="color:var(--muted);">(SKU: ${p.sku || p.id})</small>
         </div>
       `).join("");
@@ -597,20 +674,25 @@
       resultsDiv.style.display = "block";
     }
 
-    function selectProductFromList(productId) {
+    function selectProductFromList(productId, prefix) {
       const prod = productsList.find(p => String(p.id) === String(productId));
+      
+      const searchInputId = prefix ? `${prefix.toLowerCase()}PoProductSearch` : 'poProductSearch';
+      const selectedIdField = prefix ? `${prefix.toLowerCase()}SelectedProductId` : 'selectedProductId';
+      const priceField = prefix ? `${prefix.toLowerCase()}PoPrice` : 'poPrice';
+      const resultsDivId = prefix ? `${prefix.toLowerCase()}SearchResultsList` : 'searchResultsList';
+
       if (prod) {
-        document.getElementById("poProductSearch").value = `${prod.name} (SKU: ${prod.sku || prod.id})`;
-        document.getElementById("selectedProductId").value = prod.id;
-        document.getElementById("poPrice").value = prod.last_purchase_price || 0;
+        document.getElementById(searchInputId).value = `${prod.name} (SKU: ${prod.sku || prod.id})`;
+        document.getElementById(selectedIdField).value = prod.id;
+        document.getElementById(priceField).value = prod.last_purchase_price || 0;
       }
-      document.getElementById("searchResultsList").style.display = "none";
+      document.getElementById(resultsDivId).style.display = "none";
     }
 
-    // Close dropdown list when clicking outside
     document.addEventListener("click", function(e) {
       if (!e.target.closest(".search-select-wrapper")) {
-        document.getElementById("searchResultsList").style.display = "none";
+        document.querySelectorAll(".search-results-list").forEach(el => el.style.display = "none");
       }
     });
 
@@ -631,7 +713,6 @@
         purchase_price: price
       });
 
-      // Clear search inputs
       document.getElementById("poProductSearch").value = "";
       document.getElementById("selectedProductId").value = "";
       document.getElementById("poPrice").value = "";
@@ -727,8 +808,11 @@
         return `
           <div class="order-card">
             <div class="order-header">
-              <span>Supplier: ${po.supplier_name}</span>
-              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+              <span>Supplier: ${po.supplier_name} (${po.po_number || ''})</span>
+              <div>
+                <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+                ${po.status === 'pending' ? `<button class="btn-primary" style="width:auto; padding:3px 8px; font-size:10px; margin-left:6px;" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+              </div>
             </div>
             ${phone ? `
               <div style="margin-bottom:8px; display:flex; gap:6px;">
@@ -751,6 +835,126 @@
           </div>
         `;
       }).join("");
+    }
+
+    /* 4. EDIT REORDER FUNCTIONS */
+    async function openEditPoModal(poId) {
+      const { data: po, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
+      if (error || !po) return alert("Order load nahi ho paya.");
+
+      document.getElementById("editPoId").value = po.id;
+      document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id;
+      document.getElementById("editPoSupplierSelect").value = po.supplier_name;
+
+      editPoCart = (po.purchase_order_items || []).map(i => ({
+        product_id: i.product_id,
+        product_name: i.product_name,
+        quantity: Number(i.quantity),
+        purchase_price: Number(i.purchase_price)
+      }));
+
+      renderEditPoCart();
+      document.getElementById("editPoModal").style.display = "flex";
+    }
+
+    function closeEditPoModal() {
+      document.getElementById("editPoModal").style.display = "none";
+      editPoCart = [];
+    }
+
+    function addItemToEditPoCart() {
+      const prodId = document.getElementById("editSelectedProductId").value;
+      const qty = Number(document.getElementById("editPoQty").value);
+      const price = Number(document.getElementById("editPoPrice").value);
+
+      if (!prodId) return alert("Pehle Product select karein.");
+      if (qty <= 0 || price <= 0) return alert("Sahi Qty aur Rate dalein.");
+
+      const prod = productsList.find(p => String(p.id) === String(prodId));
+
+      editPoCart.push({
+        product_id: prodId,
+        product_name: prod ? prod.name : 'Product',
+        quantity: qty,
+        purchase_price: price
+      });
+
+      document.getElementById("editPoProductSearch").value = "";
+      document.getElementById("editSelectedProductId").value = "";
+      document.getElementById("editPoPrice").value = "";
+      document.getElementById("editPoQty").value = "1";
+
+      renderEditPoCart();
+    }
+
+    function renderEditPoCart() {
+      const container = document.getElementById("editPoCartItems");
+      let total = 0;
+
+      if (editPoCart.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:8px; font-size:12px; color:var(--muted);">Koi item nahi hai.</div>';
+        document.getElementById("editPoTotalBill").textContent = "0.00";
+        return;
+      }
+
+      container.innerHTML = editPoCart.map((item, idx) => {
+        const itemTotal = item.quantity * item.purchase_price;
+        total += itemTotal;
+        return `
+          <div class="item-row">
+            <div>
+              <strong>${item.product_name}</strong>
+              <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+                <label style="font-size:10px;">Qty:</label>
+                <input type="number" min="1" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px;" onchange="editPoCart[${idx}].quantity = Number(this.value); renderEditPoCart();" />
+                <label style="font-size:10px;">Rate:</label>
+                <input type="number" step="0.01" value="${item.purchase_price}" style="width:75px; padding:3px 6px; font-size:11px;" onchange="editPoCart[${idx}].purchase_price = Number(this.value); renderEditPoCart();" />
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong>₹${itemTotal.toFixed(2)}</strong>
+              <button class="btn-danger" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("editPoTotalBill").textContent = total.toFixed(2);
+    }
+
+    async function saveUpdatedPurchaseOrder() {
+      const poId = document.getElementById("editPoId").value;
+      const supplierName = document.getElementById("editPoSupplierSelect").value;
+
+      if (!supplierName) return alert("Supplier select karein.");
+      if (editPoCart.length === 0) return alert("Order mein kam se kam 1 item hona zaroori hai.");
+
+      const totalAmount = editPoCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+
+      // Update Order Header
+      const { error: poErr } = await db.from("purchase_orders").update({
+        supplier_name: supplierName,
+        total_amount: totalAmount
+      }).eq("id", poId);
+
+      if (poErr) return alert("Error: " + poErr.message);
+
+      // Delete old items and insert updated items
+      await db.from("purchase_order_items").delete().eq("po_id", poId);
+
+      const itemsToInsert = editPoCart.map(i => ({
+        po_id: poId,
+        product_id: i.product_id,
+        product_name: i.product_name,
+        quantity: i.quantity,
+        purchase_price: i.purchase_price
+      }));
+
+      await db.from("purchase_order_items").insert(itemsToInsert);
+
+      alert("Reorder successfully update ho gaya!");
+      closeEditPoModal();
+      loadPurchaseOrders();
     }
 
     async function receiveStock(poId) {
