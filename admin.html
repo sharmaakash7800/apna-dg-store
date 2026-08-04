@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
   
-  <!-- Select2 & jQuery CDN for Searchable Dropdowns -->
+  <!-- Select2 & jQuery CDN for Fast Searchable Dropdowns -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -168,7 +168,7 @@
       background: #25d366;
     }
 
-    /* Select2 UI adjustments */
+    /* Select2 UI fixes */
     .select2-container .select2-selection--single {
       height: 42px !important;
       border: 1px solid var(--border) !important;
@@ -178,6 +178,16 @@
     }
     .select2-container--default .select2-selection--single .select2-selection__arrow {
       height: 40px !important;
+    }
+    
+    .status-timestamps {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
     }
   </style>
 </head>
@@ -304,6 +314,15 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
+    /* Helper for Date Formatting */
+    function formatTime(dtStr) {
+      if (!dtStr) return '';
+      return new Date(dtStr).toLocaleString("hi-IN", {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+    }
+
     /* 1. SUPPLIERS MASTER */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
@@ -412,7 +431,7 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS */
+    /* 2. CUSTOMER ORDERS WITH STATUS TIMESTAMPS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
@@ -446,7 +465,7 @@
         container.innerHTML = orders.map(ord => {
           const items = itemsMap[String(ord.id)] || [];
           const totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          const dateStr = ord.created_at ? new Date(ord.created_at).toLocaleString("hi-IN") : 'N/A';
+          const dateStr = formatTime(ord.created_at) || 'N/A';
           
           const statusLower = String(ord.status || 'pending').toLowerCase();
           
@@ -455,6 +474,12 @@
           else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
           else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
 
+          // Build status change history line
+          let timeHistoryHtml = '';
+          if (ord.processing_at) timeHistoryHtml += `🔄 Processed: <b>${formatTime(ord.processing_at)}</b> &nbsp;`;
+          if (ord.completed_at) timeHistoryHtml += `✅ Completed: <b>${formatTime(ord.completed_at)}</b> &nbsp;`;
+          if (ord.cancelled_at) timeHistoryHtml += `❌ Cancelled: <b>${formatTime(ord.cancelled_at)}</b> &nbsp;`;
+
           return `
             <div class="order-card">
               <div class="order-header">
@@ -462,10 +487,13 @@
                 <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
               </div>
               <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">
-                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 ${dateStr}<br>
+                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${dateStr}<br>
                 📍 ${ord.address || 'N/A'}
               </div>
-              <div>
+
+              ${timeHistoryHtml ? `<div class="status-timestamps">${timeHistoryHtml}</div>` : ''}
+
+              <div style="margin-top:6px;">
                 ${items.length > 0 ? items.map(it => `
                   <div class="item-row">
                     <span>• ${it.product_name} (×${it.quantity || 1})</span>
@@ -506,7 +534,15 @@
 
       if(!confirm(confirmMsg)) return;
 
-      const { error } = await db.from("orders").update({ status: newStatus }).eq("id", id);
+      const currentTime = new Date().toISOString();
+      const updateData = { status: newStatus };
+
+      // Set timestamp according to status
+      if (newStatus === 'processing') updateData.processing_at = currentTime;
+      if (newStatus === 'completed') updateData.completed_at = currentTime;
+      if (newStatus === 'cancelled') updateData.cancelled_at = currentTime;
+
+      const { error } = await db.from("orders").update(updateData).eq("id", id);
       if (error) alert("Error: " + error.message);
       else {
         alert(`Order Status '${newStatus.toUpperCase()}' Ho Gaya!`);
@@ -522,24 +558,39 @@
       select.innerHTML = '<option value="">-- Search Product / SKU --</option>' +
         productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || p.id})</option>`).join("");
 
-      // Initialize Select2 plugin for instant product search
+      // Re-initialize Select2 safely
+      if ($.fn.select2 && $('#poProductSelect').hasClass("select2-hidden-accessible")) {
+        $('#poProductSelect').select2('destroy');
+      }
+
       $('#poProductSelect').select2({
         placeholder: "-- Type Product Name or SKU --",
         allowClear: true,
         width: '100%'
       });
 
-      // Update purchase price on select2 change
-      $('#poProductSelect').off('change').on('change', function() {
+      // Bind directly to select2 selection event
+      $('#poProductSelect').off('select2:select').on('select2:select', function(e) {
         loadLastPurchasePrice();
+      });
+
+      $('#poProductSelect').off('select2:unselect').on('select2:unselect', function(e) {
+        document.getElementById("poPrice").value = 0;
       });
     }
 
     function loadLastPurchasePrice() {
       const prodId = document.getElementById("poProductSelect").value;
+      if (!prodId) {
+        document.getElementById("poPrice").value = 0;
+        return;
+      }
+
       const product = productsList.find(p => String(p.id) === String(prodId));
       if (product) {
         document.getElementById("poPrice").value = product.last_purchase_price || 0;
+      } else {
+        document.getElementById("poPrice").value = 0;
       }
     }
 
@@ -624,8 +675,12 @@
       alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
       supplierSelect.value = "";
+      
+      // Reset Select2 drop-down
       $('#poProductSelect').val('').trigger('change');
+      document.getElementById("poPrice").value = "";
       document.getElementById("selectedSupplierActions").style.display = "none";
+      
       renderPoCart();
       loadPurchaseOrders();
     }
@@ -666,7 +721,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="width:auto; padding:6px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--green); font-weight:bold;">Stock Received</small>`}
+              ${po.status === 'pending' ? `<button class="btn-green" style="width:auto; padding:6px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--green); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
             </div>
           </div>
         `;
