@@ -133,7 +133,9 @@
 
     .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
     .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-processing { background: #e0f2fe; color: #0369a1; }
     .badge-received { background: #dcfce7; color: #166534; }
+    .badge-cancelled { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
@@ -258,12 +260,11 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
-    /* 1. SUPPLIERS MASTER (FETCH, ADD, EDIT, DELETE) */
+    /* 1. SUPPLIERS MASTER */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
       suppliersList = data || [];
       
-      // Update Select Dropdown
       const select = document.getElementById("poSupplierSelect");
       select.innerHTML = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
@@ -271,7 +272,6 @@
           return `<option value="${s.name}">${s.name}${phoneTxt}</option>`;
         }).join("");
 
-      // Render Master List with Edit/Delete
       const masterContainer = document.getElementById("suppliersMasterList");
       if (suppliersList.length === 0) {
         masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--muted); padding:8px;'>Koi supplier added nahi hai.</div>";
@@ -341,7 +341,7 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS (WITH STATUS UPDATE) */
+    /* 2. CUSTOMER ORDERS (WITH PROCESSING & CANCEL OPTIONS) */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
@@ -376,13 +376,19 @@
           const items = itemsMap[String(ord.id)] || [];
           const totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
           const dateStr = ord.created_at ? new Date(ord.created_at).toLocaleString("hi-IN") : 'N/A';
-          const isCompleted = String(ord.status).toLowerCase() === 'completed';
+          
+          const statusLower = String(ord.status || 'pending').toLowerCase();
+          
+          let badgeClass = 'badge-pending';
+          if (statusLower === 'completed') badgeClass = 'badge-received';
+          else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
+          else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
 
           return `
             <div class="order-card">
               <div class="order-header">
                 <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
-                <span class="badge ${isCompleted ? 'badge-received' : 'badge-pending'}">${ord.status || 'PENDING'}</span>
+                <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
               </div>
               <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">
                 📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 ${dateStr}<br>
@@ -396,13 +402,19 @@
                   </div>
                 `).join('') : '<div style="font-size:11px; color:var(--muted);">No item details found</div>'}
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; border-top:1px solid #eee; padding-top:6px;">
-                ${!isCompleted ? 
-                  `<button class="btn-green" style="width:auto; padding:6px 12px; font-size:11px;" onclick="markOrderCompleted(${ord.id})">✅ Mark Completed</button>` : 
-                  `<span style="color:var(--green); font-weight:bold; font-size:11px;">✔️ Order Completed</span>`
-                }
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #eee; padding-top:8px; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
+                    ${statusLower !== 'processing' ? `<button class="btn-primary" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
+                    <button class="btn-green" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
+                    <button class="btn-danger" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
+                  ` : `
+                    <span style="font-size:11px; font-weight:bold; color:var(--muted);">No actions available</span>
+                  `}
+                </div>
                 <div style="font-weight:bold; font-size:13px; color:var(--navy);">
-                  Total Amount: ₹${totalAmount.toFixed(2)}
+                  Total: ₹${totalAmount.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -415,13 +427,18 @@
       }
     }
 
-    async function markOrderCompleted(id) {
-      if(!confirm("Kya aap is order ko COMPLETED mark karna chahte hain?")) return;
+    async function updateOrderStatus(id, newStatus) {
+      let confirmMsg = "Kya aap is order status ko badalna chahte hain?";
+      if (newStatus === 'processing') confirmMsg = "Kya order ko 'Under Process' mark karein?";
+      if (newStatus === 'completed') confirmMsg = "Kya order ko 'Completed' mark karein?";
+      if (newStatus === 'cancelled') confirmMsg = "Kya aap is order ko CANCEL karna chahte hain?";
 
-      const { error } = await db.from("orders").update({ status: "completed" }).eq("id", id);
+      if(!confirm(confirmMsg)) return;
+
+      const { error } = await db.from("orders").update({ status: newStatus }).eq("id", id);
       if (error) alert("Error: " + error.message);
       else {
-        alert("Order Status Complete Ho Gaya!");
+        alert(`Order Status '${newStatus.toUpperCase()}' Ho Gaya!`);
         loadCustomerOrders();
       }
     }
