@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Admin - Customer & Supplier Order Management</title>
+  <title>Apna DG Store - Admin Dashboard</title>
   <style>
     :root {
       --navy: #0f172a;
@@ -30,7 +30,6 @@
       padding-bottom: 30px;
     }
 
-    /* Mobile First Navigation */
     header {
       background: var(--navy);
       color: white;
@@ -41,11 +40,7 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 
-    header h1 {
-      margin: 0 0 10px 0;
-      font-size: 16px;
-      text-align: center;
-    }
+    header h1 { margin: 0 0 10px 0; font-size: 16px; text-align: center; }
 
     .nav-tabs {
       display: flex;
@@ -69,16 +64,9 @@
       text-align: center;
     }
 
-    .tab-btn.active {
-      background: var(--yellow);
-      color: #111827;
-    }
+    .tab-btn.active { background: var(--yellow); color: #111827; }
 
-    .container {
-      width: min(100%, 1200px);
-      padding: 12px;
-      margin: auto;
-    }
+    .container { width: min(100%, 1200px); padding: 12px; margin: auto; }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -92,14 +80,9 @@
       margin-bottom: 14px;
     }
 
-    .card h2, .card h3 { margin: 0 0 10px 0; font-size: 16px; }
+    .card h2, .card h3 { margin: 0 0 10px 0; font-size: 15px; }
 
-    /* Mobile Responsive Form Inputs */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 
     @media (min-width: 600px) {
       .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
@@ -107,7 +90,7 @@
 
     input, select, button {
       width: 100%;
-      padding: 12px;
+      padding: 11px;
       border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 13px;
@@ -115,34 +98,10 @@
       background: #fff;
     }
 
-    .btn-primary {
-      background: var(--blue);
-      color: white;
-      font-weight: 800;
-      border: 0;
-      cursor: pointer;
-    }
+    .btn-primary { background: var(--blue); color: white; font-weight: 800; border: 0; cursor: pointer; }
+    .btn-green { background: var(--green); color: white; font-weight: 800; border: 0; cursor: pointer; }
+    .btn-danger { background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; width: auto; }
 
-    .btn-green {
-      background: var(--green);
-      color: white;
-      font-weight: 800;
-      border: 0;
-      cursor: pointer;
-    }
-
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-      border: 0;
-      font-size: 11px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      width: auto;
-    }
-
-    /* Mobile Card Layout for Lists */
     .order-card {
       background: white;
       border: 1px solid var(--border);
@@ -169,16 +128,10 @@
       align-items: center;
       padding: 6px 0;
       border-bottom: 1px dashed var(--border);
-      font-size: 13px;
+      font-size: 12px;
     }
 
-    .badge {
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
+    .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
     .badge-pending { background: #fef3c7; color: #92400e; }
     .badge-received { background: #dcfce7; color: #166534; }
   </style>
@@ -186,38 +139,50 @@
 <body>
 
   <header>
-    <h1>⚙️ Store Admin Control Center</h1>
+    <h1>⚙️ Store Admin Dashboard</h1>
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('customerTab', event)">📋 Customer Orders</button>
-      <button class="tab-btn" onclick="switchTab('supplierTab', event)">🏬 Supplier Reorders</button>
+      <button class="tab-btn" onclick="switchTab('supplierTab', event)">🏬 Supplier Reorder</button>
     </div>
   </header>
 
   <div class="container">
 
-    <!-- 1. CUSTOMER ORDERS TAB -->
+    <!-- TAB 1: CUSTOMER ORDERS -->
     <section id="customerTab" class="tab-content active">
       <div class="card">
-        <h2>🛍 Live Customer Orders</h2>
+        <h2>🛍 Customer Orders List</h2>
         <div id="customerOrdersContainer">
-          <div style="text-align:center; padding:20px; color:var(--muted);">Loading customer orders...</div>
+          <div style="text-align:center; padding:20px; color:var(--muted);">Orders load ho rahe hain...</div>
         </div>
       </div>
     </section>
 
-    <!-- 2. SUPPLIER REORDER TAB -->
+    <!-- TAB 2: SUPPLIER REORDERS -->
     <section id="supplierTab" class="tab-content">
+      
+      <!-- ADD NEW SUPPLIER SECTION -->
+      <div class="card" style="background:#e0f2fe; border-color:#bae6fd;">
+        <h3>➕ Master Supplier Add Karein</h3>
+        <div style="display:flex; gap:8px;">
+          <input id="newSupplierInput" type="text" placeholder="Naye Supplier Ka Naam (e.g. Ram Traders)" />
+          <button class="btn-primary" onclick="addNewSupplierMaster()" style="width:120px;">Save Supplier</button>
+        </div>
+      </div>
+
       <div class="card" style="background:#f1f5f9;">
-        <h2>➕ Create Supplier Reorder</h2>
+        <h2>➕ Naya Supplier Reorder Banayein</h2>
         <div class="form-grid">
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Name:</label>
-            <input id="poSupplierName" type="text" placeholder="e.g. Ram Traders" />
+            <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Select Karein:</label>
+            <select id="poSupplierSelect">
+              <option value="">-- Select Supplier --</option>
+            </select>
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Select Karein:</label>
             <select id="poProductSelect" onchange="loadLastPurchasePrice()">
-              <option value="">Loading products...</option>
+              <option value="">-- Select Product --</option>
             </select>
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
@@ -226,32 +191,31 @@
               <input id="poQty" type="number" min="1" value="1" />
             </div>
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--muted);">Rate (₹):</label>
-              <input id="poPrice" type="number" step="0.01" placeholder="Purchase Price" />
+              <label style="font-size:11px; font-weight:700; color:var(--muted);">Purchase Rate (₹):</label>
+              <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
             </div>
           </div>
-          <button class="btn-primary" onclick="addItemToPoCart()" style="margin-top:4px;">+ Add Item To Reorder</button>
+          <button class="btn-primary" onclick="addItemToPoCart()" style="margin-top:4px;">+ Add Item</button>
         </div>
 
-        <!-- Temporary Added Reorder Items -->
         <div style="margin-top:15px;">
-          <h3 style="font-size:13px; color:var(--muted);">Reorder Items List:</h3>
+          <h3 style="font-size:12px; color:var(--muted);">Reorder Items List:</h3>
           <div id="poCartItems">
-            <div style="text-align:center; padding:10px; font-size:12px; color:var(--muted);">No item added yet.</div>
+            <div style="text-align:center; padding:10px; font-size:12px; color:var(--muted);">Abhi koi item add nahi hai.</div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:2px solid #cbd5e1;">
             <div>
-              <small style="display:block; color:var(--muted); font-size:10px;">TOTAL BILL</small>
+              <small style="display:block; color:var(--muted); font-size:10px;">EST. TOTAL BILL</small>
               <strong style="font-size:18px; color:var(--navy);">₹<span id="poTotalBill">0.00</span></strong>
             </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto; padding:10px 16px;">🚀 Send Reorder</button>
+            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto; padding:10px 16px;">🚀 Save Reorder</button>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h2>📋 Supplier Reorder History</h2>
+        <h2>📋 Supplier Reorders History</h2>
         <div id="purchaseOrdersList">
           <div style="text-align:center; padding:15px; color:var(--muted);">Loading reorders...</div>
         </div>
@@ -267,6 +231,7 @@
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let productsList = [];
+    let suppliersList = [];
     let poCart = [];
 
     function switchTab(tabId, evt) {
@@ -276,16 +241,38 @@
       if(evt) evt.target.classList.add("active");
 
       if (tabId === 'customerTab') loadCustomerOrders();
-      if (tabId === 'supplierTab') { loadProductsForReorder(); loadPurchaseOrders(); }
+      if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
-    /* 1. FETCH LIVE CUSTOMER ORDERS */
+    /* 1. SUPPLIERS MASTER LOGIC */
+    async function loadSuppliers() {
+      const { data } = await db.from("suppliers").select("*").order("name");
+      suppliersList = data || [];
+      const select = document.getElementById("poSupplierSelect");
+      select.innerHTML = '<option value="">-- Select Supplier --</option>' +
+        suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
+    }
+
+    async function addNewSupplierMaster() {
+      const name = document.getElementById("newSupplierInput").value.trim();
+      if (!name) return alert("Supplier ka naam likhein.");
+
+      const { error } = await db.from("suppliers").insert([{ name: name }]);
+      if (error) alert("Error: " + error.message);
+      else {
+        alert("Supplier Successfully Add Ho Gaya!");
+        document.getElementById("newSupplierInput").value = "";
+        loadSuppliers();
+      }
+    }
+
+    /* 2. CUSTOMER ORDERS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       const { data: orders, error } = await db.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
 
       if (error || !orders || orders.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi hai.</div>";
+        container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
         return;
       }
 
@@ -295,12 +282,12 @@
             <span>Customer: ${ord.customer_name || 'N/A'} (${ord.mobile})</span>
             <span class="badge ${ord.status === 'completed' ? 'badge-received' : 'badge-pending'}">${ord.status || 'Pending'}</span>
           </div>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">📍 ${ord.address || 'No Address'}</div>
+          <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">📍 Address: ${ord.address || 'N/A'}</div>
           <div>
             ${(ord.order_items || []).map(it => `
               <div class="item-row">
                 <span>• ${it.product_name} (×${it.quantity})</span>
-                <strong>₹${(Number(it.price) * Number(it.quantity)).toFixed(2)}</strong>
+                <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
               </div>
             `).join("")}
           </div>
@@ -308,12 +295,12 @@
       `).join("");
     }
 
-    /* 2. SUPPLIER REORDER SYSTEM */
+    /* 3. SUPPLIER REORDER LOGIC */
     async function loadProductsForReorder() {
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
       const select = document.getElementById("poProductSelect");
-      select.innerHTML = '<option value="">-- Product Select Karein --</option>' +
+      select.innerHTML = '<option value="">-- Select Product --</option>' +
         productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.id})</option>`).join("");
     }
 
@@ -331,7 +318,7 @@
       const qty = Number(document.getElementById("poQty").value);
       const price = Number(document.getElementById("poPrice").value);
 
-      if (!prodId || qty <= 0 || price <= 0) return alert("Sahi details fill karein.");
+      if (!prodId || qty <= 0 || price <= 0) return alert("Sahi product, quantity aur rate dalein.");
 
       const prod = productsList.find(p => String(p.id) === String(prodId));
 
@@ -376,9 +363,9 @@
     }
 
     async function submitPurchaseOrder() {
-      const supplier = document.getElementById("poSupplierName").value.trim();
-      if (!supplier) return alert("Supplier ka naam bharein.");
-      if (poCart.length === 0) return alert("Kam se kam 1 item add karein.");
+      const supplier = document.getElementById("poSupplierSelect").value;
+      if (!supplier) return alert("Supplier select karein.");
+      if (poCart.length === 0) return alert("Kam se kam 1 product add karein.");
 
       const poNumber = "PO-" + Date.now();
       const totalAmount = poCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
@@ -402,9 +389,9 @@
 
       await db.from("purchase_order_items").insert(items);
 
-      alert(`Reorder successfully submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+      alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
-      document.getElementById("poSupplierName").value = "";
+      document.getElementById("poSupplierSelect").value = "";
       renderPoCart();
       loadPurchaseOrders();
     }
@@ -414,7 +401,7 @@
       const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
 
       if (error || !pos || pos.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--muted);'>Koi supplier reorder nahi hai.</div>";
+        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--muted);'>Koi supplier order nahi mila.</div>";
         return;
       }
 
@@ -440,9 +427,8 @@
       `).join("");
     }
 
-    /* STOCK RECEIVE & PRICE UPDATE LOGIC */
     async function receiveStock(poId) {
-      if (!confirm("Kya aapko stock receive ho gaya hai? Isse Last Purchase Price update ho jayegi.")) return;
+      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Last Purchase Price update ho jayegi.")) return;
 
       const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
 
@@ -452,7 +438,7 @@
 
       await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
 
-      alert("Stock successfully receive ho gaya!");
+      alert("Stock Receive ho gaya aur Last Purchase Price update ho gayi!");
       loadPurchaseOrders();
       loadProductsForReorder();
     }
