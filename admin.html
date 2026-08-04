@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
 
+  <!-- HTML2PDF CDN for PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
   <style>
     :root {
       --navy: #0f172a;
@@ -102,6 +105,7 @@
     .btn-primary { background: var(--blue); color: white; font-weight: 800; border: 0; cursor: pointer; }
     .btn-green { background: var(--green); color: white; font-weight: 800; border: 0; cursor: pointer; }
     .btn-danger { background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; width: auto; }
+    .btn-pdf { background: #7c3aed; color: white; border: 0; font-size: 11px; padding: 5px 9px; border-radius: 6px; cursor: pointer; width: auto; font-weight: 800; }
 
     .order-card {
       background: white;
@@ -220,6 +224,14 @@
       overflow-y: auto;
       padding: 16px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    /* PRINT HIDDEN CONTAINER FOR PDF */
+    #printContainer {
+      display: none;
+      background: white;
+      padding: 20px;
+      font-family: Arial, sans-serif;
     }
   </style>
 </head>
@@ -344,7 +356,6 @@
         <select id="editPoSupplierSelect"></select>
       </div>
 
-      <!-- Add New Item Section inside Edit Modal -->
       <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
         <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Order me Naya Item Add Karein:</strong>
         <div class="form-grid">
@@ -361,7 +372,6 @@
         </div>
       </div>
 
-      <!-- Edit Items List -->
       <strong style="font-size:12px; color:var(--muted);">Order Items List:</strong>
       <div id="editPoCartItems" style="max-height: 200px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:8px;">
       </div>
@@ -376,6 +386,9 @@
     </div>
   </div>
 
+  <!-- HIDDEN PRINT AREA FOR PDF GENERATION -->
+  <div id="printContainer"></div>
+
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
@@ -385,7 +398,7 @@
     let productsList = [];
     let suppliersList = [];
     let poCart = [];
-    let editPoCart = []; // Temporary cart for Edit Modal
+    let editPoCart = [];
 
     function switchTab(tabId, evt) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -597,6 +610,7 @@
                   ` : `
                     <span style="font-size:11px; font-weight:bold; color:var(--muted);">No actions available</span>
                   `}
+                  <button class="btn-pdf" onclick="generateCustomerBillPdf('${ord.id}')">📄 Bill PDF</button>
                 </div>
                 <div style="font-weight:bold; font-size:13px; color:var(--navy);">
                   Total: ₹${totalAmount.toFixed(2)}
@@ -817,9 +831,14 @@
             ${phone ? `
               <div style="margin-bottom:8px; display:flex; gap:6px;">
                 <a href="tel:${phone}" class="call-btn">📞 Call (${phone})</a>
-                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="wa-btn">💬 WhatsApp Rate Query</a>
+                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="wa-btn">💬 WA Query</a>
+                <button class="btn-pdf" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
               </div>
-            ` : ''}
+            ` : `
+              <div style="margin-bottom:8px;">
+                <button class="btn-pdf" onclick="generateSupplierPoPdf('${po.id}')">📄 Download PDF</button>
+              </div>
+            `}
             <div>
               ${(po.purchase_order_items || []).map(it => `
                 <div class="item-row">
@@ -931,7 +950,6 @@
 
       const totalAmount = editPoCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
 
-      // Update Order Header
       const { error: poErr } = await db.from("purchase_orders").update({
         supplier_name: supplierName,
         total_amount: totalAmount
@@ -939,7 +957,6 @@
 
       if (poErr) return alert("Error: " + poErr.message);
 
-      // Delete old items and insert updated items
       await db.from("purchase_order_items").delete().eq("po_id", poId);
 
       const itemsToInsert = editPoCart.map(i => ({
@@ -971,6 +988,130 @@
       alert("Stock Receive ho gaya aur Last Purchase Price update ho gayi!");
       loadPurchaseOrders();
       loadProductsForReorder();
+    }
+
+    /* 5. PDF GENERATION LOGIC (CUSTOMER INVOICE & SUPPLIER REORDER) */
+    async function generateCustomerBillPdf(orderId) {
+      const { data: ord } = await db.from("orders").select("*").eq("id", orderId).single();
+      const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
+
+      if (!ord) return alert("Order Details Not Found!");
+
+      const totalAmount = (items || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+      const printDiv = document.getElementById("printContainer");
+
+      printDiv.innerHTML = `
+        <div style="border:1px solid #000; padding:15px; font-size:12px;">
+          <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
+          <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">Customer Invoice Bill</p>
+          <hr/>
+          <p><strong>Order ID:</strong> ${ord.order_id || ('#' + ord.id)}</p>
+          <p><strong>Customer Name:</strong> ${ord.customer_name || 'N/A'}</p>
+          <p><strong>Mobile:</strong> ${ord.mobile || 'N/A'}</p>
+          <p><strong>Address:</strong> ${ord.address || 'N/A'}</p>
+          <p><strong>Date:</strong> ${formatTime(ord.created_at)}</p>
+          <hr/>
+          <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th>Item Name</th>
+                <th>Qty</th>
+                <th>Rate (₹)</th>
+                <th>Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(items || []).map(it => `
+                <tr>
+                  <td>${it.product_name}</td>
+                  <td style="text-align:center;">${it.quantity || 1}</td>
+                  <td style="text-align:right;">${Number(it.price || 0).toFixed(2)}</td>
+                  <td style="text-align:right;">${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <h3 style="text-align:right; margin-top:15px;">GRAND TOTAL: ₹${totalAmount.toFixed(2)}</h3>
+          <p style="text-align:center; margin-top:20px; font-size:10px;">Thank you for shopping with Apna DG Store!</p>
+        </div>
+      `;
+
+      printDiv.style.display = "block";
+      const opt = {
+        margin: 10,
+        filename: `Bill_Order_${ord.order_id || ord.id}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(printDiv).save();
+      printDiv.style.display = "none";
+    }
+
+    async function generateSupplierPoPdf(poId) {
+      const { data: po } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
+      if (!po) return alert("Supplier Order Not Found!");
+
+      const supObj = suppliersList.find(s => s.name === po.supplier_name);
+      const phone = supObj ? supObj.phone : null;
+      const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+
+      const printDiv = document.getElementById("printContainer");
+
+      printDiv.innerHTML = `
+        <div style="border:1px solid #000; padding:15px; font-size:12px;">
+          <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
+          <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">PURCHASE REORDER / MATERIAL LIST</p>
+          <hr/>
+          <p><strong>PO Number:</strong> ${po.po_number}</p>
+          <p><strong>Supplier Name:</strong> ${po.supplier_name}</p>
+          <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+          <p><strong>Date:</strong> ${formatTime(po.created_at)}</p>
+          <hr/>
+          <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th>Product Name</th>
+                <th>Required Qty</th>
+                <th>Est. Rate (₹)</th>
+                <th>Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(po.purchase_order_items || []).map(it => `
+                <tr>
+                  <td>${it.product_name}</td>
+                  <td style="text-align:center;">${it.quantity}</td>
+                  <td style="text-align:right;">${Number(it.purchase_price).toFixed(2)}</td>
+                  <td style="text-align:right;">${(it.quantity * it.purchase_price).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <h3 style="text-align:right; margin-top:15px;">EST. TOTAL BILL: ₹${Number(po.total_amount).toFixed(2)}</h3>
+          <p style="text-align:center; margin-top:20px; font-size:10px;">Please confirm price and dispatch material at earliest.</p>
+        </div>
+      `;
+
+      printDiv.style.display = "block";
+      const fileName = `Reorder_${po.po_number}.pdf`;
+      const opt = {
+        margin: 10,
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(printDiv).save();
+      printDiv.style.display = "none";
+
+      // If supplier phone exists, redirect to WhatsApp
+      if (cleanPhone) {
+        const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF list generate ho gayi hai. Kripya PDF attach karke dekh lein aur rate confirm karein.`);
+        window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
+      }
     }
 
     // Auto-load page
