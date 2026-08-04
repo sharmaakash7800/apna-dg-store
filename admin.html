@@ -136,6 +136,31 @@
     .badge-processing { background: #e0f2fe; color: #0369a1; }
     .badge-received { background: #dcfce7; color: #166534; }
     .badge-cancelled { background: #fee2e2; color: #991b1b; }
+
+    .call-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      text-decoration: none;
+      color: white;
+      background: #16a34a;
+    }
+    .wa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      text-decoration: none;
+      color: white;
+      background: #25d366;
+    }
   </style>
 </head>
 <body>
@@ -178,7 +203,7 @@
 
       <!-- SUPPLIERS EDIT / DELETE LIST -->
       <div class="card" style="background:#f8fafc;">
-        <h3>👥 Master Suppliers List (Edit / Delete)</h3>
+        <h3>👥 Master Suppliers List & Direct Call/WhatsApp</h3>
         <div id="suppliersMasterList">
           <div style="text-align:center; padding:10px; color:var(--muted);">Suppliers load ho rahe hain...</div>
         </div>
@@ -190,9 +215,10 @@
         <div class="form-grid">
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Select Karein:</label>
-            <select id="poSupplierSelect">
+            <select id="poSupplierSelect" onchange="onSupplierChange()">
               <option value="">-- Select Supplier --</option>
             </select>
+            <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Select Karein:</label>
@@ -268,8 +294,8 @@
       const select = document.getElementById("poSupplierSelect");
       select.innerHTML = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
-          const phoneTxt = s.phone ? ` (${s.phone})` : '';
-          return `<option value="${s.name}">${s.name}${phoneTxt}</option>`;
+          const phoneTxt = s.phone ? ` (${s.phone})` : ' (No No.)';
+          return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
         }).join("");
 
       const masterContainer = document.getElementById("suppliersMasterList");
@@ -278,18 +304,45 @@
         return;
       }
 
-      masterContainer.innerHTML = suppliersList.map(s => `
-        <div class="item-row">
-          <div>
-            <strong>${s.name}</strong>
-            ${s.phone ? `<br><small style="color:var(--muted);">📞 <a href="tel:${s.phone}">${s.phone}</a></small>` : ''}
+      masterContainer.innerHTML = suppliersList.map(s => {
+        const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
+        return `
+          <div class="item-row">
+            <div>
+              <strong>${s.name}</strong>
+              ${s.phone ? `<br><small style="color:var(--muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${s.phone ? `
+                <a href="tel:${s.phone}" class="call-btn">📞 Call</a>
+                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WA</a>
+              ` : ''}
+              <button class="btn-primary" style="width:auto; padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
+              <button class="btn-danger" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+            </div>
           </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-primary" style="width:auto; padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
-            <button class="btn-danger" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
+    }
+
+    function onSupplierChange() {
+      const select = document.getElementById("poSupplierSelect");
+      const selectedOption = select.options[select.selectedIndex];
+      const phone = selectedOption ? selectedOption.getAttribute("data-phone") : null;
+      const supplierName = select.value;
+      const actionsDiv = document.getElementById("selectedSupplierActions");
+
+      if (phone) {
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        actionsDiv.style.display = "flex";
+        actionsDiv.style.gap = "8px";
+        actionsDiv.innerHTML = `
+          <a href="tel:${phone}" class="call-btn">📞 Call ${supplierName}</a>
+          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WhatsApp Rate Query</a>
+        `;
+      } else {
+        actionsDiv.style.display = "none";
+      }
     }
 
     async function addNewSupplierMaster() {
@@ -341,7 +394,7 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS (WITH PROCESSING & CANCEL OPTIONS) */
+    /* 2. CUSTOMER ORDERS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
@@ -541,6 +594,7 @@
       alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
       supplierSelect.value = "";
+      document.getElementById("selectedSupplierActions").style.display = "none";
       renderPoCart();
       loadPurchaseOrders();
     }
@@ -557,13 +611,20 @@
       container.innerHTML = pos.map(po => {
         const supObj = suppliersList.find(s => s.name === po.supplier_name);
         const phone = supObj ? supObj.phone : null;
+        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
 
         return `
           <div class="order-card">
             <div class="order-header">
-              <span>Supplier: ${po.supplier_name} ${phone ? `<small>(<a href="tel:${phone}">📞 ${phone}</a>)</small>` : ''}</span>
+              <span>Supplier: ${po.supplier_name}</span>
               <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
             </div>
+            ${phone ? `
+              <div style="margin-bottom:8px; display:flex; gap:6px;">
+                <a href="tel:${phone}" class="call-btn">📞 Call (${phone})</a>
+                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="wa-btn">💬 WhatsApp Rate Query</a>
+              </div>
+            ` : ''}
             <div>
               ${(po.purchase_order_items || []).map(it => `
                 <div class="item-row">
