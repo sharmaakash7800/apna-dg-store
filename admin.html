@@ -1,558 +1,206 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Apna DG Store - Admin Dashboard</title>
+<!-- SUPPLIER REORDER TAB CONTENT -->
+<div class="card">
+  <h2>🏬 Supplier Reorder & Stock Receiving</h2>
+  <p style="color:var(--muted); font-size:13px;">Yahan se aap supplier ko order de sakte hain aur stock receive hone par pricing update kar sakte hain.</p>
 
-  <style>
-    :root {
-      --navy: #0f172a;
-      --navy-2: #1e293b;
-      --blue: #2563eb;
-      --yellow: #f59e0b;
-      --green: #16a34a;
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --border: #e2e8f0;
-      --text: #111827;
-      --muted: #64748b;
-      --danger: #dc2626;
-      --shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Inter, Arial, sans-serif;
-      color: var(--text);
-      background: var(--bg);
-    }
-
-    header {
-      background: var(--navy);
-      color: white;
-      padding: 16px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    header h1 { margin: 0; font-size: 20px; }
-
-    .nav-tabs {
-      display: flex;
-      gap: 10px;
-    }
-
-    .tab-btn {
-      background: #334155;
-      color: white;
-      border: 0;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    .tab-btn.active {
-      background: var(--yellow);
-      color: #111827;
-    }
-
-    .container {
-      width: min(1200px, 94%);
-      margin: 20px auto;
-    }
-
-    /* Admin Quick Stats Dashboard */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .stat-card small { color: var(--muted); font-size: 12px; font-weight: 700; }
-    .stat-card h3 { margin: 6px 0 0; font-size: 22px; color: var(--navy); }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .card {
-      background: white;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      padding: 20px;
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    input, select, button, textarea {
-      font: inherit;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      outline: none;
-    }
-
-    .btn-primary {
-      background: var(--blue);
-      color: white;
-      font-weight: 800;
-      border: 0;
-      cursor: pointer;
-    }
-
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-      border: 0;
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-
-    th {
-      background: #f8fafc;
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-
-    /* Order Card Animation for New Orders */
-    .order-card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      background: white;
-      transition: all 0.3s ease;
-    }
-
-    .order-card.new-order-highlight {
-      border-color: var(--yellow);
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
-      animation: blinkBorder 1.5s infinite;
-    }
-
-    @keyframes blinkBorder {
-      0% { border-color: var(--yellow); }
-      50% { border-color: var(--blue); }
-      100% { border-color: var(--yellow); }
-    }
-
-    .order-header {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-      font-weight: 800;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .customer-info {
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 8px;
-      margin: 10px 0;
-      font-size: 13px;
-    }
-
-    .status-select {
-      padding: 4px 8px;
-      font-weight: 700;
-    }
-
-    /* Floating Alert Banner */
-    .alert-banner {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #dc2626;
-      color: white;
-      padding: 16px 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      gap: 12px;
-      animation: slideUp 0.3s ease-out;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(100px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    @media (max-width: 600px) {
-      header { flex-direction: column; align-items: flex-start; }
-      table { display: block; overflow-x: auto; }
-    }
-  </style>
-</head>
-
-<body>
-  <header>
-    <h1>⚙️ Apna DG Store - Admin Dashboard</h1>
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('ordersTab', event)">📋 Orders & Customers</button>
-      <button class="tab-btn" onclick="switchTab('productsTab', event)">📦 Manage Products</button>
-    </div>
-  </header>
-
-  <div class="container">
-    <!-- Quick Sales & Orders Stats Bar -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <small>TOTAL ORDERS</small>
-        <h3 id="statTotalOrders">0</h3>
-      </div>
-      <div class="stat-card">
-        <small>PENDING ORDERS</small>
-        <h3 id="statPendingOrders" style="color:var(--yellow);">0</h3>
-      </div>
-      <div class="stat-card">
-        <small>TOTAL REVENUE</small>
-        <h3 id="statTotalRevenue" style="color:var(--green);">₹0.00</h3>
-      </div>
+  <!-- Create Reorder Form -->
+  <div style="background: #f1f5f9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+    <h3>➕ Naya Reorder Banayein</h3>
+    <div class="form-grid">
+      <input id="poSupplierName" type="text" placeholder="Supplier / Dealer Ka Naam" required />
+      <select id="poProductSelect" onchange="loadLastPurchasePrice()">
+        <option value="">Select Product to Reorder</option>
+      </select>
+      <input id="poQty" type="number" min="1" value="1" placeholder="Quantity" />
+      <input id="poPrice" type="number" step="0.01" placeholder="Purchase Price (₹)" />
+      <button class="btn-primary" onclick="addItemToPoCart()">Item Add Karein</button>
     </div>
 
-    <!-- TAB 1: ORDERS & CUSTOMER DETAILS -->
-    <section id="ordersTab" class="tab-content active">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div>
-            <h2 style="margin:0;">Customer Orders Management</h2>
-            <p style="color:var(--muted); font-size:13px; margin:4px 0 0;">नया ऑर्डर आते ही नोटिफिकेशन साउंड और अलर्ट ऑटोमैटिक चालू होगा।</p>
-          </div>
-          <button class="btn-primary" onclick="loadAdminOrders()">🔄 Refresh Orders</button>
-        </div>
-        
-        <div id="adminOrdersContainer" style="margin-top:16px;">
-          <div style="text-align:center; padding:30px;">Orders load हो रहे हैं...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: PRODUCT LISTING & PRICE EDIT -->
-    <section id="productsTab" class="tab-content">
-      <div class="card">
-        <h3>➕ Naya Product Add Karein</h3>
-        <form id="addProductForm">
-          <div class="form-grid">
-            <input id="prodId" type="text" placeholder="SKU / ID (e.g., GRO-025)" required />
-            <input id="prodName" type="text" placeholder="Product Name (e.g., Milk)" required />
-            <input id="prodCategory" type="text" placeholder="Category (e.g., Dairy)" required />
-            <input id="prodPrice" type="number" step="0.01" placeholder="Price (₹)" required />
-            <input id="prodEmoji" type="text" placeholder="Emoji (e.g., 🥛)" required />
-            <button class="btn-primary" type="submit">Save Product</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <h3>📦 Existing Products List & Price Update</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>SKU / ID</th>
-              <th>Icon</th>
-              <th>Product Name</th>
-              <th>Category</th>
-              <th>Price (₹)</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="adminProductsTable">
-            <tr><td colspan="7" style="text-align:center;">Products load हो रहे हैं...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <!-- Realtime Alert Popup Banner -->
-  <div id="alertBanner" class="alert-banner">
-    <div style="font-size:24px;">🔔</div>
-    <div>
-      <strong style="font-size:15px; display:block;">NEW ORDER RECEIVED!</strong>
-      <span id="alertBannerText" style="font-size:13px;">Customer placed a new order.</span>
-    </div>
-    <button onclick="dismissAlert()" style="background:white; color:black; border:0; padding:6px 12px; border-radius:6px; font-weight:800; cursor:pointer;">Dismiss</button>
-  </div>
-
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <script>
-    const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let adminProducts = [];
-    let isFirstLoad = true;
-
-    // Notification Sound Synthesis
-    function playNotificationSound() {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Beep high note
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
-        gain.gain.setValueAtTime(1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.5);
-      } catch(e) {
-        console.log("Audio play allowed on user interaction");
-      }
-    }
-
-    function showAlertBanner(text) {
-      document.getElementById("alertBannerText").textContent = text;
-      document.getElementById("alertBanner").style.display = "flex";
-      playNotificationSound();
-    }
-
-    function dismissAlert() {
-      document.getElementById("alertBanner").style.display = "none";
-    }
-
-    function switchTab(tabId, evt) {
-      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      
-      document.getElementById(tabId).classList.add("active");
-      if(evt) evt.target.classList.add("active");
-
-      if (tabId === 'ordersTab') loadAdminOrders();
-      if (tabId === 'productsTab') loadAdminProducts();
-    }
-
-    /* PRODUCT MANAGEMENT */
-    async function loadAdminProducts() {
-      const tbody = document.getElementById("adminProductsTable");
-      const { data, error } = await db.from("products").select("*").order("name", { ascending: true });
-
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger)">Error: ${error.message}</td></tr>`;
-        return;
-      }
-
-      adminProducts = data || [];
-
-      tbody.innerHTML = adminProducts.map(p => `
+    <!-- PO Items Table -->
+    <table style="margin-top: 15px;">
+      <thead>
         <tr>
-          <td><strong>${p.id}</strong></td>
-          <td style="font-size:20px;">${p.emoji || '📦'}</td>
-          <td>${p.name}</td>
-          <td>${p.category || 'Other'}</td>
-          <td>
-            <input type="number" id="price_input_${p.id}" value="${p.price}" style="width:90px;" step="0.01" />
-          </td>
-          <td>
-            <span style="color: ${p.active ? 'var(--green)' : 'var(--danger)'}; font-weight:800;">
-              ${p.active ? 'Active' : 'Inactive'}
-            </span>
-          </td>
-          <td>
-            <button class="btn-primary" onclick="updatePrice('${p.id}')" style="padding:4px 8px; font-size:12px;">Price Update</button>
-            <button class="btn-danger" onclick="toggleActive('${p.id}', ${!p.active})" style="padding:4px 8px;">
-              ${p.active ? 'Disable' : 'Enable'}
-            </button>
-          </td>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Purchase Price (₹)</th>
+          <th>Total (₹)</th>
+          <th>Action</th>
         </tr>
-      `).join("");
+      </thead>
+      <tbody id="poCartTable">
+        <tr><td colspan="5" style="text-align:center;">Abhi koi item add nahi hua hai.</td></tr>
+      </tbody>
+    </table>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-top:1px solid #cbd5e1; padding-top:10px;">
+      <h3 style="margin:0;">Est. Total Bill: ₹<span id="poTotalBill">0.00</span></h3>
+      <button class="btn-primary" style="background:var(--green);" onclick="submitPurchaseOrder()">🚀 Submit Reorder to Supplier</button>
+    </div>
+  </div>
+
+  <!-- Reorder History & Receiving -->
+  <h3>📋 Existing Purchase Orders</h3>
+  <div id="purchaseOrdersList">
+    <div style="text-align:center; padding:20px;">Purchase orders load ho rahe hain...</div>
+  </div>
+</div>
+
+<script>
+  let poCart = [];
+
+  // Dropdown me products load aur last purchase price show karne ke liye
+  async function loadProductsForReorder() {
+    const { data } = await db.from("products").select("*").order("name");
+    const select = document.getElementById("poProductSelect");
+    select.innerHTML = '<option value="">Select Product to Reorder</option>' +
+      (data || []).map(p => `<option value="${p.id}" data-lastprice="${p.last_purchase_price || 0}" data-name="${p.name}">${p.name} (SKU: ${p.id})</option>`).join("");
+  }
+
+  function loadLastPurchasePrice() {
+    const select = document.getElementById("poProductSelect");
+    const selectedOpt = select.options[select.selectedIndex];
+    if (selectedOpt && selectedOpt.dataset.lastprice) {
+      document.getElementById("poPrice").value = selectedOpt.dataset.lastprice;
+    }
+  }
+
+  function addItemToPoCart() {
+    const select = document.getElementById("poProductSelect");
+    const prodId = select.value;
+    const selectedOpt = select.options[select.selectedIndex];
+    const qty = Number(document.getElementById("poQty").value);
+    const price = Number(document.getElementById("poPrice").value);
+
+    if (!prodId || qty <= 0 || price <= 0) {
+      return alert("Kripya Product, Qty aur Price sahi se fill karein.");
     }
 
-    async function updatePrice(prodId) {
-      const newPrice = document.getElementById(`price_input_${prodId}`).value;
-      if (!newPrice) return alert("Sahi price enter karein.");
-
-      const { error } = await db.from("products").update({ price: Number(newPrice) }).eq("id", prodId);
-
-      if (error) alert("Price update fail: " + error.message);
-      else {
-        alert("Price successfully update ho gaya!");
-        loadAdminProducts();
-      }
-    }
-
-    async function toggleActive(prodId, newStatus) {
-      const { error } = await db.from("products").update({ active: newStatus }).eq("id", prodId);
-      if (!error) loadAdminProducts();
-    }
-
-    document.getElementById("addProductForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const newProd = {
-        id: document.getElementById("prodId").value.trim(),
-        name: document.getElementById("prodName").value.trim(),
-        category: document.getElementById("prodCategory").value.trim(),
-        price: Number(document.getElementById("prodPrice").value),
-        emoji: document.getElementById("prodEmoji").value.trim(),
-        active: true
-      };
-
-      const { error } = await db.from("products").insert([newProd]);
-
-      if (error) {
-        alert("Product add nahi hua: " + error.message);
-      } else {
-        alert("Product Successfully Add ho gaya!");
-        e.target.reset();
-        loadAdminProducts();
-      }
+    poCart.push({
+      product_id: prodId,
+      product_name: selectedOpt.dataset.name,
+      quantity: qty,
+      purchase_price: price
     });
 
-    /* ORDERS & REALTIME NOTIFICATION SYSTEM */
-    async function loadAdminOrders() {
-      const container = document.getElementById("adminOrdersContainer");
+    renderPoCart();
+  }
 
-      try {
-        const { data: orders, error: orderErr } = await db
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false });
+  function renderPoCart() {
+    const tbody = document.getElementById("poCartTable");
+    let total = 0;
 
-        if (orderErr) throw orderErr;
-
-        if (!orders || orders.length === 0) {
-          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi order nahi mila.</div>";
-          return;
-        }
-
-        const orderIds = orders.map(o => o.id);
-        const { data: allItems } = await db
-          .from("order_items")
-          .select("*")
-          .in("order_id", orderIds);
-
-        const itemsMap = {};
-        (allItems || []).forEach(it => {
-          const k = String(it.order_id);
-          if (!itemsMap[k]) itemsMap[k] = [];
-          itemsMap[k].push(it);
-        });
-
-        let totalRev = 0;
-        let pendingCnt = 0;
-
-        container.innerHTML = orders.map((order, idx) => {
-          const items = itemsMap[String(order.id)] || [];
-          const totalCalculated = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          
-          if ((order.status || '').toLowerCase() === 'pending') pendingCnt++;
-          if ((order.status || '').toLowerCase() !== 'cancelled') totalRev += totalCalculated;
-
-          const dateStr = order.created_at ? new Date(order.created_at).toLocaleString("hi-IN") : "N/A";
-          const isHighlight = idx === 0 && !isFirstLoad;
-
-          return `
-            <div class="order-card ${isHighlight ? 'new-order-highlight' : ''}">
-              <div class="order-header">
-                <span>Order ID: ${order.order_id || ('#' + order.id)}</span>
-                <span>Date: ${dateStr}</span>
-                <div>
-                  Status: 
-                  <select class="status-select" onchange="updateOrderStatus(${order.id}, this.value)">
-                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
-                    <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="customer-info">
-                <strong>Customer Name:</strong> ${order.customer_name || 'N/A'}<br>
-                <strong>Mobile:</strong> <a href="tel:${order.mobile}">${order.mobile}</a><br>
-                <strong>Address:</strong> ${order.address || 'N/A'}
-              </div>
-
-              <div style="font-weight:700; font-size:13px; margin-bottom:4px;">Items Ordered:</div>
-              <div style="font-size:13px;">
-                ${items.map(it => `
-                  <div style="display:flex; justify-content:space-between; padding:2px 0;">
-                    <span>• ${it.product_name} (×${it.quantity})</span>
-                    <span>₹${(Number(it.price) * Number(it.quantity)).toFixed(2)}</span>
-                  </div>
-                `).join('')}
-              </div>
-
-              <div style="text-align:right; font-weight:900; font-size:16px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:6px;">
-                Total Amount: ₹${totalCalculated.toFixed(2)}
-              </div>
-            </div>
-          `;
-        }).join("");
-
-        // Update Dashboard Stats
-        document.getElementById("statTotalOrders").textContent = orders.length;
-        document.getElementById("statPendingOrders").textContent = pendingCnt;
-        document.getElementById("statTotalRevenue").textContent = "₹" + totalRev.toFixed(2);
-
-        isFirstLoad = false;
-
-      } catch (err) {
-        container.innerHTML = `<span style="color:var(--danger)">Error: ${err.message}</span>`;
-      }
+    if (poCart.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Abhi koi item add nahi hua hai.</td></tr>';
+      document.getElementById("poTotalBill").textContent = "0.00";
+      return;
     }
 
-    async function updateOrderStatus(orderId, newStatus) {
-      const { error } = await db.from("orders").update({ status: newStatus }).eq("id", orderId);
-      if (error) alert("Status update fail: " + error.message);
-      else loadAdminOrders();
+    tbody.innerHTML = poCart.map((item, idx) => {
+      const itemTotal = item.quantity * item.purchase_price;
+      total += itemTotal;
+      return `
+        <tr>
+          <td>${item.product_name}</td>
+          <td>${item.quantity}</td>
+          <td>₹${item.purchase_price.toFixed(2)}</td>
+          <td>₹${itemTotal.toFixed(2)}</td>
+          <td><button class="btn-danger" onclick="poCart.splice(${idx}, 1); renderPoCart();">Remove</button></td>
+        </tr>
+      `;
+    }).join("");
+
+    document.getElementById("poTotalBill").textContent = total.toFixed(2);
+  }
+
+  // Create Purchase Order in Database
+  async function submitPurchaseOrder() {
+    const supplier = document.getElementById("poSupplierName").value.trim();
+    if (!supplier) return alert("Supplier ka naam dalein.");
+    if (poCart.length === 0) return alert("Kam se kam ek product add karein.");
+
+    const poNumber = "PO-" + Date.now();
+    const totalAmount = poCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+
+    const { data: po, error } = await db.from("purchase_orders").insert([{
+      po_number: poNumber,
+      supplier_name: supplier,
+      total_amount: totalAmount,
+      status: "pending"
+    }]).select("id").single();
+
+    if (error) return alert("Error: " + error.message);
+
+    const items = poCart.map(i => ({
+      po_id: po.id,
+      product_id: i.product_id,
+      product_name: i.product_name,
+      quantity: i.quantity,
+      purchase_price: i.purchase_price
+    }));
+
+    await db.from("purchase_order_items").insert(items);
+
+    alert(`Purchase Order (${poNumber}) successfully ban gaya!`);
+    poCart = [];
+    document.getElementById("poSupplierName").value = "";
+    renderPoCart();
+    loadPurchaseOrders();
+  }
+
+  // Fetch & Display POs with Stock Receive Feature
+  async function loadPurchaseOrders() {
+    const container = document.getElementById("purchaseOrdersList");
+    const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
+
+    if (error || !pos || pos.length === 0) {
+      container.innerHTML = "<div style='text-align:center; padding:15px;'>Koi purchase order nahi milaa.</div>";
+      return;
     }
 
-    // Enable Supabase Realtime Listener for New Orders
-    db.channel('public:orders')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
-        const newOrder = payload.new;
-        showAlertBanner(`New Order ID: ${newOrder.order_id || newOrder.id} from ${newOrder.customer_name || 'Customer'}`);
-        loadAdminOrders();
-      })
-      .subscribe();
+    container.innerHTML = pos.map(po => `
+      <div class="order-card">
+        <div class="order-header">
+          <span>PO #: ${po.po_number} (Supplier: ${po.supplier_name})</span>
+          <span style="font-weight:bold; color:${po.status === 'received' ? 'var(--green)' : 'var(--yellow)'}">${po.status.toUpperCase()}</span>
+        </div>
+        <div style="font-size:13px; margin: 8px 0;">
+          ${(po.purchase_order_items || []).map(it => `
+            <div>• ${it.product_name} — Qty: <strong>${it.quantity}</strong> @ ₹${it.purchase_price} (Total: ₹${(it.quantity * it.purchase_price).toFixed(2)})</div>
+          `).join("")}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #eee; padding-top:6px;">
+          <strong>Total Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
+          ${po.status === 'pending' ? `<button class="btn-primary" style="background:var(--green);" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small>Received on: ${new Date(po.received_at).toLocaleDateString("hi-IN")}</small>`}
+        </div>
+      </div>
+    `).join("");
+  }
 
-    loadAdminOrders();
-  </script>
-</body>
-</html>
+  // Receive Stock: Updates last_purchase_price in product catalog
+  async function receiveStock(poId) {
+    if (!confirm("Kya aapko items receive ho gaye hain? Isse last purchase price database me update ho jayegi.")) return;
+
+    const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
+
+    // Update last_purchase_price in products table
+    for (let item of items) {
+      await db.from("products").update({
+        last_purchase_price: item.purchase_price
+      }).eq("id", item.product_id);
+    }
+
+    // Mark PO as received
+    await db.from("purchase_orders").update({
+      status: "received",
+      received_at: new Date().toISOString()
+    }).eq("id", poId);
+
+    alert("Stock receive ho gaya aur Last Purchase Price update ho gayi!");
+    loadPurchaseOrders();
+    loadProductsForReorder();
+  }
+
+  // Initial Load
+  loadProductsForReorder();
+  loadPurchaseOrders();
+</script>
