@@ -4,11 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
-  
-  <!-- Select2 & jQuery CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
   <style>
     :root {
@@ -168,33 +163,6 @@
       background: #25d366;
     }
 
-    /* Select2 Mobile UI Fixes */
-    .select2-container {
-      width: 100% !important;
-    }
-    .select2-container .select2-selection--single {
-      height: 42px !important;
-      border: 1px solid var(--border) !important;
-      border-radius: 8px !important;
-      padding: 6px 10px !important;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-      line-height: 28px !important;
-      color: var(--text) !important;
-      padding-left: 0 !important;
-      padding-right: 20px !important;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-      height: 40px !important;
-      right: 6px !important;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__clear {
-      float: right !important;
-      margin-right: 15px !important;
-      line-height: 28px !important;
-      font-weight: bold;
-    }
-    
     .status-timestamps {
       font-size: 10px;
       color: var(--muted);
@@ -265,9 +233,8 @@
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Select/Search Karein:</label>
-            <select id="poProductSelect">
-              <option value="">-- Search Product / SKU --</option>
-            </select>
+            <input list="productsDatalist" id="poProductInput" placeholder="-- Type Product Name or SKU --" oninput="onProductSelected()" autocomplete="off" />
+            <datalist id="productsDatalist"></datalist>
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
             <div>
@@ -562,61 +529,48 @@
       }
     }
 
-    /* 3. SUPPLIER REORDER LOGIC */
+    /* 3. SUPPLIER REORDER LOGIC (CLEAN DATALIST SEARCH) */
     async function loadProductsForReorder() {
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
-      const select = document.getElementById("poProductSelect");
-      select.innerHTML = '<option value="">-- Search Product / SKU --</option>' +
-        productsList.map(p => `<option value="${p.id}">${p.name} (SKU: ${p.sku || p.id})</option>`).join("");
-
-      if ($.fn.select2 && $('#poProductSelect').hasClass("select2-hidden-accessible")) {
-        $('#poProductSelect').select2('destroy');
-      }
-
-      $('#poProductSelect').select2({
-        placeholder: "-- Type Product Name or SKU --",
-        allowClear: true,
-        width: '100%'
-      });
-
-      $('#poProductSelect').off('change select2:select').on('change select2:select', function() {
-        loadLastPurchasePrice();
-      });
+      
+      const datalist = document.getElementById("productsDatalist");
+      datalist.innerHTML = productsList.map(p => 
+        `<option value="${p.name} (SKU: ${p.sku || p.id})">`
+      ).join("");
     }
 
-    function loadLastPurchasePrice() {
-      const prodId = document.getElementById("poProductSelect").value;
-      if (!prodId) {
+    function onProductSelected() {
+      const val = document.getElementById("poProductInput").value;
+      if (!val) {
         document.getElementById("poPrice").value = 0;
         return;
       }
 
-      const product = productsList.find(p => String(p.id) === String(prodId));
+      const product = productsList.find(p => `${p.name} (SKU: ${p.sku || p.id})` === val || p.name === val);
       if (product) {
         document.getElementById("poPrice").value = product.last_purchase_price || 0;
-      } else {
-        document.getElementById("poPrice").value = 0;
       }
     }
 
     function addItemToPoCart() {
-      const select = document.getElementById("poProductSelect");
-      const prodId = select.value;
+      const inputVal = document.getElementById("poProductInput").value;
       const qty = Number(document.getElementById("poQty").value);
       const price = Number(document.getElementById("poPrice").value);
 
-      if (!prodId || qty <= 0 || price <= 0) return alert("Sahi product, quantity aur rate dalein.");
+      const prod = productsList.find(p => `${p.name} (SKU: ${p.sku || p.id})` === inputVal || p.name === inputVal);
 
-      const prod = productsList.find(p => String(p.id) === String(prodId));
+      if (!prod || qty <= 0 || price <= 0) return alert("Sahi product, quantity aur rate check karein.");
 
       poCart.push({
-        product_id: prodId,
-        product_name: prod ? prod.name : 'Product',
+        product_id: prod.id,
+        product_name: prod.name,
         quantity: qty,
         purchase_price: price
       });
 
+      document.getElementById("poProductInput").value = "";
+      document.getElementById("poPrice").value = "";
       renderPoCart();
     }
 
@@ -681,8 +635,7 @@
       alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
       supplierSelect.value = "";
-      
-      $('#poProductSelect').val('').trigger('change');
+      document.getElementById("poProductInput").value = "";
       document.getElementById("poPrice").value = "";
       document.getElementById("selectedSupplierActions").style.display = "none";
       
