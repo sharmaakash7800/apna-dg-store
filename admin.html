@@ -164,12 +164,13 @@
     <!-- TAB 2: SUPPLIER REORDERS -->
     <section id="supplierTab" class="tab-content">
       
-      <!-- ADD NEW SUPPLIER SECTION -->
+      <!-- ADD NEW SUPPLIER SECTION WITH PHONE -->
       <div class="card" style="background:#e0f2fe; border-color:#bae6fd;">
         <h3>➕ Master Supplier Add Karein</h3>
-        <div style="display:flex; gap:8px;">
+        <div class="form-grid">
           <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam (e.g. Raghav Agency)" />
-          <button class="btn-primary" onclick="addNewSupplierMaster()" style="width:130px;">Save Supplier</button>
+          <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
+          <button class="btn-primary" onclick="addNewSupplierMaster()">Save Supplier</button>
         </div>
       </div>
 
@@ -253,18 +254,24 @@
       suppliersList = data || [];
       const select = document.getElementById("poSupplierSelect");
       select.innerHTML = '<option value="">-- Select Supplier --</option>' +
-        suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
+        suppliersList.map(s => {
+          const phoneTxt = s.phone ? ` (${s.phone})` : '';
+          return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
+        }).join("");
     }
 
     async function addNewSupplierMaster() {
       const name = document.getElementById("newSupplierInput").value.trim();
+      const phone = document.getElementById("newSupplierPhone").value.trim();
+
       if (!name) return alert("Supplier ka naam likhein.");
 
-      const { error } = await db.from("suppliers").insert([{ name: name }]);
+      const { error } = await db.from("suppliers").insert([{ name: name, phone: phone || null }]);
       if (error) alert("Error: " + error.message);
       else {
         alert("Supplier Successfully Add Ho Gaya!");
         document.getElementById("newSupplierInput").value = "";
+        document.getElementById("newSupplierPhone").value = "";
         loadSuppliers();
       }
     }
@@ -404,7 +411,8 @@
     }
 
     async function submitPurchaseOrder() {
-      const supplier = document.getElementById("poSupplierSelect").value;
+      const supplierSelect = document.getElementById("poSupplierSelect");
+      const supplier = supplierSelect.value;
       if (!supplier) return alert("Supplier select karein.");
       if (poCart.length === 0) return alert("Kam se kam 1 product add karein.");
 
@@ -432,7 +440,7 @@
 
       alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
-      document.getElementById("poSupplierSelect").value = "";
+      supplierSelect.value = "";
       renderPoCart();
       loadPurchaseOrders();
     }
@@ -446,26 +454,31 @@
         return;
       }
 
-      container.innerHTML = pos.map(po => `
-        <div class="order-card">
-          <div class="order-header">
-            <span>Supplier: ${po.supplier_name}</span>
-            <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+      container.innerHTML = pos.map(po => {
+        const supObj = suppliersList.find(s => s.name === po.supplier_name);
+        const phone = supObj ? supObj.phone : null;
+
+        return `
+          <div class="order-card">
+            <div class="order-header">
+              <span>Supplier: ${po.supplier_name} ${phone ? `<small>(<a href="tel:${phone}">📞 ${phone}</a>)</small>` : ''}</span>
+              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+            </div>
+            <div>
+              ${(po.purchase_order_items || []).map(it => `
+                <div class="item-row">
+                  <span>• ${it.product_name} (Qty: ${it.quantity})</span>
+                  <span>₹${it.purchase_price} / unit</span>
+                </div>
+              `).join("")}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
+              <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
+              ${po.status === 'pending' ? `<button class="btn-green" style="width:auto; padding:6px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--green); font-weight:bold;">Stock Received</small>`}
+            </div>
           </div>
-          <div>
-            ${(po.purchase_order_items || []).map(it => `
-              <div class="item-row">
-                <span>• ${it.product_name} (Qty: ${it.quantity})</span>
-                <span>₹${it.purchase_price} / unit</span>
-              </div>
-            `).join("")}
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
-            <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-            ${po.status === 'pending' ? `<button class="btn-green" style="width:auto; padding:6px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--green); font-weight:bold;">Stock Received</small>`}
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     async function receiveStock(poId) {
