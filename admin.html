@@ -151,7 +151,10 @@
     <!-- TAB 1: CUSTOMER ORDERS -->
     <section id="customerTab" class="tab-content active">
       <div class="card">
-        <h2>🛍 Customer Orders List</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="margin:0;">🛍 Customer Orders List</h2>
+          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh Orders</button>
+        </div>
         <div id="customerOrdersContainer">
           <div style="text-align:center; padding:20px; color:var(--muted);">Orders load ho rahe hain...</div>
         </div>
@@ -165,8 +168,8 @@
       <div class="card" style="background:#e0f2fe; border-color:#bae6fd;">
         <h3>➕ Master Supplier Add Karein</h3>
         <div style="display:flex; gap:8px;">
-          <input id="newSupplierInput" type="text" placeholder="Naye Supplier Ka Naam (e.g. Ram Traders)" />
-          <button class="btn-primary" onclick="addNewSupplierMaster()" style="width:120px;">Save Supplier</button>
+          <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam (e.g. Raghav Agency)" />
+          <button class="btn-primary" onclick="addNewSupplierMaster()" style="width:130px;">Save Supplier</button>
         </div>
       </div>
 
@@ -244,7 +247,7 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
     }
 
-    /* 1. SUPPLIERS MASTER LOGIC */
+    /* 1. SUPPLIERS MASTER */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
       suppliersList = data || [];
@@ -266,33 +269,71 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS */
+    /* 2. CUSTOMER ORDERS (ROBUST FETCH WITH FALLBACK) */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
-      const { data: orders, error } = await db.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
+      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
 
-      if (error || !orders || orders.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
-        return;
-      }
+      try {
+        const { data: orders, error: orderErr } = await db
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      container.innerHTML = orders.map(ord => `
-        <div class="order-card">
-          <div class="order-header">
-            <span>Customer: ${ord.customer_name || 'N/A'} (${ord.mobile})</span>
-            <span class="badge ${ord.status === 'completed' ? 'badge-received' : 'badge-pending'}">${ord.status || 'Pending'}</span>
-          </div>
-          <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">📍 Address: ${ord.address || 'N/A'}</div>
-          <div>
-            ${(ord.order_items || []).map(it => `
-              <div class="item-row">
-                <span>• ${it.product_name} (×${it.quantity})</span>
-                <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
+        if (orderErr) throw orderErr;
+
+        if (!orders || orders.length === 0) {
+          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
+          return;
+        }
+
+        const orderIds = orders.map(o => o.id);
+        const { data: allItems } = await db
+          .from("order_items")
+          .select("*")
+          .in("order_id", orderIds);
+
+        const itemsMap = {};
+        (allItems || []).forEach(it => {
+          const k = String(it.order_id);
+          if (!itemsMap[k]) itemsMap[k] = [];
+          itemsMap[k].push(it);
+        });
+
+        container.innerHTML = orders.map(ord => {
+          const items = itemsMap[String(ord.id)] || [];
+          const totalAmount = items.reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+          const dateStr = ord.created_at ? new Date(ord.created_at).toLocaleString("hi-IN") : 'N/A';
+
+          return `
+            <div class="order-card">
+              <div class="order-header">
+                <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
+                <span class="badge ${ord.status === 'completed' ? 'badge-received' : 'badge-pending'}">${ord.status || 'Pending'}</span>
               </div>
-            `).join("")}
-          </div>
-        </div>
-      `).join("");
+              <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">
+                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 ${dateStr}<br>
+                📍 ${ord.address || 'N/A'}
+              </div>
+              <div>
+                ${items.length > 0 ? items.map(it => `
+                  <div class="item-row">
+                    <span>• ${it.product_name} (×${it.quantity || 1})</span>
+                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
+                  </div>
+                `).join('') : '<div style="font-size:11px; color:var(--muted);">No item details found</div>'}
+              </div>
+              <div style="text-align:right; font-weight:bold; font-size:13px; margin-top:8px; border-top:1px solid #eee; padding-top:4px; color:var(--navy);">
+                Total Amount: ₹${totalAmount.toFixed(2)}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error("Error loading customer orders:", err);
+        container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
+      }
     }
 
     /* 3. SUPPLIER REORDER LOGIC */
@@ -443,7 +484,7 @@
       loadProductsForReorder();
     }
 
-    // Initial Load
+    // Auto-load page
     loadCustomerOrders();
   </script>
 </body>
