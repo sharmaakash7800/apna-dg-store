@@ -9,25 +9,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
+    /* COLOR THEMES VARIABLES */
     :root {
+      /* Theme Accents (Default: Indigo) */
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      
+      /* Light Mode Defaults */
       --bg: #f8fafc;
       --surface: #ffffff;
-      --sidebar-bg: #0f172a;
       --border: #e2e8f0;
-      
       --text-dark: #0f172a;
       --text-muted: #64748b;
       
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
       --success: #10b981;
-      --success-hover: #059669;
       --danger: #ef4444;
       --blue: #3b82f6;
 
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
     }
+
+    /* DARK MODE VARIABLES */
+    body.dark-mode {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text-dark: #f8fafc;
+      --text-muted: #94a3b8;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    /* ACCENT COLOR MODES */
+    body[data-theme="indigo"] { --primary: #4f46e5; --primary-hover: #4338ca; }
+    body[data-theme="emerald"] { --primary: #10b981; --primary-hover: #059669; }
+    body[data-theme="amber"] { --primary: #f59e0b; --primary-hover: #d97706; }
+    body[data-theme="violet"] { --primary: #8b5cf6; --primary-hover: #7c3aed; }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -36,114 +54,84 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text-dark);
       background: var(--bg);
-      padding-bottom: 30px;
+      padding-bottom: 75px;
+      transition: background 0.2s, color 0.2s;
     }
 
+    /* HEADER */
     header {
       background: var(--surface);
       color: var(--text-dark);
-      padding: 12px 16px;
+      padding: 10px 16px;
       position: sticky;
       top: 0;
       z-index: 90;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       box-shadow: var(--shadow-sm);
     }
 
     .header-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
-    .menu-toggle-btn {
-      background: #f1f5f9;
+    .theme-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-btn {
+      background: var(--bg);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 8px 12px;
+      padding: 5px 10px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 12px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
       font-weight: 600;
     }
 
-    /* SIDEBAR DRAWER */
-    .sidebar-overlay {
+    /* BOTTOM NAVIGATION BAR */
+    .bottom-nav {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.5);
-      backdrop-filter: blur(3px);
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
       z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.25s ease;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     }
 
-    .sidebar-overlay.active { opacity: 1; visibility: visible; }
-
-    .sidebar-drawer {
-      position: fixed;
-      top: 0; left: -280px;
-      width: 260px;
+    .bottom-nav-btn {
+      flex: 1;
       height: 100%;
-      background: var(--sidebar-bg);
-      color: white;
-      z-index: 1001;
-      padding: 20px 16px;
-      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+      background: transparent;
+      border: 0;
       display: flex;
       flex-direction: column;
-    }
-
-    .sidebar-drawer.active { left: 0; }
-
-    .sidebar-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #334155;
-      margin-bottom: 16px;
-    }
-
-    .sidebar-close-btn {
-      background: #1e293b;
-      color: #94a3b8;
-      border: 0;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .sidebar-menu-btn {
-      width: 100%;
-      background: transparent;
-      color: #94a3b8;
-      border: 0;
-      padding: 12px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 11px;
       font-weight: 600;
-      text-align: left;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: all 0.2s;
+      cursor: pointer;
     }
 
-    .sidebar-menu-btn.active { background: var(--primary); color: white; }
+    .bottom-nav-btn .icon { font-size: 18px; }
+
+    .bottom-nav-btn.active {
+      color: var(--primary);
+      font-weight: 800;
+    }
 
     .container { width: min(100%, 1150px); padding: 14px; margin: auto; }
 
@@ -174,88 +162,72 @@
       border: 1px solid var(--border);
       font-size: 13px;
       outline: none;
-      background: #fff;
+      background: var(--surface);
+      color: var(--text-dark);
     }
-
-    input:focus, select:focus { border-color: var(--primary); }
 
     .btn-primary { 
-      background: var(--primary); 
-      color: white; 
-      font-weight: 700; 
-      border: 0; 
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer; 
-      transition: 0.2s;
-      font-size: 13px;
+      background: var(--primary); color: white; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: 0.2s; font-size: 13px;
     }
-    .btn-primary:hover { background: var(--primary-hover); }
 
     .btn-green { 
-      background: var(--success); 
-      color: white; 
-      font-weight: 700; 
-      border: 0; 
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer; 
-      transition: 0.2s;
-      font-size: 13px;
+      background: var(--success); color: white; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: 0.2s; font-size: 13px;
     }
-    .btn-green:hover { background: var(--success-hover); }
 
     .btn-danger { 
-      background: var(--danger); 
-      color: white; 
-      border: 0; 
-      font-size: 11px; 
-      padding: 6px 10px; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      width: auto; 
-      font-weight: 600; 
+      background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; width: auto; font-weight: 600; 
     }
 
-    .btn-pdf { 
-      background: var(--blue); 
-      color: white; 
-      border: 0; 
-      font-size: 11px; 
-      padding: 6px 10px; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      width: auto; 
-      font-weight: 700; 
-    }
-
-    .action-btn-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-
-    .call-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 9px;
-      border-radius: 6px;
+    /* DROPDOWN MENU FOR ACTIONS */
+    .dropdown-wrapper { position: relative; display: inline-block; }
+    
+    .dropdown-btn {
+      background: var(--bg);
+      color: var(--text-dark);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 8px;
       font-size: 11px;
       font-weight: 700;
-      text-decoration: none;
-      color: white;
-      background: var(--success);
-    }
-
-    .wa-btn {
-      display: inline-flex;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       gap: 4px;
-      padding: 5px 9px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-decoration: none;
-      color: white;
-      background: #25d366;
     }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: 110%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+      z-index: 500;
+      display: none;
+      min-width: 140px;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.show { display: block; }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-dark);
+      text-decoration: none;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      border: 0;
+      width: 100%;
+      text-align: left;
+    }
+
+    .dropdown-item:hover { background: var(--bg); }
 
     .order-card {
       background: var(--surface);
@@ -297,20 +269,20 @@
       top: 100%; left: 0; right: 0;
       max-height: 200px;
       overflow-y: auto;
-      background: #fff;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
       box-shadow: var(--shadow-md);
       z-index: 999;
       display: none;
     }
-    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
-    .search-results-item:hover { background: #e0e7ff; color: var(--primary); }
+    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
+    .search-results-item:hover { background: var(--bg); color: var(--primary); }
 
     .modal-overlay {
       position: fixed;
       top:0; left:0; right:0; bottom:0;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(2px);
       z-index: 1000;
       display: none;
@@ -319,53 +291,60 @@
       padding: 14px;
     }
     .modal-card {
-      background: white;
+      background: var(--surface);
       border-radius: 12px;
       width: min(100%, 600px);
       max-height: 90vh;
       overflow-y: auto;
       padding: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
     .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 8px; border: 1px solid var(--border); }
     .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
-    .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
+    .custom-table th { background: var(--bg); position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
     .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 
-    #printContainer { display: none; background: white; padding: 20px; font-family: Arial, sans-serif; }
+    #printContainer { display: none; background: white; padding: 20px; font-family: Arial, sans-serif; color: black; }
   </style>
 </head>
 <body>
 
   <!-- HEADER -->
   <header>
-    <div class="header-title">⚙️ Store Admin</div>
-    <button class="menu-toggle-btn" onclick="toggleSidebar(true)">
-      ☰ <span style="font-size:12px;">Menu</span>
-    </button>
+    <div class="header-title">⚙️ Apna DG Store Admin</div>
+    
+    <div class="theme-controls">
+      <!-- DAY / NIGHT TOGGLE -->
+      <button id="modeToggleBtn" class="theme-btn" onclick="toggleNightMode()">🌙 Dark</button>
+      
+      <!-- FONT / ACCENT COLOR SELECTOR -->
+      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)">
+        <option value="indigo">🔵 Indigo</option>
+        <option value="emerald">🟢 Emerald</option>
+        <option value="amber">🟠 Gold</option>
+        <option value="violet">🟣 Violet</option>
+      </select>
+    </div>
   </header>
 
-  <!-- SIDEBAR OVERLAY & DRAWER -->
-  <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
-  <aside id="sidebarDrawer" class="sidebar-drawer">
-    <div class="sidebar-header">
-      <strong style="font-size:15px; color:white;">⚙️ Admin Menu</strong>
-      <button class="sidebar-close-btn" onclick="toggleSidebar(false)">✕</button>
-    </div>
-    
-    <button class="sidebar-menu-btn active" onclick="switchTab('customerTab', event)">
-      📋 Customer Orders
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-btn active" onclick="switchTab('customerTab', this)">
+      <span class="icon">📋</span>
+      <span>Orders</span>
     </button>
-    <button class="sidebar-menu-btn" onclick="switchTab('supplierTab', event)">
-      🏬 Supplier Reorder
+    <button class="bottom-nav-btn" onclick="switchTab('supplierTab', this)">
+      <span class="icon">🏬</span>
+      <span>Reorder</span>
     </button>
-    <button class="sidebar-menu-btn" onclick="switchTab('productsTab', event)">
-      📦 Products List
+    <button class="bottom-nav-btn" onclick="switchTab('productsTab', this)">
+      <span class="icon">📦</span>
+      <span>Products</span>
     </button>
-  </aside>
+  </nav>
 
   <div class="container">
 
@@ -373,7 +352,7 @@
     <section id="customerTab" class="tab-content active">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 style="margin:0;">🛍 Customer Orders List</h2>
+          <h2 style="margin:0;">🛍 Customer Orders</h2>
           <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh</button>
         </div>
         <div id="customerOrdersContainer">
@@ -382,11 +361,9 @@
       </div>
     </section>
 
-    <!-- TAB 2: SUPPLIER REORDERS & MANAGEMENT -->
+    <!-- TAB 2: SUPPLIER REORDERS -->
     <section id="supplierTab" class="tab-content">
-      
-      <!-- ADD NEW SUPPLIER SECTION -->
-      <div class="card" style="background:#f8fafc;">
+      <div class="card">
         <h3>➕ Master Supplier Add Karein</h3>
         <div class="form-grid">
           <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
@@ -395,7 +372,6 @@
         </div>
       </div>
 
-      <!-- SUPPLIERS EDIT / DELETE LIST -->
       <div class="card">
         <h3>👥 Master Suppliers List</h3>
         <div id="suppliersMasterList">
@@ -403,7 +379,6 @@
         </div>
       </div>
 
-      <!-- CREATE NEW REORDER -->
       <div class="card">
         <h2>➕ Naya Supplier Reorder Banayein</h2>
         <div class="form-grid">
@@ -451,7 +426,6 @@
         </div>
       </div>
 
-      <!-- REORDER HISTORY -->
       <div class="card">
         <h2>📋 Supplier Reorders History</h2>
         <div id="purchaseOrdersList">
@@ -460,19 +434,17 @@
       </div>
     </section>
 
-    <!-- TAB 3: PRODUCTS LIST & BULK REORDER SELECTION -->
+    <!-- TAB 3: PRODUCTS LIST -->
     <section id="productsTab" class="tab-content">
-      
-      <!-- SELECTED ITEMS REORDER BOX -->
-      <div class="card" style="background:#eef2ff; border:1px solid #c7d2fe;">
+      <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items)</h3>
+            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items (<span id="tickedCount">0</span> Selected)</h3>
           </div>
-          <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear Selection</button>
+          <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear</button>
         </div>
 
-        <div id="selectedTickedList" style="margin-top:10px; max-height:160px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px;">
+        <div id="selectedTickedList" style="margin-top:10px; max-height:160px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
           <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>
         </div>
 
@@ -486,7 +458,6 @@
         </div>
       </div>
 
-      <!-- ALL PRODUCTS TABLE -->
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
@@ -526,7 +497,7 @@
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
         <h3 style="margin:0; font-size:15px;">✏️ Edit Order (<span id="editPoNumberText"></span>)</h3>
-        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:#f1f5f9; border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
+        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:var(--bg); color:var(--text-dark); border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
       </div>
 
       <input type="hidden" id="editPoId" />
@@ -536,7 +507,7 @@
         <select id="editPoSupplierSelect"></select>
       </div>
 
-      <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
+      <div style="background:var(--bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
         <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Item Add Karein:</strong>
         <div class="form-grid">
           <div class="search-select-wrapper">
@@ -580,31 +551,65 @@
     let editPoCart = [];
     let tickedProductsMap = {}; 
 
-    function toggleSidebar(open) {
-      const overlay = document.getElementById("sidebarOverlay");
-      const drawer = document.getElementById("sidebarDrawer");
-      if (open) {
-        overlay.classList.add("active");
-        drawer.classList.add("active");
+    /* THEME MODE & COLOR SWITCHER LOGIC */
+    function initThemes() {
+      const savedMode = localStorage.getItem("adminMode") || "light";
+      const savedTheme = localStorage.getItem("adminTheme") || "indigo";
+      
+      if(savedMode === "dark") {
+        document.body.classList.add("dark-mode");
+        document.getElementById("modeToggleBtn").textContent = "☀️ Light";
+      }
+
+      document.body.setAttribute("data-theme", savedTheme);
+      document.getElementById("colorThemeSelect").value = savedTheme;
+    }
+
+    function toggleNightMode() {
+      const isDark = document.body.classList.toggle("dark-mode");
+      const btn = document.getElementById("modeToggleBtn");
+      
+      if(isDark) {
+        btn.textContent = "☀️ Light";
+        localStorage.setItem("adminMode", "dark");
       } else {
-        overlay.classList.remove("active");
-        drawer.classList.remove("active");
+        btn.textContent = "🌙 Dark";
+        localStorage.setItem("adminMode", "light");
       }
     }
 
-    function switchTab(tabId, evt) {
+    function changeColorTheme(themeName) {
+      document.body.setAttribute("data-theme", themeName);
+      localStorage.setItem("adminTheme", themeName);
+    }
+
+    initThemes();
+
+    function switchTab(tabId, btnEl) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".sidebar-menu-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".bottom-nav-btn").forEach(b => b.classList.remove("active"));
       
       document.getElementById(tabId).classList.add("active");
-      if(evt) evt.target.classList.add("active");
-
-      toggleSidebar(false);
+      if(btnEl) btnEl.classList.add("active");
 
       if (tabId === 'customerTab') loadCustomerOrders();
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
       if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
     }
+
+    function toggleDropdown(btn) {
+      const menu = btn.nextElementSibling;
+      document.querySelectorAll('.dropdown-menu').forEach(m => {
+        if(m !== menu) m.classList.remove('show');
+      });
+      menu.classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      if(!e.target.closest('.dropdown-wrapper')) {
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+      }
+    });
 
     function formatTime(dtStr) {
       if (!dtStr) return '';
@@ -614,7 +619,7 @@
       });
     }
 
-    /* PRODUCTS TAB VIEW & STOCK QTY LOGIC */
+    /* PRODUCTS TAB VIEW */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
@@ -786,13 +791,17 @@
               <strong>${s.name}</strong>
               ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
             </div>
-            <div class="action-btn-group">
-              ${s.phone ? `
-                <a href="tel:${s.phone}" class="call-btn">📞 Call</a>
-                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WA</a>
-              ` : ''}
-              <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
-              <button class="btn-danger" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+            
+            <div class="dropdown-wrapper">
+              <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+              <div class="dropdown-menu">
+                ${s.phone ? `
+                  <a href="tel:${s.phone}" class="dropdown-item">📞 Call</a>
+                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
+                ` : ''}
+                <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
+                <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+              </div>
             </div>
           </div>
         `;
@@ -811,8 +820,8 @@
         actionsDiv.style.display = "flex";
         actionsDiv.style.gap = "6px";
         actionsDiv.innerHTML = `
-          <a href="tel:${phone}" class="call-btn">📞 Call Supplier</a>
-          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WhatsApp Query</a>
+          <a href="tel:${phone}" class="dropdown-btn" style="text-decoration:none; color:white; background:var(--success);">📞 Call</a>
+          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="dropdown-btn" style="text-decoration:none; color:white; background:#25d366;">💬 WhatsApp Rate Query</a>
         `;
       } else {
         actionsDiv.style.display = "none";
@@ -931,14 +940,17 @@
                 `).join('') : '<div style="font-size:11px; color:var(--text-muted);">No item details found</div>'}
               </div>
               
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #eee; padding-top:8px; flex-wrap:wrap; gap:6px;">
-                <div class="action-btn-group">
-                  ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
-                    ${statusLower !== 'processing' ? `<button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process</button>` : ''}
-                    <button class="btn-green" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
-                    <button class="btn-danger" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
-                  ` : ''}
-                  <button class="btn-pdf" onclick="generateCustomerBillPdf('${ord.id}')">📄 Bill PDF</button>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
+                <div class="dropdown-wrapper">
+                  <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                  <div class="dropdown-menu">
+                    ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
+                      ${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
+                      <button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
+                      <button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
+                    ` : ''}
+                    <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
+                  </div>
                 </div>
                 <div style="font-weight:bold; font-size:13px; color:var(--text-dark);">
                   Total: ₹${totalAmount.toFixed(2)}
@@ -1151,22 +1163,23 @@
           <div class="order-card">
             <div class="order-header">
               <span>Supplier: ${po.supplier_name}</span>
-              <div>
-                <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
-                ${po.status === 'pending' ? `<button class="btn-primary" style="padding:2px 6px; font-size:10px; margin-left:4px;" onclick="openEditPoModal(${po.id})">✏️ Edit</button>` : ''}
+              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+            </div>
+
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div class="dropdown-wrapper">
+                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                <div class="dropdown-menu">
+                  ${phone ? `
+                    <a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a>
+                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
+                  ` : ''}
+                  <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
+                  ${po.status === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                </div>
               </div>
             </div>
-            ${phone ? `
-              <div class="action-btn-group" style="margin-bottom:8px;">
-                <a href="tel:${phone}" class="call-btn">📞 Call</a>
-                <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="wa-btn">💬 WA Query</a>
-                <button class="btn-pdf" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
-              </div>
-            ` : `
-              <div style="margin-bottom:8px;">
-                <button class="btn-pdf" onclick="generateSupplierPoPdf('${po.id}')">📄 Download PDF</button>
-              </div>
-            `}
+
             <div>
               ${(po.purchase_order_items || []).map(it => `
                 <div class="item-row">
@@ -1175,6 +1188,7 @@
                 </div>
               `).join("")}
             </div>
+
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
               ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 9px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
@@ -1308,7 +1322,6 @@
       const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
 
       for (let item of items) {
-        // Increment stock and update cost price
         const { data: prod } = await db.from("products").select("stock_qty").eq("id", item.product_id).single();
         const currentQty = prod && prod.stock_qty ? Number(prod.stock_qty) : 0;
         const newQty = currentQty + Number(item.quantity);
