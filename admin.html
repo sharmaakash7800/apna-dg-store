@@ -226,6 +226,14 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
+    /* Products Table Styling */
+    .table-responsive { overflow-x: auto; max-height: 400px; }
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .custom-table th, .custom-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    .custom-table th { background: #f1f5f9; position: sticky; top: 0; z-index: 10; }
+
+    .chk-box { width: 18px; height: 18px; cursor: pointer; }
+
     /* PRINT HIDDEN CONTAINER FOR PDF */
     #printContainer {
       display: none;
@@ -242,6 +250,7 @@
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('customerTab', event)">📋 Customer Orders</button>
       <button class="tab-btn" onclick="switchTab('supplierTab', event)">🏬 Supplier Reorder</button>
+      <button class="tab-btn" onclick="switchTab('productsTab', event)">📦 Products List</button>
     </div>
   </header>
 
@@ -339,6 +348,66 @@
       </div>
     </section>
 
+    <!-- TAB 3: PRODUCTS LIST & BULK REORDER SELECTION -->
+    <section id="productsTab" class="tab-content">
+      
+      <!-- SELECTED ITEMS REORDER BOX -->
+      <div class="card" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h3 style="margin:0; color:#166534;">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items Selected)</h3>
+            <small style="color:var(--muted);">Jo items aap tick karenge, wo yahan add honge.</small>
+          </div>
+          <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear Selection</button>
+        </div>
+
+        <div id="selectedTickedList" style="margin-top:10px; max-height:180px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px;">
+          <div style="text-align:center; color:var(--muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <div style="flex:1; min-width:200px;">
+            <select id="tickedSupplierSelect">
+              <option value="">-- Select Supplier for Ticked Items --</option>
+            </select>
+          </div>
+          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto; padding:10px 18px;">🚀 Place Order to Supplier</button>
+        </div>
+      </div>
+
+      <!-- ALL PRODUCTS TABLE -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <h2 style="margin:0;">📦 All Store Products List (<span id="totalProductsCount">0</span>)</h2>
+          <button class="btn-primary" onclick="loadAllProductsView()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh Items</button>
+        </div>
+
+        <!-- Product Filter / Search -->
+        <div style="margin-bottom: 12px;">
+          <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product by ID, Name or Category..." oninput="renderProductsTable()" />
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width:40px; text-align:center;">Select</th>
+                <th>ID</th>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th>Cost Price (₹)</th>
+                <th>Selling Price (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <tr><td colspan="7" style="text-align:center; color:var(--muted);">Products load ho rahe hain...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <!-- EDIT SUPPLIER REORDER MODAL -->
@@ -399,6 +468,7 @@
     let suppliersList = [];
     let poCart = [];
     let editPoCart = [];
+    let tickedProductsMap = {}; // Holds selected items for bulk reorder
 
     function switchTab(tabId, evt) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -408,6 +478,7 @@
 
       if (tabId === 'customerTab') loadCustomerOrders();
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
+      if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
     }
 
     function formatTime(dtStr) {
@@ -418,6 +489,143 @@
       });
     }
 
+    /* PRODUCTS TAB VIEW & CHECKBOX REORDER LOGIC */
+    async function loadAllProductsView() {
+      const tbody = document.getElementById("productsTableBody");
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted);">Products load ho rahe hain...</td></tr>';
+      
+      const { data, error } = await db.from("products").select("*").order("name");
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      productsList = data || [];
+      document.getElementById("totalProductsCount").textContent = productsList.length;
+      renderProductsTable();
+    }
+
+    function renderProductsTable() {
+      const tbody = document.getElementById("productsTableBody");
+      const searchVal = document.getElementById("adminProductSearchInput").value.toLowerCase().trim();
+
+      const filtered = productsList.filter(p => 
+        String(p.id).toLowerCase().includes(searchVal) ||
+        String(p.name || '').toLowerCase().includes(searchVal) ||
+        String(p.category || '').toLowerCase().includes(searchVal)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted);">Koi product nahi mila.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
+        return `
+          <tr>
+            <td style="text-align:center;">
+              <input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" />
+            </td>
+            <td><strong>${p.id}</strong></td>
+            <td>${p.name || 'N/A'}</td>
+            <td>${p.category || 'N/A'}</td>
+            <td>${p.unit || '-'}</td>
+            <td style="color:#2563eb; font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
+            <td style="color:#16a34a; font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleProductSelection(prodId, isChecked) {
+      const prod = productsList.find(p => String(p.id) === String(prodId));
+      if (!prod) return;
+
+      if (isChecked) {
+        tickedProductsMap[prodId] = {
+          product_id: prod.id,
+          product_name: prod.name,
+          quantity: 1,
+          purchase_price: Number(prod.cost_price || 0)
+        };
+      } else {
+        delete tickedProductsMap[prodId];
+      }
+      renderTickedProductsList();
+    }
+
+    function renderTickedProductsList() {
+      const container = document.getElementById("selectedTickedList");
+      const keys = Object.keys(tickedProductsMap);
+      document.getElementById("tickedCount").textContent = keys.length;
+
+      if (keys.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>';
+        return;
+      }
+
+      container.innerHTML = keys.map(k => {
+        const item = tickedProductsMap[k];
+        return `
+          <div class="item-row">
+            <div style="flex:2;">
+              <strong>${item.product_name}</strong>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex:1; justify-content:flex-end;">
+              <label style="font-size:11px;">Qty:</label>
+              <input type="number" min="1" value="${item.quantity}" style="width:60px; padding:3px 6px; font-size:11px;" onchange="tickedProductsMap['${k}'].quantity = Number(this.value);" />
+              <label style="font-size:11px;">Rate:</label>
+              <input type="number" step="0.01" value="${item.purchase_price}" style="width:75px; padding:3px 6px; font-size:11px;" onchange="tickedProductsMap['${k}'].purchase_price = Number(this.value);" />
+              <button class="btn-danger" style="padding:2px 6px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function clearAllSelection() {
+      tickedProductsMap = {};
+      renderTickedProductsList();
+      renderProductsTable();
+    }
+
+    async function submitTickedReorder() {
+      const supplierSelect = document.getElementById("tickedSupplierSelect");
+      const supplier = supplierSelect.value;
+      const keys = Object.keys(tickedProductsMap);
+
+      if (!supplier) return alert("Supplier select karein.");
+      if (keys.length === 0) return alert("Kam se kam 1 product par tick karein.");
+
+      const poNumber = "PO-" + Date.now();
+      const itemsList = keys.map(k => tickedProductsMap[k]);
+      const totalAmount = itemsList.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+
+      const { data: po, error } = await db.from("purchase_orders").insert([{
+        po_number: poNumber,
+        supplier_name: supplier,
+        total_amount: totalAmount,
+        status: "pending"
+      }]).select("id").single();
+
+      if (error) return alert("Error: " + error.message);
+
+      const dbItems = itemsList.map(i => ({
+        po_id: po.id,
+        product_id: i.product_id,
+        product_name: i.product_name,
+        quantity: i.quantity,
+        purchase_price: i.purchase_price
+      }));
+
+      await db.from("purchase_order_items").insert(dbItems);
+
+      alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
+      clearAllSelection();
+      supplierSelect.value = "";
+    }
+
     /* 1. SUPPLIERS MASTER */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
@@ -425,6 +633,7 @@
       
       const select = document.getElementById("poSupplierSelect");
       const editSelect = document.getElementById("editPoSupplierSelect");
+      const tickedSelect = document.getElementById("tickedSupplierSelect");
 
       const options = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
@@ -432,8 +641,9 @@
           return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
         }).join("");
 
-      select.innerHTML = options;
-      editSelect.innerHTML = options;
+      if(select) select.innerHTML = options;
+      if(editSelect) editSelect.innerHTML = options;
+      if(tickedSelect) tickedSelect.innerHTML = options;
 
       const masterContainer = document.getElementById("suppliersMasterList");
       if (suppliersList.length === 0) {
@@ -699,7 +909,7 @@
       if (prod) {
         document.getElementById(searchInputId).value = `${prod.name} (SKU: ${prod.sku || prod.id})`;
         document.getElementById(selectedIdField).value = prod.id;
-        document.getElementById(priceField).value = prod.last_purchase_price || 0;
+        document.getElementById(priceField).value = prod.cost_price || prod.last_purchase_price || 0;
       }
       document.getElementById(resultsDivId).style.display = "none";
     }
@@ -975,17 +1185,17 @@
     }
 
     async function receiveStock(poId) {
-      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Last Purchase Price update ho jayegi.")) return;
+      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Cost Price update ho jayegi.")) return;
 
       const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
 
       for (let item of items) {
-        await db.from("products").update({ last_purchase_price: item.purchase_price }).eq("id", item.product_id);
+        await db.from("products").update({ cost_price: item.purchase_price }).eq("id", item.product_id);
       }
 
       await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
 
-      alert("Stock Receive ho gaya aur Last Purchase Price update ho gayi!");
+      alert("Stock Receive ho gaya aur Cost Price update ho gayi!");
       loadPurchaseOrders();
       loadProductsForReorder();
     }
@@ -1107,7 +1317,6 @@
       await html2pdf().set(opt).from(printDiv).save();
       printDiv.style.display = "none";
 
-      // If supplier phone exists, redirect to WhatsApp
       if (cleanPhone) {
         const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF list generate ho gayi hai. Kripya PDF attach karke dekh lein aur rate confirm karein.`);
         window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
