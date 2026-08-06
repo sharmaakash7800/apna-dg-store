@@ -525,7 +525,7 @@
     <!-- TAB 4: REPORTS & ANALYTICS -->
     <section id="reportsTab" class="tab-content">
       <div class="card">
-        <h3>💵 Counter / Offline Cash Collection Entry</h3>
+        <h3>💵 Counter Collection Entry</h3>
         <div class="form-grid">
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
@@ -536,8 +536,15 @@
             <input type="date" id="manualCashToDate" />
           </div>
           <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
+            <select id="manualCashMode">
+              <option value="offline">💵 Offline (Cash)</option>
+              <option value="online">💳 Online (UPI/Cards)</option>
+            </select>
+          </div>
+          <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
-            <input type="number" id="manualCashAmount" placeholder="Daily Cash Amount" />
+            <input type="number" id="manualCashAmount" placeholder="Collection Amount" />
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
@@ -545,7 +552,7 @@
           </div>
           <div>
             <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
-            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Cash Entry</button>
+            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
           </div>
         </div>
       </div>
@@ -736,6 +743,7 @@
     async function saveOfflineCashEntry() {
       const fromDateVal = document.getElementById("manualCashFromDate").value;
       const toDateVal = document.getElementById("manualCashToDate").value;
+      const modeVal = document.getElementById("manualCashMode").value;
       const amountVal = Number(document.getElementById("manualCashAmount").value);
       const noteVal = document.getElementById("manualCashNote").value || "Counter Sales";
 
@@ -746,22 +754,24 @@
       const { error } = await db.from("offline_collections").insert([{
         collection_date: toDateVal,
         amount: amountVal,
-        note: remarkText
+        note: remarkText,
+        payment_mode: modeVal
       }]);
 
       if (error) {
         const { error: ordErr } = await db.from("orders").insert([{
-          customer_name: "Counter Cash Customer",
+          customer_name: modeVal === 'online' ? "Counter Online Customer" : "Counter Cash Customer",
           mobile: "0000000000",
-          payment_mode: "offline",
+          payment_mode: modeVal,
           status: "completed",
           created_at: new Date(toDateVal).toISOString(),
-          address: remarkText
+          address: remarkText,
+          total_amount: amountVal
         }]);
         if(ordErr) alert("Error: " + ordErr.message);
-        else alert("Offline Cash Entry Saved!");
+        else alert("Collection Entry Saved!");
       } else {
-        alert("Offline Cash Entry Saved!");
+        alert("Collection Entry Saved!");
       }
 
       document.getElementById("manualCashAmount").value = "";
@@ -818,7 +828,12 @@
       let validOrderCount = 0;
 
       (manualCash || []).forEach(m => {
-        offlineTotal += Number(m.amount || 0);
+        const mode = String(m.payment_mode || 'offline').toLowerCase();
+        if (mode.includes('online') || mode.includes('upi') || mode.includes('card')) {
+          onlineTotal += Number(m.amount || 0);
+        } else {
+          offlineTotal += Number(m.amount || 0);
+        }
       });
 
       (sales || []).forEach(ord => {
