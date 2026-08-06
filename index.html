@@ -35,7 +35,6 @@
 
     button, input, select, textarea { font: inherit; }
 
-    /* Modern Responsive Header */
     .top-header {
       position: sticky;
       top: 0;
@@ -118,7 +117,6 @@
       white-space: nowrap;
     }
 
-    /* Search Bar */
     .search-wrap {
       display: grid;
       grid-template-columns: 110px 1fr 44px;
@@ -155,7 +153,6 @@
       place-items: center;
     }
 
-    /* Category Landing Page */
     .category-landing {
       width: min(1200px, 92%);
       margin: 18px auto 40px;
@@ -196,7 +193,6 @@
       border-color: var(--yellow);
     }
 
-    /* Store Grid Layout */
     .store-content {
       width: min(1200px, 94%);
       margin: 14px auto 50px;
@@ -339,7 +335,6 @@
       font-size: 12px;
     }
 
-    /* Modals / Drawers Fixes */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -360,7 +355,7 @@
       max-width: 400px;
       height: 100%;
       background: white;
-      padding: 18px 18px 90px 18px; /* Extra bottom padding for mobile scroll/space */
+      padding: 18px 18px 90px 18px;
       overflow-y: auto;
       box-shadow: -4px 0 20px rgba(0,0,0,0.15);
       display: flex;
@@ -458,7 +453,7 @@
     .place-btn, .action-btn {
       width: 100%;
       margin-top: 12px;
-      margin-bottom: 25px; /* Added extra space below button */
+      margin-bottom: 25px;
       border: 0;
       cursor: pointer;
       border-radius: 10px;
@@ -696,35 +691,14 @@
         </div>
       </div>
 
-      <!-- Customer Details Form & Auth -->
+      <!-- Customer Details Form -->
       <h3>Customer Details</h3>
       
-      <!-- OTP Authentication Area -->
-      <div id="authBox" style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);">
-        <div id="phoneStep">
-          <label style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:4px;">Login with Mobile (OTP):</label>
-          <div style="display:flex; gap:6px;">
-            <input id="otpPhone" type="tel" placeholder="+91XXXXXXXXXX" style="border:1px solid var(--border); border-radius:6px; padding:8px; font-size:12px; width:100%;" />
-            <button id="sendOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:8px;">Send OTP</button>
-          </div>
-        </div>
-        <div id="otpStep" style="display:none; margin-top:8px;">
-          <div style="display:flex; gap:6px;">
-            <input id="otpCode" type="text" placeholder="6-digit OTP" style="border:1px solid var(--border); border-radius:6px; padding:8px; font-size:12px; width:100%;" />
-            <button id="verifyOtpBtn" class="action-btn" type="button" style="margin:0; width:90px; font-size:11px; padding:8px;">Verify</button>
-          </div>
-        </div>
-      </div>
-
       <form id="orderForm">
         <div class="form-grid">
           <input id="customerName" type="text" placeholder="Customer name" required />
           <input id="mobile" type="tel" placeholder="Mobile number" minlength="10" maxlength="10" required />
           <textarea id="address" placeholder="Delivery address" rows="3" required></textarea>
-
-          <label style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-top:2px;">
-            <input type="checkbox" id="saveAddressCheck" checked /> Save/Update address for future orders
-          </label>
 
           <div class="payment-option-box">
             <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:6px;">Select Payment Method:</span>
@@ -805,11 +779,9 @@
     let cart = [];
     let selectedCategory = "";
     
-    // Dynamic Delivery & Coupon Variables
     let deliveryFee = 40;
     let freeDeliveryAbove = 500;
     let appliedDiscount = 0;
-    let currentUser = null;
 
     const productsEl = document.getElementById("products");
     const productSearchEl = document.getElementById("productSearch");
@@ -850,7 +822,6 @@
 
     closeUpiBtn.addEventListener("click", () => upiModalEl.classList.remove("open"));
 
-    // Fetch Dynamic Delivery Charges from DB
     async function fetchStoreSettings() {
       try {
         const { data } = await db.from("store_settings").select("*");
@@ -866,49 +837,6 @@
     }
     fetchStoreSettings();
 
-    // OTP Auth Handlers
-    document.getElementById("sendOtpBtn").addEventListener("click", async () => {
-      const phone = document.getElementById("otpPhone").value.trim();
-      if (!phone) return alert("Pehle mobile number enter karein (+91 ke saath).");
-
-      const { error } = await db.auth.signInWithOtp({ phone });
-      if (error) alert("OTP Bhejane mein error: " + error.message);
-      else {
-        alert("OTP " + phone + " par bhej diya gaya hai.");
-        document.getElementById("otpStep").style.display = "block";
-      }
-    });
-
-    document.getElementById("verifyOtpBtn").addEventListener("click", async () => {
-      const phone = document.getElementById("otpPhone").value.trim();
-      const token = document.getElementById("otpCode").value.trim();
-
-      const { data, error } = await db.auth.verifyOtp({ phone, token, type: 'sms' });
-      if (error) alert("Verification Fail: " + error.message);
-      else {
-        alert("Login Successful!");
-        currentUser = data.user;
-        loadUserProfile(currentUser);
-      }
-    });
-
-    async function loadUserProfile(user) {
-      document.getElementById("authBox").style.display = "none";
-      const cleanMobile = user.phone ? user.phone.replace("+91", "") : "";
-      document.getElementById("mobile").value = cleanMobile;
-
-      try {
-        const { data: profile } = await db.from("customer_profiles").select("*").eq("id", user.id).single();
-        if (profile) {
-          document.getElementById("customerName").value = profile.full_name || "";
-          document.getElementById("address").value = profile.saved_address || "";
-        }
-      } catch(e) {
-        console.log("Profile fetch skipped");
-      }
-    }
-
-    // Coupon Apply Handler
     document.getElementById("applyCouponBtn").addEventListener("click", async () => {
       const code = document.getElementById("couponInput").value.trim().toUpperCase();
       const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -1073,7 +1001,6 @@
       `).join("");
     }
 
-    /* Fixed Smooth Order Submit Handling */
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!cart.length) return alert("Pehle cart mein items add karein.");
@@ -1086,24 +1013,11 @@
       const paymentSelected = document.querySelector('input[name="paymentMethod"]:checked').value;
       const placeOrderBtn = document.getElementById("placeOrderBtn");
 
-      // Safe Save Address Logic
-      try {
-        if (currentUser && document.getElementById("saveAddressCheck").checked) {
-          await db.from("customer_profiles").upsert({
-            id: currentUser.id,
-            full_name: customerName,
-            saved_address: address,
-            phone: mobile
-          });
-        }
-      } catch(e) { console.log("Address autosave skipped"); }
-
       placeOrderBtn.disabled = true;
       placeOrderBtn.textContent = "Order Ho Raha Hai...";
 
       const orderCode = "ORD-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 
-      // Calculations
       const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
       const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
       const finalTotalAmount = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee);
@@ -1170,7 +1084,6 @@
       alert("Aapka Order successfully place ho gaya hai!");
     }
 
-    /* Customer Order Cancellation */
     window.cancelCustomerOrder = async function(orderId) {
       if (!confirm("Kya aap sach mein is order ko Cancel karna chahte hain?")) return;
 
@@ -1181,11 +1094,10 @@
         alert("Order Cancel kar diya gaya hai.");
         document.getElementById("fetchOrdersBtn").click();
       } catch (err) {
-        alert("Cancel karne mein error आया: " + err.message);
+        alert("Cancel karne mein error aaya: " + err.message);
       }
     };
 
-    /* Fetch Orders */
     fetchOrdersBtn.addEventListener("click", async () => {
       const rawMobile = accountMobileInput.value.trim();
       if (!rawMobile) return alert("Mobile number enter karein.");
@@ -1198,7 +1110,7 @@
       try {
         const { data: orders, error: orderErr } = await db
           .from("orders")
-          .select("*, order_items!fk_orders(*)")
+          .select("*, order_items(*)")
           .or(`mobile.eq.${mobileClean},mobile.eq.${mobileWithZero}`)
           .order("created_at", { ascending: false });
 
