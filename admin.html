@@ -29,18 +29,6 @@
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
     }
 
-    /* DARK MODE VARIABLES */
-    body.dark-mode {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --border: #334155;
-      --text-dark: #f8fafc;
-      --text-muted: #94a3b8;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
-      --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
-    }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
@@ -49,16 +37,15 @@
       color: var(--text-dark);
       background: var(--bg);
       padding-bottom: 90px;
-      transition: background 0.2s, color 0.2s;
     }
 
-    /* MODERN HEADER */
+    /* MODERN HEADER (COLOR / THEME BUTTON REMOVED) */
     header {
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       color: var(--text-dark);
-      padding: 10px 20px;
+      padding: 12px 20px;
       position: sticky;
       top: 0;
       z-index: 90;
@@ -69,42 +56,14 @@
       box-shadow: var(--shadow-sm);
     }
 
-    body.dark-mode header {
-      background: rgba(30, 41, 59, 0.85);
-    }
-
     .header-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       color: var(--primary);
       letter-spacing: -0.2px;
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-
-    .theme-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .theme-btn {
-      background: var(--surface);
-      color: var(--text-dark);
-      border: 1px solid var(--border);
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .theme-btn:hover {
-      border-color: var(--primary);
-      transform: translateY(-1px);
     }
 
     /* FLOATING BOTTOM NAVIGATION BAR */
@@ -146,9 +105,7 @@
 
     .bottom-nav-btn .icon { font-size: 16px; transition: transform 0.2s ease; }
 
-    .bottom-nav-btn:hover {
-      color: var(--primary);
-    }
+    .bottom-nav-btn:hover { color: var(--primary); }
 
     .bottom-nav-btn.active {
       color: var(--primary);
@@ -156,9 +113,7 @@
       font-weight: 700;
     }
 
-    .bottom-nav-btn.active .icon {
-      transform: scale(1.15);
-    }
+    .bottom-nav-btn.active .icon { transform: scale(1.15); }
 
     .container { width: min(100%, 1150px); padding: 16px; margin: auto; }
 
@@ -194,9 +149,7 @@
       transition: border 0.2s;
     }
 
-    input:focus, select:focus {
-      border-color: var(--primary);
-    }
+    input:focus, select:focus { border-color: var(--primary); }
 
     /* COMPACT BUTTON STYLES */
     .btn-primary, .btn-green, .btn-danger, .btn-outline {
@@ -245,10 +198,7 @@
       transition: all 0.2s ease;
     }
 
-    .dropdown-btn:hover {
-      border-color: var(--primary);
-      background: var(--surface);
-    }
+    .dropdown-btn:hover { border-color: var(--primary); background: var(--surface); }
 
     .dropdown-menu {
       position: absolute;
@@ -389,14 +339,9 @@
 </head>
 <body>
 
-  <!-- HEADER (COLOR SELECTOR REMOVED) -->
+  <!-- HEADER (ALL THEME/COLOR BUTTONS REMOVED) -->
   <header>
     <div class="header-title">⚙️ Apna DG Store Admin</div>
-    
-    <div class="theme-controls">
-      <!-- DAY / NIGHT TOGGLE ONLY -->
-      <button id="modeToggleBtn" class="theme-btn" onclick="toggleNightMode()">🌙 Dark</button>
-    </div>
   </header>
 
   <!-- BOTTOM NAVIGATION BAR -->
@@ -686,6 +631,7 @@
 
   <div id="printContainer"></div>
 
+  <!-- SUPABASE JS SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
@@ -697,30 +643,6 @@
     let poCart = [];
     let editPoCart = [];
     let tickedProductsMap = {}; 
-
-    /* THEME MODE LOGIC */
-    function initThemes() {
-      const savedMode = localStorage.getItem("adminMode") || "light";
-      if(savedMode === "dark") {
-        document.body.classList.add("dark-mode");
-        document.getElementById("modeToggleBtn").textContent = "☀️ Light";
-      }
-    }
-
-    function toggleNightMode() {
-      const isDark = document.body.classList.toggle("dark-mode");
-      const btn = document.getElementById("modeToggleBtn");
-      
-      if(isDark) {
-        btn.textContent = "☀️ Light";
-        localStorage.setItem("adminMode", "dark");
-      } else {
-        btn.textContent = "🌙 Dark";
-        localStorage.setItem("adminMode", "light");
-      }
-    }
-
-    initThemes();
 
     function switchTab(tabId, btnEl) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -760,7 +682,7 @@
       });
     }
 
-    /* REPORTS & ANALYTICS LOGIC */
+    /* REPORTS & ANALYTICS LOGIC (COLLECTION WRITE DATA) */
     async function saveOfflineCashEntry() {
       const dateVal = document.getElementById("manualCashDate").value;
       const amountVal = Number(document.getElementById("manualCashAmount").value);
@@ -768,6 +690,7 @@
 
       if(!dateVal || amountVal <= 0) return alert("Sahi Date aur Amount dalein.");
 
+      // Data Writing to 'offline_collections' Table
       const { error } = await db.from("offline_collections").insert([{
         collection_date: dateVal,
         amount: amountVal,
@@ -1717,11 +1640,12 @@
       printDiv.style.display = "none";
 
       if (cleanPhone) {
-        const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF list generate ho gayi hai. Kripya PDF attach karke dekh lein aur rate confirm karein.`);
+        const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF list generate ho gaya hai. Kripya PDF attach karke dekh lein aur rate confirm karein.`);
         window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
       }
     }
 
+    // App Initialization
     loadCustomerOrders();
   </script>
 </body>
