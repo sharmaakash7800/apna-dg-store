@@ -347,41 +347,41 @@
   <nav class="bottom-nav">
     <button id="nav-customerTab" class="bottom-nav-btn active" onclick="switchTab('customerTab', this)">
       <span class="icon">📋</span>
-      <span>Orders</span>
+      <span>Customer Orders</span>
     </button>
     <button id="nav-supplierTab" class="bottom-nav-btn" onclick="switchTab('supplierTab', this)">
       <span class="icon">🏬</span>
-      <span>Reorder</span>
+      <span>My Purchases</span>
     </button>
     <button id="nav-productsTab" class="bottom-nav-btn" onclick="switchTab('productsTab', this)">
       <span class="icon">📦</span>
-      <span>Products</span>
+      <span>Products Master</span>
     </button>
     <button id="nav-reportsTab" class="bottom-nav-btn" onclick="switchTab('reportsTab', this)">
       <span class="icon">📊</span>
-      <span>Reports</span>
+      <span>Sales Reports</span>
     </button>
   </nav>
 
   <div class="container">
 
-    <!-- TAB 1: CUSTOMER ORDERS -->
+    <!-- TAB 1: CUSTOMER ORDERS (SALES) -->
     <section id="customerTab" class="tab-content active">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 style="margin:0;">🛍 Customer Orders</h2>
-          <button class="btn-primary" onclick="loadCustomerOrders()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          <h2 style="margin:0; color:var(--primary);">🛍 Customer Orders & Sales Table</h2>
+          <button class="btn-primary" onclick="loadCustomerOrders()" style="padding:6px 12px; font-size:11px;">🔄 Refresh Orders</button>
         </div>
         <div id="customerOrdersContainer">
-          <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
+          <div style="text-align:center; padding:20px; color:var(--text-muted);">Customer orders load ho rahe hain...</div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 2: SUPPLIER REORDERS -->
+    <!-- TAB 2: MY PURCHASES & SUPPLIER REORDERS -->
     <section id="supplierTab" class="tab-content">
       <div class="card">
-        <h3>➕ Master Supplier Add Karein</h3>
+        <h3>➕ Naya Supplier Add Karein</h3>
         <div class="form-grid">
           <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
           <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
@@ -397,7 +397,7 @@
       </div>
 
       <div class="card">
-        <h2>➕ Naya Supplier Reorder Banayein</h2>
+        <h2>➕ Naya Purchase Order (Reorder) Banayein</h2>
         <div class="form-grid">
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
@@ -420,7 +420,7 @@
               <input id="poQty" type="number" min="1" value="1" />
             </div>
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Rate (₹):</label>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Purchase Rate (₹):</label>
               <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
             </div>
           </div>
@@ -431,41 +431,41 @@
         </div>
 
         <div style="margin-top:15px;">
-          <h3 style="font-size:12px; color:var(--text-muted);">Reorder Items List:</h3>
+          <h3 style="font-size:12px; color:var(--text-muted);">Purchase Items List:</h3>
           <div id="poCartItems">
             <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
             <div>
-              <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
+              <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL PURCHASE BILL</small>
               <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
             </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Reorder</button>
+            <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Purchase Order</button>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h2>📋 Supplier Reorders History</h2>
+        <h2>📑 My Purchase Orders History Table</h2>
         <div id="purchaseOrdersList">
-          <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading reorders...</div>
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading purchase orders...</div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 3: PRODUCTS LIST -->
+    <!-- TAB 3: PRODUCTS MASTER TABLE -->
     <section id="productsTab" class="tab-content">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items (<span id="tickedCount">0</span> Selected)</h3>
+            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items for Quick Purchase (<span id="tickedCount">0</span> Selected)</h3>
           </div>
           <button class="btn-danger" onclick="clearAllSelection()">Clear</button>
         </div>
 
         <div id="selectedTickedList" style="margin-top:10px; max-height:200px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
-          <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>
+          <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche table me se products par ☑️ Tick mark karke purchase order banayein.</div>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
@@ -477,15 +477,15 @@
             <select id="tickedSupplierSelect" style="min-width:160px;">
               <option value="">-- Select Supplier --</option>
             </select>
-            <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Order</button>
+            <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Purchase Order</button>
           </div>
         </div>
       </div>
 
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
-          <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          <h2 style="margin:0;">📦 Inventory Products List (<span id="totalProductsCount">0</span>)</h2>
+          <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄 Refresh Table</button>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -502,8 +502,8 @@
                 <th>Category</th>
                 <th>Unit</th>
                 <th>Stock Qty</th>
-                <th>Cost (₹)</th>
-                <th>Selling (₹)</th>
+                <th>Purchase Cost (₹)</th>
+                <th>Selling Price (₹)</th>
               </tr>
             </thead>
             <tbody id="productsTableBody">
@@ -514,7 +514,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: REPORTS & ANALYTICS -->
+    <!-- TAB 4: REPORTS -->
     <section id="reportsTab" class="tab-content">
       <div class="card">
         <h3>💵 Counter Collection Entry</h3>
@@ -589,7 +589,6 @@
           </div>
         </div>
 
-        <!-- DETAILED BREAKDOWN TABLE -->
         <div style="margin-top:20px;">
           <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown</h3>
           <div class="table-responsive">
@@ -618,7 +617,7 @@
   <div id="editPoModal" class="modal-overlay">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
-        <h3 style="margin:0; font-size:15px;">✏️ Edit Order (<span id="editPoNumberText"></span>)</h3>
+        <h3 style="margin:0; font-size:15px;">✏️ Edit Purchase Order (<span id="editPoNumberText"></span>)</h3>
         <button onclick="closeEditPoModal()" style="padding:4px 10px; background:var(--bg); color:var(--text-dark); border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
       </div>
 
@@ -645,7 +644,7 @@
         </div>
       </div>
 
-      <strong style="font-size:11px; color:var(--text-muted);">Order Items List:</strong>
+      <strong style="font-size:11px; color:var(--text-muted);">Purchase Order Items List:</strong>
       <div id="editPoCartItems" style="max-height: 180px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:6px;">
       </div>
 
@@ -674,7 +673,6 @@
     let editPoCart = [];
     let tickedProductsMap = {}; 
 
-    /* PERSIST ACTIVE TAB ON REFRESH */
     function initActiveTab() {
       const savedTab = localStorage.getItem("activeAdminTab") || "customerTab";
       const btnEl = document.getElementById("nav-" + savedTab);
@@ -730,7 +728,6 @@
       });
     }
 
-    /* FIXED REPORTS & ANALYTICS LOGIC (WITH TIMEZONE FIX) */
     async function saveOfflineCashEntry() {
       const fromDateVal = document.getElementById("manualCashFromDate").value;
       const toDateVal = document.getElementById("manualCashToDate").value;
@@ -742,8 +739,6 @@
 
       const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
       const generatedOrderId = "ORD-CNT-" + Date.now();
-
-      // Fix timezone slipping by setting noon time
       const entryDate = new Date(toDateVal + "T12:00:00");
 
       const { error: ordErr } = await db.from("orders").insert([{
@@ -762,7 +757,6 @@
         document.getElementById("manualCashAmount").value = "";
         document.getElementById("manualCashNote").value = "";
         
-        // Auto sync dates to report filters and recalculate
         document.getElementById("reportFromDate").value = fromDateVal;
         document.getElementById("reportToDate").value = toDateVal;
         calculateReports();
@@ -854,7 +848,181 @@
       `;
     }
 
-    /* PRODUCTS TAB VIEW */
+    /* 1. CUSTOMER ORDERS TABLE LOAD (SALES ONLY) */
+    async function loadCustomerOrders() {
+      const container = document.getElementById("customerOrdersContainer");
+      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Customer orders load ho rahe hain...</div>";
+
+      try {
+        const { data: orders, error: orderErr } = await db
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (orderErr) throw orderErr;
+
+        if (!orders || orders.length === 0) {
+          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
+          return;
+        }
+
+        const orderIds = orders.map(o => o.id);
+        const { data: allItems } = await db
+          .from("order_items")
+          .select("*")
+          .in("order_id", orderIds);
+
+        const itemsMap = {};
+        (allItems || []).forEach(it => {
+          const k = String(it.order_id);
+          if (!itemsMap[k]) itemsMap[k] = [];
+          itemsMap[k].push(it);
+        });
+
+        container.innerHTML = orders.map(ord => {
+          const items = itemsMap[String(ord.id)] || [];
+          let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+          
+          if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
+            const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
+            if (match && match[1]) totalAmount = Number(match[1]);
+          }
+
+          const dateStr = formatTime(ord.created_at) || 'N/A';
+          const statusLower = String(ord.status || 'pending').toLowerCase();
+          
+          let badgeClass = 'badge-pending';
+          if (statusLower === 'completed') badgeClass = 'badge-received';
+          else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
+          else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
+
+          return `
+            <div class="order-card">
+              <div class="order-header">
+                <span>Customer Order: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
+                <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${dateStr}<br>
+                📍 ${ord.address || 'N/A'}
+              </div>
+
+              <div style="margin-top:6px;">
+                <strong style="font-size:11px; color:var(--primary);">Ordered Products List:</strong>
+                ${items.length > 0 ? items.map(it => `
+                  <div class="item-row">
+                    <span>• ${it.product_name} (×${it.quantity || 1})</span>
+                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
+                  </div>
+                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}
+              </div>
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
+                <div class="dropdown-wrapper">
+                  <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                  <div class="dropdown-menu">
+                    ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
+                      ${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
+                      <button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
+                      <button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
+                    ` : ''}
+                    <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
+                  </div>
+                </div>
+                <div style="font-weight:bold; font-size:13px; color:var(--text-dark);">
+                  Customer Bill Total: ₹${totalAmount.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error("Error loading customer orders:", err);
+        container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
+      }
+    }
+
+    async function updateOrderStatus(id, newStatus) {
+      let confirmMsg = "Kya aap is order status ko badalna chahte hain?";
+      if (newStatus === 'processing') confirmMsg = "Kya order ko 'Under Process' mark karein?";
+      if (newStatus === 'completed') confirmMsg = "Kya order ko 'Completed' mark karein?";
+      if (newStatus === 'cancelled') confirmMsg = "Kya aap is order ko CANCEL karna chahte hain?";
+
+      if(!confirm(confirmMsg)) return;
+
+      const currentTime = new Date().toISOString();
+      const updateData = { status: newStatus };
+
+      if (newStatus === 'processing') updateData.processing_at = currentTime;
+      if (newStatus === 'completed') updateData.completed_at = currentTime;
+      if (newStatus === 'cancelled') updateData.cancelled_at = currentTime;
+
+      const { error } = await db.from("orders").update(updateData).eq("id", id);
+      if (error) alert("Error: " + error.message);
+      else {
+        alert(`Order Status '${newStatus.toUpperCase()}' Ho Gaya!`);
+        loadCustomerOrders();
+      }
+    }
+
+    /* 2. MY PURCHASE ORDERS TABLE LOAD (PURCHASES ONLY) */
+    async function loadPurchaseOrders() {
+      const container = document.getElementById("purchaseOrdersList");
+      const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
+
+      if (error || !pos || pos.length === 0) {
+        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
+        return;
+      }
+
+      container.innerHTML = pos.map(po => {
+        const supObj = suppliersList.find(s => s.name === po.supplier_name);
+        const phone = supObj ? supObj.phone : null;
+        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+
+        return `
+          <div class="order-card" style="border-left: 4px solid var(--primary);">
+            <div class="order-header">
+              <span>Supplier Purchase PO: ${po.po_number} (${po.supplier_name})</span>
+              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+            </div>
+
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div class="dropdown-wrapper">
+                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                <div class="dropdown-menu">
+                  ${phone ? `
+                    <a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a>
+                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
+                  ` : ''}
+                  <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
+                  ${po.status === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                </div>
+              </div>
+              <small style="color:var(--text-muted);">📅 Date: ${formatTime(po.created_at)}</small>
+            </div>
+
+            <div>
+              <strong style="font-size:11px; color:var(--text-muted);">Purchased Products List:</strong>
+              ${(po.purchase_order_items || []).map(it => `
+                <div class="item-row">
+                  <span>• ${it.product_name} (Qty: ${it.quantity})</span>
+                  <span>Cost Rate: ₹${it.purchase_price} / unit</span>
+                </div>
+              `).join("")}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);">
+              <strong>Purchase Total: ₹${Number(po.total_amount).toFixed(2)}</strong>
+              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock into Inventory</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    /* 3. PRODUCTS MASTER TABLE LOAD */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
@@ -1002,12 +1170,12 @@
 
       await db.from("purchase_order_items").insert(dbItems);
 
-      alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
+      alert(`Purchase Reorder successfully submit ho gaya! Total Bill: ₹${totalAmount.toFixed(2)}`);
       clearAllSelection();
       supplierSelect.value = "";
     }
 
-    /* SUPPLIERS MASTER */
+    /* SUPPLIERS MASTER LOGIC */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
       suppliersList = data || [];
@@ -1126,124 +1294,7 @@
       }
     }
 
-    /* CUSTOMER ORDERS */
-    async function loadCustomerOrders() {
-      const container = document.getElementById("customerOrdersContainer");
-      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Orders load ho rahe hain...</div>";
-
-      try {
-        const { data: orders, error: orderErr } = await db
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (orderErr) throw orderErr;
-
-        if (!orders || orders.length === 0) {
-          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
-          return;
-        }
-
-        const orderIds = orders.map(o => o.id);
-        const { data: allItems } = await db
-          .from("order_items")
-          .select("*")
-          .in("order_id", orderIds);
-
-        const itemsMap = {};
-        (allItems || []).forEach(it => {
-          const k = String(it.order_id);
-          if (!itemsMap[k]) itemsMap[k] = [];
-          itemsMap[k].push(it);
-        });
-
-        container.innerHTML = orders.map(ord => {
-          const items = itemsMap[String(ord.id)] || [];
-          let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          
-          if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
-            const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
-            if (match && match[1]) totalAmount = Number(match[1]);
-          }
-
-          const dateStr = formatTime(ord.created_at) || 'N/A';
-          const statusLower = String(ord.status || 'pending').toLowerCase();
-          
-          let badgeClass = 'badge-pending';
-          if (statusLower === 'completed') badgeClass = 'badge-received';
-          else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
-          else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
-
-          return `
-            <div class="order-card">
-              <div class="order-header">
-                <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
-                <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
-                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${dateStr}<br>
-                📍 ${ord.address || 'N/A'}
-              </div>
-
-              <div style="margin-top:6px;">
-                ${items.length > 0 ? items.map(it => `
-                  <div class="item-row">
-                    <span>• ${it.product_name} (×${it.quantity || 1})</span>
-                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
-                  </div>
-                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}
-              </div>
-              
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
-                <div class="dropdown-wrapper">
-                  <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-                  <div class="dropdown-menu">
-                    ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
-                      ${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
-                      <button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
-                      <button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
-                    ` : ''}
-                    <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
-                  </div>
-                </div>
-                <div style="font-weight:bold; font-size:13px; color:var(--text-dark);">
-                  Total: ₹${totalAmount.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          `;
-        }).join("");
-
-      } catch (err) {
-        console.error("Error loading customer orders:", err);
-        container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
-      }
-    }
-
-    async function updateOrderStatus(id, newStatus) {
-      let confirmMsg = "Kya aap is order status ko badalna chahte hain?";
-      if (newStatus === 'processing') confirmMsg = "Kya order ko 'Under Process' mark karein?";
-      if (newStatus === 'completed') confirmMsg = "Kya order ko 'Completed' mark karein?";
-      if (newStatus === 'cancelled') confirmMsg = "Kya aap is order ko CANCEL karna chahte hain?";
-
-      if(!confirm(confirmMsg)) return;
-
-      const currentTime = new Date().toISOString();
-      const updateData = { status: newStatus };
-
-      if (newStatus === 'processing') updateData.processing_at = currentTime;
-      if (newStatus === 'completed') updateData.completed_at = currentTime;
-      if (newStatus === 'cancelled') updateData.cancelled_at = currentTime;
-
-      const { error } = await db.from("orders").update(updateData).eq("id", id);
-      if (error) alert("Error: " + error.message);
-      else {
-        alert(`Order Status '${newStatus.toUpperCase()}' Ho Gaya!`);
-        loadCustomerOrders();
-      }
-    }
-
-    /* SUPPLIER REORDER LOGIC */
+    /* REORDER HELPER FUNCTIONS */
     async function loadProductsForReorder() {
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
@@ -1413,7 +1464,7 @@
 
       await db.from("purchase_order_items").insert(items);
 
-      alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+      alert(`Purchase order submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
       poCart = [];
       supplierSelect.value = "";
       document.getElementById("poProductSearch").value = "";
@@ -1425,60 +1476,7 @@
       loadPurchaseOrders();
     }
 
-    async function loadPurchaseOrders() {
-      const container = document.getElementById("purchaseOrdersList");
-      const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
-
-      if (error || !pos || pos.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
-        return;
-      }
-
-      container.innerHTML = pos.map(po => {
-        const supObj = suppliersList.find(s => s.name === po.supplier_name);
-        const phone = supObj ? supObj.phone : null;
-        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
-
-        return `
-          <div class="order-card">
-            <div class="order-header">
-              <span>Supplier: ${po.supplier_name}</span>
-              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
-            </div>
-
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <div class="dropdown-wrapper">
-                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-                <div class="dropdown-menu">
-                  ${phone ? `
-                    <a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a>
-                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
-                  ` : ''}
-                  <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
-                  ${po.status === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              ${(po.purchase_order_items || []).map(it => `
-                <div class="item-row">
-                  <span>• ${it.product_name} (Qty: ${it.quantity})</span>
-                  <span>₹${it.purchase_price} / unit</span>
-                </div>
-              `).join("")}
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
-              <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    /* EDIT REORDER FUNCTIONS */
+    /* EDIT PURCHASE REORDER FUNCTIONS */
     async function openEditPoModal(poId) {
       const { data: po, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
       if (error || !po) return alert("Order load nahi ho paya.");
@@ -1591,7 +1589,7 @@
 
       await db.from("purchase_order_items").insert(itemsToInsert);
 
-      alert("Reorder successfully update ho gaya!");
+      alert("Purchase order successfully update ho gaya!");
       closeEditPoModal();
       loadPurchaseOrders();
     }
@@ -1752,7 +1750,6 @@
       }
     }
 
-    // INITIALIZE APP WITH LAST ACTIVE TAB
     initActiveTab();
   </script>
 </body>
