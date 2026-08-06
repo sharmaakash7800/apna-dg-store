@@ -9,7 +9,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
-    /* COLOR THEMES & MODERN DASHBOARD VARIABLES */
     :root {
       --primary: #4f46e5;
       --primary-hover: #4338ca;
@@ -514,7 +513,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: REPORTS -->
+    <!-- TAB 4: REPORTS & SALES ANALYTICS -->
     <section id="reportsTab" class="tab-content">
       <div class="card">
         <h3>💵 Counter Collection Entry</h3>
@@ -550,7 +549,7 @@
       </div>
 
       <div class="card">
-        <h2>📊 Sales Report</h2>
+        <h2>📊 Sales Report & Total Collection</h2>
         
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
           <button class="btn-outline" onclick="setDateFilter('today')">Today</button>
@@ -574,21 +573,27 @@
           </div>
         </div>
 
+        <!-- ENHANCED 4 CARDS BREAKDOWN -->
         <div class="summary-grid">
           <div class="summary-card">
-            <small>💵 OFFLINE COLLECTION</small>
+            <small>💵 OFFLINE (CASH) SALES</small>
             <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
           </div>
           <div class="summary-card">
-            <small>💳 ONLINE COLLECTION</small>
+            <small>💳 ONLINE (UPI/APP) SALES</small>
             <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
           </div>
           <div class="summary-card">
-            <small>💰 TOTAL COLLECTION (SALES)</small>
-            <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
+            <small>🏬 COUNTER COLLECTION</small>
+            <strong style="color:#d97706;" id="summaryCounter">₹0.00</strong>
+          </div>
+          <div class="summary-card" style="background:#ecfdf5; border-color:#a7f3d0;">
+            <small style="color:#047857;">💰 GRAND TOTAL COLLECTION</small>
+            <strong style="color:var(--success); font-size:22px;" id="summaryTotalSales">₹0.00</strong>
           </div>
         </div>
 
+        <!-- DETAILED BREAKDOWN TABLE -->
         <div style="margin-top:20px;">
           <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown</h3>
           <div class="table-responsive">
@@ -597,17 +602,40 @@
                 <tr>
                   <th>Period / Date Range</th>
                   <th>Offline (Cash)</th>
-                  <th>Online (UPI/Cards)</th>
+                  <th>Online (UPI/App)</th>
+                  <th>Counter Sales</th>
                   <th>Total Sales</th>
                   <th>Total Orders</th>
                 </tr>
               </thead>
               <tbody id="collectionBreakdownBody">
-                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate Report' par click karein.</td></tr>
+                <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate Report' par click karein.</td></tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        <!-- RECENT SALES ENTRIES HISTORY -->
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Selected Period Detailed Sales Entries</h3>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Order / Ref ID</th>
+                  <th>Customer / Type</th>
+                  <th>Payment Mode</th>
+                  <th>Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="salesEntriesTableBody">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Report calculate karne par yahan entries dikhengi.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -702,7 +730,7 @@
         const todayStr = new Date().toISOString().split('T')[0];
         document.getElementById("manualCashFromDate").value = todayStr;
         document.getElementById("manualCashToDate").value = todayStr;
-        if(!document.getElementById("reportFromDate").value) setDateFilter('week'); 
+        if(!document.getElementById("reportFromDate").value) setDateFilter('today'); 
       }
     }
 
@@ -728,6 +756,7 @@
       });
     }
 
+    /* COUNTER ENTRY SAVE */
     async function saveOfflineCashEntry() {
       const fromDateVal = document.getElementById("manualCashFromDate").value;
       const toDateVal = document.getElementById("manualCashToDate").value;
@@ -784,6 +813,7 @@
       calculateReports();
     }
 
+    /* ENHANCED SALES CALCULATE FUNCTION WITH COMPLETE BREAKDOWN */
     async function calculateReports() {
       const fromVal = document.getElementById("reportFromDate").value;
       const toVal = document.getElementById("reportToDate").value;
@@ -797,7 +827,8 @@
         .from("orders")
         .select("*, order_items(*)")
         .gte("created_at", fromIso)
-        .lte("created_at", toIso);
+        .lte("created_at", toIso)
+        .order("created_at", { ascending: false });
 
       if(error) {
         console.error("Error fetching sales:", error);
@@ -806,7 +837,10 @@
 
       let offlineTotal = 0;
       let onlineTotal = 0;
+      let counterTotal = 0;
       let validOrderCount = 0;
+
+      let entriesHtml = "";
 
       (sales || []).forEach(ord => {
         if (ord.status !== 'cancelled') {
@@ -815,6 +849,8 @@
           let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
 
           const addressTxt = String(ord.address || '');
+          const isCounterEntry = (ord.order_id || '').startsWith("ORD-CNT-") || addressTxt.includes("Amt: ₹");
+
           if (itemsTotal === 0 && addressTxt.includes("Amt: ₹")) {
             const match = addressTxt.match(/Amt:\s*₹\s*([\d.]+)/);
             if (match && match[1]) itemsTotal = Number(match[1]);
@@ -822,11 +858,31 @@
 
           const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
           
-          if (pMode.includes('[mode:online]') || pMode.includes('online')) {
+          if (isCounterEntry) {
+            counterTotal += itemsTotal;
+            if (pMode.includes('[mode:online]')) {
+              onlineTotal += itemsTotal;
+            } else {
+              offlineTotal += itemsTotal;
+            }
+          } else if (pMode.includes('[mode:online]') || pMode.includes('online')) {
             onlineTotal += itemsTotal;
           } else {
             offlineTotal += itemsTotal;
           }
+
+          let modeBadge = '<span style="color:var(--primary); font-weight:bold;">💵 Cash</span>';
+          if (pMode.includes('online')) modeBadge = '<span style="color:var(--blue); font-weight:bold;">💳 Online UPI</span>';
+
+          entriesHtml += `
+            <tr>
+              <td>${formatTime(ord.created_at)}</td>
+              <td><strong>${ord.order_id || ord.id}</strong></td>
+              <td>${ord.customer_name || 'Customer'}</td>
+              <td>${modeBadge}</td>
+              <td style="font-weight:bold; color:var(--success);">₹${itemsTotal.toFixed(2)}</td>
+            </tr>
+          `;
         }
       });
 
@@ -834,6 +890,7 @@
 
       document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2);
       document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2);
+      document.getElementById("summaryCounter").textContent = "₹" + counterTotal.toFixed(2);
       document.getElementById("summaryTotalSales").textContent = "₹" + grandTotalSales.toFixed(2);
 
       const breakdownBody = document.getElementById("collectionBreakdownBody");
@@ -842,13 +899,21 @@
           <td><strong>${fromVal}</strong> to <strong>${toVal}</strong></td>
           <td style="color:var(--primary); font-weight:bold;">₹${offlineTotal.toFixed(2)}</td>
           <td style="color:var(--blue); font-weight:bold;">₹${onlineTotal.toFixed(2)}</td>
-          <td style="color:var(--success); font-weight:bold;">₹${grandTotalSales.toFixed(2)}</td>
+          <td style="color:#d97706; font-weight:bold;">₹${counterTotal.toFixed(2)}</td>
+          <td style="color:var(--success); font-weight:bold; font-size:14px;">₹${grandTotalSales.toFixed(2)}</td>
           <td style="font-weight:bold;">${validOrderCount} Orders</td>
         </tr>
       `;
+
+      const entriesBody = document.getElementById("salesEntriesTableBody");
+      if (entriesHtml) {
+        entriesBody.innerHTML = entriesHtml;
+      } else {
+        entriesBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Selected period me koi sale entry nahi mili.</td></tr>';
+      }
     }
 
-    /* 1. CUSTOMER ORDERS TABLE LOAD (SALES ONLY) */
+    /* CUSTOMER ORDERS TABLE LOAD */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Customer orders load ho rahe hain...</div>";
@@ -966,7 +1031,7 @@
       }
     }
 
-    /* 2. MY PURCHASE ORDERS TABLE LOAD (PURCHASES ONLY) */
+    /* MY PURCHASE ORDERS TABLE LOAD */
     async function loadPurchaseOrders() {
       const container = document.getElementById("purchaseOrdersList");
       const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
@@ -1022,7 +1087,7 @@
       }).join("");
     }
 
-    /* 3. PRODUCTS MASTER TABLE LOAD */
+    /* PRODUCTS MASTER TABLE LOAD */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
