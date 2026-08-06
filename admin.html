@@ -1,1821 +1,927 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en" class="light">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Apna DG Store - Admin Dashboard</title>
-
-  <!-- HTML2PDF CDN for PDF Generation -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-  <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --border: #e2e8f0;
-      --text-dark: #0f172a;
-      --text-muted: #64748b;
-      --success: #10b981;
-      --danger: #ef4444;
-      --blue: #3b82f6;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
-      --shadow-lg: 0 10px 25px rgba(15,23,42,0.08);
-    }
-
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: var(--text-dark);
-      background: var(--bg);
-      padding-bottom: 90px;
-    }
-
-    header {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      color: var(--text-dark);
-      padding: 14px 24px;
-      position: sticky;
-      top: 0;
-      z-index: 90;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .header-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: var(--primary);
-      letter-spacing: -0.3px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      bottom: 16px; 
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(92%, 520px);
-      height: 64px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 32px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 1000;
-      box-shadow: var(--shadow-lg);
-      padding: 0 8px;
-    }
-
-    .bottom-nav-btn {
-      flex: 1;
-      height: 48px;
-      background: transparent;
-      border: 0;
-      border-radius: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .bottom-nav-btn .icon { font-size: 18px; transition: transform 0.2s ease; }
-    .bottom-nav-btn:hover { color: var(--primary); }
-
-    .bottom-nav-btn.active {
-      color: var(--primary);
-      background: rgba(79, 70, 229, 0.08);
-      font-weight: 700;
-    }
-
-    .bottom-nav-btn.active .icon { transform: scale(1.15); }
-
-    .container { width: min(100%, 1150px); padding: 20px 16px; margin: auto; }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .card {
-      background: var(--surface);
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 16px;
-    }
-
-    .card h2, .card h3 { margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
-
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-
-    @media (min-width: 600px) {
-      .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-    }
-
-    input, select {
-      width: 100%;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-size: 13px;
-      outline: none;
-      background: #f8fafc;
-      color: var(--text-dark);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    input:focus, select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-      background: #ffffff;
-    }
-
-    .btn-primary, .btn-green, .btn-danger, .btn-outline {
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      box-shadow: var(--shadow-sm);
-      width: auto;
-    }
-
-    .btn-primary { background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; }
-    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
-    .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-    .btn-green:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
-    .btn-danger { background: #fee2e2; color: var(--danger); font-size: 11px; padding: 6px 12px; border-radius: 8px; font-weight: 700; }
-    .btn-danger:hover { background: var(--danger); color: white; }
-
-    .btn-outline { background: var(--surface); color: var(--text-dark); border: 1px solid var(--border); }
-    .btn-outline:hover, .btn-outline.active-filter { border-color: var(--primary); color: var(--primary); background: rgba(79, 70, 229, 0.05); }
-
-    .dropdown-wrapper { position: relative; display: inline-block; }
-    
-    .dropdown-btn {
-      background: var(--bg);
-      color: var(--text-dark);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s ease;
-    }
-
-    .dropdown-btn:hover { border-color: var(--primary); background: var(--surface); }
-
-    .dropdown-menu {
-      position: absolute;
-      right: 0;
-      top: 115%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: var(--shadow-md);
-      z-index: 500;
-      display: none;
-      min-width: 160px;
-      overflow: hidden;
-      padding: 6px;
-    }
-
-    .dropdown-menu.show { display: block; }
-
-    .dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: var(--text-dark);
-      text-decoration: none;
-      cursor: pointer;
-      border-radius: 8px;
-      background: transparent;
-      border: 0;
-      width: 100%;
-      text-align: left;
-      font-weight: 500;
-      transition: background 0.15s;
-    }
-
-    .dropdown-item:hover { background: var(--bg); }
-
-    .order-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-
-    .order-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px dashed var(--border);
-      font-size: 12px;
-    }
-
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
-    .badge-pending { background: #fef3c7; color: #d97706; }
-    .badge-processing { background: #e0f2fe; color: #0284c7; }
-    .badge-received { background: #d1fae5; color: #059669; }
-    .badge-cancelled { background: #fee2e2; color: #dc2626; }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .summary-card {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-      transition: transform 0.2s ease;
-    }
-
-    .summary-card:hover { transform: translateY(-2px); }
-
-    .summary-card small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .summary-card strong { font-size: 20px; font-weight: 800; }
-
-    .search-select-wrapper { position: relative; }
-    .search-results-list {
-      position: absolute;
-      top: 100%; left: 0; right: 0;
-      max-height: 200px;
-      overflow-y: auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: var(--shadow-md);
-      z-index: 999;
-      display: none;
-    }
-    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
-    .search-results-item:hover { background: var(--bg); color: var(--primary); }
-
-    .modal-overlay {
-      position: fixed;
-      top:0; left:0; right:0; bottom:0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal-card {
-      background: var(--surface);
-      border-radius: 16px;
-      width: min(100%, 600px);
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 20px;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 12px; border: 1px solid var(--border); }
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
-    .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
-
-    .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
-
-    #printContainer { display: none; background: white; padding: 20px; font-family: Arial, sans-serif; color: black; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apna DG Store - Admin Control Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- HTML2PDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="config.js"></script>
 </head>
-<body>
-
-  <!-- HEADER -->
-  <header>
-    <div class="header-title">⚙️ Apna DG Store Admin</div>
-  </header>
-
-  <!-- FLOATING BOTTOM NAVIGATION BAR -->
-  <nav class="bottom-nav">
-    <button id="nav-customerTab" class="bottom-nav-btn active" onclick="switchTab('customerTab', this)">
-      <span class="icon">📋</span>
-      <span>Customer Orders</span>
-    </button>
-    <button id="nav-supplierTab" class="bottom-nav-btn" onclick="switchTab('supplierTab', this)">
-      <span class="icon">🏬</span>
-      <span>My Purchases</span>
-    </button>
-    <button id="nav-productsTab" class="bottom-nav-btn" onclick="switchTab('productsTab', this)">
-      <span class="icon">📦</span>
-      <span>Products Master</span>
-    </button>
-    <button id="nav-reportsTab" class="bottom-nav-btn" onclick="switchTab('reportsTab', this)">
-      <span class="icon">📊</span>
-      <span>Sales Reports</span>
-    </button>
-  </nav>
-
-  <div class="container">
-
-    <!-- TAB 1: CUSTOMER ORDERS (SALES) -->
-    <section id="customerTab" class="tab-content active">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 style="margin:0; color:var(--primary);">🛍 Customer Orders & Sales Table</h2>
-          <button class="btn-primary" onclick="loadCustomerOrders()" style="padding:6px 12px; font-size:11px;">🔄 Refresh Orders</button>
-        </div>
-        <div id="customerOrdersContainer">
-          <div style="text-align:center; padding:20px; color:var(--text-muted);">Customer orders load ho rahe hain...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: MY PURCHASES & SUPPLIER REORDERS -->
-    <section id="supplierTab" class="tab-content">
-      <div class="card">
-        <h3>➕ Naya Supplier Add Karein</h3>
-        <div class="form-grid">
-          <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
-          <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
-          <button class="btn-primary" onclick="addNewSupplierMaster()">Save Supplier</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>👥 Master Suppliers List</h3>
-        <div id="suppliersMasterList">
-          <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>➕ Naya Purchase Order (Reorder) Banayein</h2>
-        <div class="form-grid">
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
-            <select id="poSupplierSelect" onchange="onSupplierChange()">
-              <option value="">-- Select Supplier --</option>
-            </select>
-            <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
-          </div>
-
-          <div class="search-select-wrapper">
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein:</label>
-            <input type="text" id="poProductSearch" placeholder="🔍 Product Name or SKU..." oninput="filterProducts('')" onfocus="filterProducts('')" autocomplete="off" />
-            <input type="hidden" id="selectedProductId" />
-            <div id="searchResultsList" class="search-results-list"></div>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Qty:</label>
-              <input id="poQty" type="number" min="1" value="1" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Purchase Rate (₹):</label>
-              <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
-            </div>
-          </div>
-          <div>
-            <label style="display:block; visibility:hidden; font-size:11px;">Add</label>
-            <button class="btn-primary" onclick="addItemToPoCart()">+ Add Item</button>
-          </div>
-        </div>
-
-        <div style="margin-top:15px;">
-          <h3 style="font-size:12px; color:var(--text-muted);">Purchase Items List:</h3>
-          <div id="poCartItems">
-            <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-            <div>
-              <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL PURCHASE BILL</small>
-              <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
-            </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Purchase Order</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>📑 My Purchase Orders History Table</h2>
-        <div id="purchaseOrdersList">
-          <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading purchase orders...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 3: PRODUCTS MASTER TABLE -->
-    <section id="productsTab" class="tab-content">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div>
-            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items for Quick Purchase (<span id="tickedCount">0</span> Selected)</h3>
-          </div>
-          <button class="btn-danger" onclick="clearAllSelection()">Clear</button>
-        </div>
-
-        <div id="selectedTickedList" style="margin-top:10px; max-height:200px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
-          <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche table me se products par ☑️ Tick mark karke purchase order banayein.</div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
-          <div>
-            <small style="display:block; color:var(--text-muted); font-size:10px;">TOTAL BILL</small>
-            <strong style="font-size:16px; color:var(--text-dark);">₹<span id="tickedTotalBill">0.00</span></strong>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <select id="tickedSupplierSelect" style="min-width:160px;">
-              <option value="">-- Select Supplier --</option>
-            </select>
-            <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Purchase Order</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <h2 style="margin:0;">📦 Inventory Products List (<span id="totalProductsCount">0</span>)</h2>
-          <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄 Refresh Table</button>
-        </div>
-
-        <div style="margin-bottom: 10px;">
-          <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product..." oninput="renderProductsTable()" />
-        </div>
-
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th style="width:30px; text-align:center;">Select</th>
-                <th>ID</th>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th>Unit</th>
-                <th>Stock Qty</th>
-                <th>Purchase Cost (₹)</th>
-                <th>Selling Price (₹)</th>
-              </tr>
-            </thead>
-            <tbody id="productsTableBody">
-              <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 4: REPORTS & SALES ANALYTICS -->
-    <section id="reportsTab" class="tab-content">
-      <div class="card">
-        <h3>💵 Counter Collection Entry</h3>
-        <div class="form-grid">
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
-            <input type="date" id="manualCashFromDate" />
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
-            <input type="date" id="manualCashToDate" />
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
-            <select id="manualCashMode">
-              <option value="offline">💵 Offline (Cash)</option>
-              <option value="online">💳 Online (UPI/Cards)</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
-            <input type="number" id="manualCashAmount" placeholder="Collection Amount" />
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
-            <input type="text" id="manualCashNote" placeholder="e.g. Counter Sales" />
-          </div>
-          <div>
-            <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
-            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>📊 Sales Report & Total Collection</h2>
-        
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-          <button class="btn-outline" onclick="setDateFilter('today')">Today</button>
-          <button class="btn-outline" onclick="setDateFilter('week')">This Week</button>
-          <button class="btn-outline" onclick="setDateFilter('month')">This Month</button>
-          <button class="btn-outline" onclick="setDateFilter('year')">This Year</button>
-        </div>
-
-        <div class="form-grid">
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date:</label>
-            <input type="date" id="reportFromDate" />
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date:</label>
-            <input type="date" id="reportToDate" />
-          </div>
-          <div>
-            <label style="display:block; visibility:hidden; font-size:11px;">Calculate</label>
-            <button class="btn-primary" onclick="calculateReports()">📈 Calculate Report</button>
-          </div>
-        </div>
-
-        <!-- ENHANCED 4 CARDS BREAKDOWN -->
-        <div class="summary-grid">
-          <div class="summary-card">
-            <small>💵 OFFLINE (CASH) SALES</small>
-            <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
-          </div>
-          <div class="summary-card">
-            <small>💳 ONLINE (UPI/APP) SALES</small>
-            <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
-          </div>
-          <div class="summary-card">
-            <small>🏬 COUNTER COLLECTION</small>
-            <strong style="color:#d97706;" id="summaryCounter">₹0.00</strong>
-          </div>
-          <div class="summary-card" style="background:#ecfdf5; border-color:#a7f3d0;">
-            <small style="color:#047857;">💰 GRAND TOTAL COLLECTION</small>
-            <strong style="color:var(--success); font-size:22px;" id="summaryTotalSales">₹0.00</strong>
-          </div>
-        </div>
-
-        <!-- DETAILED BREAKDOWN TABLE -->
-        <div style="margin-top:20px;">
-          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown</h3>
-          <div class="table-responsive">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th>Period / Date Range</th>
-                  <th>Offline (Cash)</th>
-                  <th>Online (UPI/App)</th>
-                  <th>Counter Sales</th>
-                  <th>Total Sales</th>
-                  <th>Total Orders</th>
-                </tr>
-              </thead>
-              <tbody id="collectionBreakdownBody">
-                <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate Report' par click karein.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- RECENT SALES ENTRIES HISTORY -->
-        <div style="margin-top:20px;">
-          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Selected Period Detailed Sales Entries</h3>
-          <div class="table-responsive">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th>Date & Time</th>
-                  <th>Order / Ref ID</th>
-                  <th>Customer / Type</th>
-                  <th>Payment Mode</th>
-                  <th>Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody id="salesEntriesTableBody">
-                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Report calculate karne par yahan entries dikhengi.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-
-  <!-- EDIT SUPPLIER REORDER MODAL -->
-  <div id="editPoModal" class="modal-overlay">
-    <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
-        <h3 style="margin:0; font-size:15px;">✏️ Edit Purchase Order (<span id="editPoNumberText"></span>)</h3>
-        <button onclick="closeEditPoModal()" style="padding:4px 10px; background:var(--bg); color:var(--text-dark); border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
-      </div>
-
-      <input type="hidden" id="editPoId" />
-
-      <div style="margin-bottom:10px;">
-        <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
-        <select id="editPoSupplierSelect"></select>
-      </div>
-
-      <div style="background:var(--bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
-        <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Item Add Karein:</strong>
-        <div class="form-grid">
-          <div class="search-select-wrapper">
-            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
-            <input type="hidden" id="editSelectedProductId" />
-            <div id="editSearchResultsList" class="search-results-list"></div>
-          </div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-            <input id="editPoQty" type="number" min="1" value="1" placeholder="Qty" />
-            <input id="editPoPrice" type="number" step="0.01" placeholder="Rate (₹)" />
-          </div>
-          <button class="btn-primary" onclick="addItemToEditPoCart()">+ Add</button>
-        </div>
-      </div>
-
-      <strong style="font-size:11px; color:var(--text-muted);">Purchase Order Items List:</strong>
-      <div id="editPoCartItems" style="max-height: 180px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:6px;">
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-        <div>
-          <small style="display:block; color:var(--text-muted); font-size:10px;">REVISED TOTAL</small>
-          <strong style="font-size:18px; color:var(--text-dark);">₹<span id="editPoTotalBill">0.00</span></strong>
-        </div>
-        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()">💾 Save Changes</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="printContainer"></div>
-
-  <!-- SUPABASE JS SDK -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let productsList = [];
-    let suppliersList = [];
-    let poCart = [];
-    let editPoCart = [];
-    let tickedProductsMap = {}; 
-
-    function initActiveTab() {
-      const savedTab = localStorage.getItem("activeAdminTab") || "customerTab";
-      const btnEl = document.getElementById("nav-" + savedTab);
-      switchTab(savedTab, btnEl);
-    }
-
-    function switchTab(tabId, btnEl) {
-      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".bottom-nav-btn").forEach(b => b.classList.remove("active"));
-      
-      const targetTab = document.getElementById(tabId);
-      if (targetTab) targetTab.classList.add("active");
-      
-      if (btnEl) {
-        btnEl.classList.add("active");
-      } else {
-        const defaultBtn = document.getElementById("nav-" + tabId);
-        if (defaultBtn) defaultBtn.classList.add("active");
-      }
-
-      localStorage.setItem("activeAdminTab", tabId);
-
-      if (tabId === 'customerTab') loadCustomerOrders();
-      if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
-      if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
-      if (tabId === 'reportsTab') { 
-        const todayStr = new Date().toISOString().split('T')[0];
-        document.getElementById("manualCashFromDate").value = todayStr;
-        document.getElementById("manualCashToDate").value = todayStr;
-        if(!document.getElementById("reportFromDate").value) setDateFilter('today'); 
-      }
-    }
-
-    function toggleDropdown(btn) {
-      const menu = btn.nextElementSibling;
-      document.querySelectorAll('.dropdown-menu').forEach(m => {
-        if(m !== menu) m.classList.remove('show');
-      });
-      menu.classList.toggle('show');
-    }
-
-    document.addEventListener('click', function(e) {
-      if(!e.target.closest('.dropdown-wrapper')) {
-        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-      }
-    });
-
-    function formatTime(dtStr) {
-      if (!dtStr) return '';
-      return new Date(dtStr).toLocaleString("hi-IN", {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true
-      });
-    }
-
-    /* COUNTER ENTRY SAVE */
-    async function saveOfflineCashEntry() {
-      const fromDateVal = document.getElementById("manualCashFromDate").value;
-      const toDateVal = document.getElementById("manualCashToDate").value;
-      const modeVal = document.getElementById("manualCashMode").value;
-      const amountVal = Number(document.getElementById("manualCashAmount").value);
-      const noteVal = document.getElementById("manualCashNote").value || "Counter Sales";
-
-      if(!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
-
-      const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
-      const generatedOrderId = "ORD-CNT-" + Date.now();
-      const entryDate = new Date(toDateVal + "T12:00:00");
-
-      const { error: ordErr } = await db.from("orders").insert([{
-        order_id: generatedOrderId,
-        customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
-        mobile: "0000000000",
-        status: "completed",
-        created_at: entryDate.toISOString(),
-        address: remarkText
-      }]);
-
-      if (ordErr) {
-        alert("Error saving entry: " + ordErr.message);
-      } else {
-        alert("Collection Entry Successfully Saved!");
-        document.getElementById("manualCashAmount").value = "";
-        document.getElementById("manualCashNote").value = "";
-        
-        document.getElementById("reportFromDate").value = fromDateVal;
-        document.getElementById("reportToDate").value = toDateVal;
-        calculateReports();
-      }
-    }
-
-    function setDateFilter(type) {
-      const today = new Date();
-      let from = new Date();
-
-      if (type === 'today') {
-        from = new Date(today.setHours(0,0,0,0));
-      } else if (type === 'week') {
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
-        from = new Date(today.setDate(diff));
-      } else if (type === 'month') {
-        from = new Date(today.getFullYear(), today.getMonth(), 1);
-      } else if (type === 'year') {
-        from = new Date(today.getFullYear(), 0, 1);
-      }
-
-      document.getElementById("reportFromDate").value = from.toISOString().split('T')[0];
-      document.getElementById("reportToDate").value = new Date().toISOString().split('T')[0];
-      calculateReports();
-    }
-
-    /* ENHANCED SALES CALCULATE FUNCTION WITH COMPLETE BREAKDOWN */
-    async function calculateReports() {
-      const fromVal = document.getElementById("reportFromDate").value;
-      const toVal = document.getElementById("reportToDate").value;
-
-      if(!fromVal || !toVal) return alert("Sahi Dates Select Karein.");
-
-      const fromIso = new Date(fromVal + "T00:00:00.000").toISOString();
-      const toIso = new Date(toVal + "T23:59:59.999").toISOString();
-
-      const { data: sales, error } = await db
-        .from("orders")
-        .select("*, order_items(*)")
-        .gte("created_at", fromIso)
-        .lte("created_at", toIso)
-        .order("created_at", { ascending: false });
-
-      if(error) {
-        console.error("Error fetching sales:", error);
-        return;
-      }
-
-      let offlineTotal = 0;
-      let onlineTotal = 0;
-      let counterTotal = 0;
-      let validOrderCount = 0;
-
-      let entriesHtml = "";
-
-      (sales || []).forEach(ord => {
-        if (ord.status !== 'cancelled') {
-          validOrderCount++;
-          
-          let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-
-          const addressTxt = String(ord.address || '');
-          const isCounterEntry = (ord.order_id || '').startsWith("ORD-CNT-") || addressTxt.includes("Amt: ₹");
-
-          if (itemsTotal === 0 && addressTxt.includes("Amt: ₹")) {
-            const match = addressTxt.match(/Amt:\s*₹\s*([\d.]+)/);
-            if (match && match[1]) itemsTotal = Number(match[1]);
-          }
-
-          const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
-          
-          if (isCounterEntry) {
-            counterTotal += itemsTotal;
-            if (pMode.includes('[mode:online]')) {
-              onlineTotal += itemsTotal;
-            } else {
-              offlineTotal += itemsTotal;
-            }
-          } else if (pMode.includes('[mode:online]') || pMode.includes('online')) {
-            onlineTotal += itemsTotal;
-          } else {
-            offlineTotal += itemsTotal;
-          }
-
-          let modeBadge = '<span style="color:var(--primary); font-weight:bold;">💵 Cash</span>';
-          if (pMode.includes('online')) modeBadge = '<span style="color:var(--blue); font-weight:bold;">💳 Online UPI</span>';
-
-          entriesHtml += `
-            <tr>
-              <td>${formatTime(ord.created_at)}</td>
-              <td><strong>${ord.order_id || ord.id}</strong></td>
-              <td>${ord.customer_name || 'Customer'}</td>
-              <td>${modeBadge}</td>
-              <td style="font-weight:bold; color:var(--success);">₹${itemsTotal.toFixed(2)}</td>
-            </tr>
-          `;
-        }
-      });
-
-      const grandTotalSales = offlineTotal + onlineTotal;
-
-      document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2);
-      document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2);
-      document.getElementById("summaryCounter").textContent = "₹" + counterTotal.toFixed(2);
-      document.getElementById("summaryTotalSales").textContent = "₹" + grandTotalSales.toFixed(2);
-
-      const breakdownBody = document.getElementById("collectionBreakdownBody");
-      breakdownBody.innerHTML = `
-        <tr>
-          <td><strong>${fromVal}</strong> to <strong>${toVal}</strong></td>
-          <td style="color:var(--primary); font-weight:bold;">₹${offlineTotal.toFixed(2)}</td>
-          <td style="color:var(--blue); font-weight:bold;">₹${onlineTotal.toFixed(2)}</td>
-          <td style="color:#d97706; font-weight:bold;">₹${counterTotal.toFixed(2)}</td>
-          <td style="color:var(--success); font-weight:bold; font-size:14px;">₹${grandTotalSales.toFixed(2)}</td>
-          <td style="font-weight:bold;">${validOrderCount} Orders</td>
-        </tr>
-      `;
-
-      const entriesBody = document.getElementById("salesEntriesTableBody");
-      if (entriesHtml) {
-        entriesBody.innerHTML = entriesHtml;
-      } else {
-        entriesBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Selected period me koi sale entry nahi mili.</td></tr>';
-      }
-    }
-
-    /* CUSTOMER ORDERS TABLE LOAD */
-    async function loadCustomerOrders() {
-      const container = document.getElementById("customerOrdersContainer");
-      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Customer orders load ho rahe hain...</div>";
-
-      try {
-        const { data: orders, error: orderErr } = await db
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (orderErr) throw orderErr;
-
-        if (!orders || orders.length === 0) {
-          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
-          return;
-        }
-
-        const orderIds = orders.map(o => o.id);
-        const { data: allItems } = await db
-          .from("order_items")
-          .select("*")
-          .in("order_id", orderIds);
-
-        const itemsMap = {};
-        (allItems || []).forEach(it => {
-          const k = String(it.order_id);
-          if (!itemsMap[k]) itemsMap[k] = [];
-          itemsMap[k].push(it);
-        });
-
-        container.innerHTML = orders.map(ord => {
-          const items = itemsMap[String(ord.id)] || [];
-          let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          
-          if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
-            const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
-            if (match && match[1]) totalAmount = Number(match[1]);
-          }
-
-          const dateStr = formatTime(ord.created_at) || 'N/A';
-          const statusLower = String(ord.status || 'pending').toLowerCase();
-          
-          let badgeClass = 'badge-pending';
-          if (statusLower === 'completed') badgeClass = 'badge-received';
-          else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
-          else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
-
-          return `
-            <div class="order-card">
-              <div class="order-header">
-                <span>Customer Order: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
-                <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
-              </div>
-              <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
-                📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${dateStr}<br>
-                📍 ${ord.address || 'N/A'}
-              </div>
-
-              <div style="margin-top:6px;">
-                <strong style="font-size:11px; color:var(--primary);">Ordered Products List:</strong>
-                ${items.length > 0 ? items.map(it => `
-                  <div class="item-row">
-                    <span>• ${it.product_name} (×${it.quantity || 1})</span>
-                    <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
-                  </div>
-                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}
-              </div>
-              
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
-                <div class="dropdown-wrapper">
-                  <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-                  <div class="dropdown-menu">
-                    ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
-                      ${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
-                      <button class="dropdown-item" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
-                      <button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
-                    ` : ''}
-                    <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
-                  </div>
+<body class="bg-slate-100 text-slate-800 antialiased font-sans pb-24">
+
+    <!-- Admin Top App Bar -->
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="p-2 bg-brand-600 rounded-xl text-lg">⚡</span>
+                <div>
+                    <h1 class="font-black text-base leading-none">Apna DG Store <span class="text-brand-500">Admin</span></h1>
+                    <p class="text-[10px] text-slate-400">Management & Operations Panel</p>
                 </div>
-                <div style="font-weight:bold; font-size:13px; color:var(--text-dark);">
-                  Customer Bill Total: ₹${totalAmount.toFixed(2)}
+            </div>
+            <a href="index.html" target="_blank" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl transition-all">
+                🌐 Visit Store
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Tab Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- SECTION 1: CUSTOMER SALES ORDERS -->
+        <section id="tab-orders" class="tab-content">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900">Customer Sales Orders</h2>
+                    <p class="text-xs text-slate-500">Real-time orders queue and status management.</p>
                 </div>
-              </div>
-            </div>
-          `;
-        }).join("");
-
-      } catch (err) {
-        console.error("Error loading customer orders:", err);
-        container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
-      }
-    }
-
-    async function updateOrderStatus(id, newStatus) {
-      let confirmMsg = "Kya aap is order status ko badalna chahte hain?";
-      if (newStatus === 'processing') confirmMsg = "Kya order ko 'Under Process' mark karein?";
-      if (newStatus === 'completed') confirmMsg = "Kya order ko 'Completed' mark karein?";
-      if (newStatus === 'cancelled') confirmMsg = "Kya aap is order ko CANCEL karna chahte hain?";
-
-      if(!confirm(confirmMsg)) return;
-
-      const currentTime = new Date().toISOString();
-      const updateData = { status: newStatus };
-
-      if (newStatus === 'processing') updateData.processing_at = currentTime;
-      if (newStatus === 'completed') updateData.completed_at = currentTime;
-      if (newStatus === 'cancelled') updateData.cancelled_at = currentTime;
-
-      const { error } = await db.from("orders").update(updateData).eq("id", id);
-      if (error) alert("Error: " + error.message);
-      else {
-        alert(`Order Status '${newStatus.toUpperCase()}' Ho Gaya!`);
-        loadCustomerOrders();
-      }
-    }
-
-    /* MY PURCHASE ORDERS TABLE LOAD */
-    async function loadPurchaseOrders() {
-      const container = document.getElementById("purchaseOrdersList");
-      const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
-
-      if (error || !pos || pos.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
-        return;
-      }
-
-      container.innerHTML = pos.map(po => {
-        const supObj = suppliersList.find(s => s.name === po.supplier_name);
-        const phone = supObj ? supObj.phone : null;
-        const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
-
-        return `
-          <div class="order-card" style="border-left: 4px solid var(--primary);">
-            <div class="order-header">
-              <span>Supplier Purchase PO: ${po.po_number} (${po.supplier_name})</span>
-              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
-            </div>
-
-            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <div class="dropdown-wrapper">
-                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-                <div class="dropdown-menu">
-                  ${phone ? `
-                    <a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a>
-                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
-                  ` : ''}
-                  <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
-                  ${po.status === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                <div class="flex gap-2">
+                    <select id="order-status-filter" onchange="loadAdminOrders()" class="bg-white border border-slate-300 text-xs font-bold rounded-xl px-3 py-2 outline-none">
+                        <option value="ALL">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
                 </div>
-              </div>
-              <small style="color:var(--text-muted);">📅 Date: ${formatTime(po.created_at)}</small>
             </div>
 
+            <div id="admin-orders-list" class="space-y-4">
+                <!-- Dynamic Customer Orders List -->
+            </div>
+        </section>
+
+        <!-- SECTION 2: PURCHASES & REORDERS -->
+        <section id="tab-purchases" class="tab-content hidden space-y-8">
             <div>
-              <strong style="font-size:11px; color:var(--text-muted);">Purchased Products List:</strong>
-              ${(po.purchase_order_items || []).map(it => `
-                <div class="item-row">
-                  <span>• ${it.product_name} (Qty: ${it.quantity})</span>
-                  <span>Cost Rate: ₹${it.purchase_price} / unit</span>
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Supplier Management</h2>
+                        <p class="text-xs text-slate-500">Manage supplier profiles and direct contacts.</p>
+                    </div>
+                    <button onclick="openSupplierModal()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800">+ Add Supplier</button>
                 </div>
-              `).join("")}
+                <div id="suppliers-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Dynamic Suppliers -->
+                </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);">
-              <strong>Purchase Total: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock into Inventory</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+            <hr class="border-slate-200">
+
+            <!-- Purchase Order Generator -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                <h3 class="text-lg font-black text-slate-900 mb-4">Create Purchase Reorder (PO)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Supplier</label>
+                        <select id="po-supplier" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Product</label>
+                        <select id="po-product" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" onchange="syncPoRate()">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Cost Rate (₹)</label>
+                            <input type="number" id="po-rate" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Qty</label>
+                            <input type="number" id="po-qty" value="10" min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="addItemToPoCart()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all mb-4">
+                    + Add Item to PO
+                </button>
+
+                <!-- PO Itemized Cart -->
+                <div class="border border-slate-200 rounded-2xl overflow-hidden mb-4">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                            <tr><th class="p-3">Product</th><th class="p-3">Rate</th><th class="p-3">Qty</th><th class="p-3">Total</th><th class="p-3">Action</th></tr>
+                        </thead>
+                        <tbody id="po-cart-table" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400">No items added to PO yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-black">PO Total: <span id="po-total-text" class="text-brand-600">₹0.00</span></span>
+                    <button onclick="submitPurchaseOrder()" class="px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl text-xs hover:bg-brand-700">Save & Issue Purchase Order</button>
+                </div>
             </div>
-          </div>
-        `;
-      }).join("");
-    }
 
-    /* PRODUCTS MASTER TABLE LOAD */
-    async function loadAllProductsView() {
-      const tbody = document.getElementById("productsTableBody");
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
-      
-      const { data, error } = await db.from("products").select("*").order("name");
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
-        return;
-      }
-
-      productsList = data || [];
-      document.getElementById("totalProductsCount").textContent = productsList.length;
-      renderProductsTable();
-    }
-
-    function renderProductsTable() {
-      const tbody = document.getElementById("productsTableBody");
-      const searchVal = document.getElementById("adminProductSearchInput").value.toLowerCase().trim();
-
-      const filtered = productsList.filter(p => 
-        String(p.id).toLowerCase().includes(searchVal) ||
-        String(p.name || '').toLowerCase().includes(searchVal) ||
-        String(p.category || '').toLowerCase().includes(searchVal)
-      );
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(p => {
-        const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
-        const qtyVal = p.stock_qty !== null && p.stock_qty !== undefined ? p.stock_qty : 0;
-        return `
-          <tr>
-            <td style="text-align:center;">
-              <input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" />
-            </td>
-            <td><strong>${p.id}</strong></td>
-            <td>${p.name || 'N/A'}</td>
-            <td>${p.category || 'N/A'}</td>
-            <td>${p.unit || '-'}</td>
-            <td style="font-weight:bold; color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${qtyVal}</td>
-            <td style="color:var(--blue); font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
-            <td style="color:var(--success); font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function toggleProductSelection(prodId, isChecked) {
-      const prod = productsList.find(p => String(p.id) === String(prodId));
-      if (!prod) return;
-
-      if (isChecked) {
-        tickedProductsMap[prodId] = {
-          product_id: prod.id,
-          product_name: prod.name,
-          quantity: 1,
-          purchase_price: Number(prod.cost_price || 0)
-        };
-      } else {
-        delete tickedProductsMap[prodId];
-      }
-      renderTickedProductsList();
-    }
-
-    function renderTickedProductsList() {
-      const container = document.getElementById("selectedTickedList");
-      const keys = Object.keys(tickedProductsMap);
-      document.getElementById("tickedCount").textContent = keys.length;
-
-      if (keys.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>';
-        document.getElementById("tickedTotalBill").textContent = "0.00";
-        return;
-      }
-
-      let total = 0;
-      container.innerHTML = keys.map(k => {
-        const item = tickedProductsMap[k];
-        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
-        total += itemTotal;
-
-        return `
-          <div class="item-row">
-            <div style="flex:2;">
-              <strong>${item.product_name}</strong>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center; flex:1; justify-content:flex-end;">
-              <label style="font-size:10px;">Qty:</label>
-              <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="updateTickedItem('${k}', 'quantity', this.value)" />
-              <label style="font-size:10px;">Rate:</label>
-              <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="updateTickedItem('${k}', 'purchase_price', this.value)" />
-              <button class="btn-danger" style="padding:2px 5px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      document.getElementById("tickedTotalBill").textContent = total.toFixed(2);
-    }
-
-    function updateTickedItem(id, field, value) {
-      if (tickedProductsMap[id]) {
-        tickedProductsMap[id][field] = Number(value) || 0;
-        renderTickedProductsList();
-      }
-    }
-
-    function clearAllSelection() {
-      tickedProductsMap = {};
-      renderTickedProductsList();
-      renderProductsTable();
-    }
-
-    async function submitTickedReorder() {
-      const supplierSelect = document.getElementById("tickedSupplierSelect");
-      const supplier = supplierSelect.value;
-      const keys = Object.keys(tickedProductsMap);
-
-      if (!supplier) return alert("Supplier select karein.");
-      if (keys.length === 0) return alert("Kam se kam 1 product par tick karein.");
-
-      const poNumber = "PO-" + Date.now();
-      const itemsList = keys.map(k => tickedProductsMap[k]);
-      const totalAmount = itemsList.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
-
-      const { data: po, error } = await db.from("purchase_orders").insert([{
-        po_number: poNumber,
-        supplier_name: supplier,
-        total_amount: totalAmount,
-        status: "pending"
-      }]).select("id").single();
-
-      if (error) return alert("Error: " + error.message);
-
-      const dbItems = itemsList.map(i => ({
-        po_id: po.id,
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: i.quantity,
-        purchase_price: i.purchase_price
-      }));
-
-      await db.from("purchase_order_items").insert(dbItems);
-
-      alert(`Purchase Reorder successfully submit ho gaya! Total Bill: ₹${totalAmount.toFixed(2)}`);
-      clearAllSelection();
-      supplierSelect.value = "";
-    }
-
-    /* SUPPLIERS MASTER LOGIC */
-    async function loadSuppliers() {
-      const { data } = await db.from("suppliers").select("*").order("name");
-      suppliersList = data || [];
-      
-      const select = document.getElementById("poSupplierSelect");
-      const editSelect = document.getElementById("editPoSupplierSelect");
-      const tickedSelect = document.getElementById("tickedSupplierSelect");
-
-      const options = '<option value="">-- Select Supplier --</option>' +
-        suppliersList.map(s => {
-          const phoneTxt = s.phone ? ` (${s.phone})` : ' (No No.)';
-          return `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${phoneTxt}</option>`;
-        }).join("");
-
-      if(select) select.innerHTML = options;
-      if(editSelect) editSelect.innerHTML = options;
-      if(tickedSelect) tickedSelect.innerHTML = options;
-
-      const masterContainer = document.getElementById("suppliersMasterList");
-      if (suppliersList.length === 0) {
-        masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
-        return;
-      }
-
-      masterContainer.innerHTML = suppliersList.map(s => {
-        const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
-        return `
-          <div class="item-row">
+            <!-- PO History Table -->
             <div>
-              <strong>${s.name}</strong>
-              ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
+                <h3 class="text-lg font-black text-slate-900 mb-4">Purchase Orders History</h3>
+                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                            <tr><th class="p-4">PO Number</th><th class="p-4">Supplier</th><th class="p-4">Amount</th><th class="p-4">Status</th><th class="p-4">Actions</th></tr>
+                        </thead>
+                        <tbody id="po-history-table" class="divide-y divide-slate-100">
+                            <!-- Dynamic PO list -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </section>
+
+        <!-- SECTION 3: PRODUCTS MASTER -->
+        <section id="tab-products" class="tab-content hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900">Products Master & Stock</h2>
+                    <p class="text-xs text-slate-500">Manage catalog, cost rates, and monitor low stock.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="batchCreatePoFromLowStock()" class="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100">
+                        ⚡ Batch PO for Low Stock (≤5)
+                    </button>
+                    <button onclick="openProductModal()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700">
+                        + New Product
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                        <tr>
+                            <th class="p-4"><input type="checkbox" id="select-all-products" onclick="toggleSelectAllProducts(this)"></th>
+                            <th class="p-4">SKU / Item</th>
+                            <th class="p-4">Category</th>
+                            <th class="p-4">Stock</th>
+                            <th class="p-4">Cost Price</th>
+                            <th class="p-4">Selling Price</th>
+                            <th class="p-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body" class="divide-y divide-slate-100">
+                        <!-- Dynamic items -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 4: SALES REPORTS & COUNTER ENTRY -->
+        <section id="tab-reports" class="tab-content hidden space-y-6">
+            <!-- Counter Cash Entry Form -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                <h3 class="text-lg font-black text-slate-900 mb-1">Counter Cash / Offline Sale Entry</h3>
+                <p class="text-xs text-slate-500 mb-4">Record quick manual offline counter collection.</p>
+                
+                <form id="counter-entry-form" onsubmit="submitCounterEntry(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Amount (₹)</label>
+                        <input type="number" step="0.01" id="counter-amount" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Mode</label>
+                        <select id="counter-mode" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
+                            <option value="COD">Cash</option>
+                            <option value="UPI">UPI / Online</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Note / Remark</label>
+                        <input type="text" id="counter-note" placeholder="Counter sale..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Record Counter Sale</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Analytics Filter & Cards -->
+            <div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <h3 class="text-lg font-black text-slate-900">Sales Analytics</h3>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button onclick="setReportRange('today')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">Today</button>
+                        <button onclick="setReportRange('week')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">This Week</button>
+                        <button onclick="setReportRange('month')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">This Month</button>
+                        <input type="date" id="report-start" class="bg-white border border-slate-200 text-xs rounded-xl px-2 py-1 outline-none" onchange="runAnalytics()">
+                        <input type="date" id="report-end" class="bg-white border border-slate-200 text-xs rounded-xl px-2 py-1 outline-none" onchange="runAnalytics()">
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400">Cash / COD Collection</p>
+                        <h4 id="stat-cash" class="text-2xl font-black text-slate-900 mt-1">₹0.00</h4>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400">Online / UPI Collection</p>
+                        <h4 id="stat-online" class="text-2xl font-black text-emerald-600 mt-1">₹0.00</h4>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400">Total Net Revenue</p>
+                        <h4 id="stat-total" class="text-2xl font-black text-brand-600 mt-1">₹0.00</h4>
+                    </div>
+                </div>
+
+                <!-- Sales Breakdown Table -->
+                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                            <tr><th class="p-4">Date</th><th class="p-4">Total Orders</th><th class="p-4">Cash Sales</th><th class="p-4">UPI Sales</th><th class="p-4">Total Income</th></tr>
+                        </thead>
+                        <tbody id="report-table-body" class="divide-y divide-slate-100">
+                            <!-- Dynamic sales breakdown -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobile & Desktop) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-around py-2">
+            <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn flex flex-col items-center gap-1 text-brand-600">
+                <span class="text-lg">🛍️</span>
+                <span class="text-[10px] font-bold">Orders</span>
+            </button>
+            <button onclick="switchTab('purchases')" id="nav-purchases" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
+                <span class="text-lg">🏬</span>
+                <span class="text-[10px] font-bold">Purchases</span>
+            </button>
+            <button onclick="switchTab('products')" id="nav-products" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
+                <span class="text-lg">📦</span>
+                <span class="text-[10px] font-bold">Products</span>
+            </button>
+            <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
+                <span class="text-lg">📊</span>
+                <span class="text-[10px] font-bold">Reports</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- PRODUCT MODAL -->
+    <div id="product-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
+            <h3 id="product-modal-title" class="text-lg font-black mb-4">Add New Product</h3>
             
-            <div class="dropdown-wrapper">
-              <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-              <div class="dropdown-menu">
-                ${s.phone ? `
-                  <a href="tel:${s.phone}" class="dropdown-item">📞 Call</a>
-                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
-                ` : ''}
-                <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
-                <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3">
+                <input type="hidden" id="prod-id">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Product Name</label>
+                        <input type="text" id="prod-name" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Emoji</label>
+                        <input type="text" id="prod-emoji" value="📦" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs text-center outline-none">
+                    </div>
+                </div>
 
-    function onSupplierChange() {
-      const select = document.getElementById("poSupplierSelect");
-      const selectedOption = select.options[select.selectedIndex];
-      const phone = selectedOption ? selectedOption.getAttribute("data-phone") : null;
-      const supplierName = select.value;
-      const actionsDiv = document.getElementById("selectedSupplierActions");
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                        <input type="text" id="prod-cat" required placeholder="Dairy, Bakery..." class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">SKU</label>
+                        <input type="text" id="prod-sku" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                </div>
 
-      if (phone) {
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-        actionsDiv.style.display = "flex";
-        actionsDiv.style.gap = "6px";
-        actionsDiv.innerHTML = `
-          <a href="tel:${phone}" class="dropdown-btn" style="text-decoration:none; color:white; background:var(--success);">📞 Call</a>
-          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="dropdown-btn" style="text-decoration:none; color:white; background:#25d366;">💬 WhatsApp Rate Query</a>
-        `;
-      } else {
-        actionsDiv.style.display = "none";
-      }
-    }
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Stock Qty</label>
+                        <input type="number" id="prod-stock" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Cost Price</label>
+                        <input type="number" step="0.01" id="prod-cost" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Selling Price</label>
+                        <input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    </div>
+                </div>
 
-    async function addNewSupplierMaster() {
-      const name = document.getElementById("newSupplierInput").value.trim();
-      const phone = document.getElementById("newSupplierPhone").value.trim();
-
-      if (!name) return alert("Supplier ka naam likhein.");
-
-      const { error } = await db.from("suppliers").insert([{ name: name, phone: phone || null }]);
-      if (error) alert("Error: " + error.message);
-      else {
-        alert("Supplier Successfully Add Ho Gaya!");
-        document.getElementById("newSupplierInput").value = "";
-        document.getElementById("newSupplierPhone").value = "";
-        loadSuppliers();
-      }
-    }
-
-    async function editSupplier(id, oldName, oldPhone) {
-      const newName = prompt("Supplier ka naya naam:", oldName);
-      if (newName === null) return;
-      
-      const newPhone = prompt("Supplier ka naya phone number:", oldPhone);
-      if (newPhone === null) return;
-
-      if (!newName.trim()) return alert("Supplier ka naam khaali nahi ho sakta.");
-
-      const { error } = await db.from("suppliers").update({ 
-        name: newName.trim(), 
-        phone: newPhone.trim() || null 
-      }).eq("id", id);
-
-      if (error) {
-        alert("Update karne mein error aaya: " + error.message);
-      } else {
-        alert("Supplier Update ho gaya!");
-        loadSuppliers();
-      }
-    }
-
-    async function deleteSupplier(id) {
-      if (!confirm("Kya aap sach mein is supplier ko delete karna chahte hain?")) return;
-
-      const { error } = await db.from("suppliers").delete().eq("id", id);
-      if (error) alert("Error: " + error.message);
-      else {
-        alert("Supplier Delete ho gaya!");
-        loadSuppliers();
-      }
-    }
-
-    /* REORDER HELPER FUNCTIONS */
-    async function loadProductsForReorder() {
-      const { data } = await db.from("products").select("*").order("name");
-      productsList = data || [];
-    }
-
-    function filterProducts(prefix) {
-      const searchInputId = prefix ? `${prefix.toLowerCase()}PoProductSearch` : 'poProductSearch';
-      const resultsDivId = prefix ? `${prefix.toLowerCase()}SearchResultsList` : 'searchResultsList';
-
-      const searchVal = document.getElementById(searchInputId).value.toLowerCase().trim();
-      const resultsDiv = document.getElementById(resultsDivId);
-
-      if (!searchVal) {
-        resultsDiv.style.display = "none";
-        return;
-      }
-
-      const filtered = productsList.filter(p => 
-        p.name.toLowerCase().includes(searchVal) || 
-        (p.sku && String(p.sku).toLowerCase().includes(searchVal)) ||
-        String(p.id).toLowerCase().includes(searchVal)
-      );
-
-      if (filtered.length === 0) {
-        resultsDiv.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">Koi product nahi mila</div>';
-        resultsDiv.style.display = "block";
-        return;
-      }
-
-      resultsDiv.innerHTML = filtered.slice(0, 50).map(p => `
-        <div class="search-results-item" onclick="selectProductFromList('${p.id}', '${prefix}')">
-          <strong>${p.name}</strong> <small style="color:var(--text-muted);">(SKU: ${p.sku || p.id})</small>
+                <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs mt-2 hover:bg-brand-700">
+                    Save Product Master
+                </button>
+            </form>
         </div>
-      `).join("");
+    </div>
 
-      resultsDiv.style.display = "block";
-    }
+    <!-- SUPPLIER MODAL -->
+    <div id="supplier-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
+            <button onclick="closeSupplierModal()" class="absolute top-4 right-4 text-slate-400">✕</button>
+            <h3 class="text-lg font-black mb-4">Add New Supplier</h3>
+            <form onsubmit="saveSupplier(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Supplier / Firm Name</label>
+                    <input type="text" id="sup-name" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+                    <input type="tel" id="sup-phone" required pattern="[0-9]{10}" class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                </div>
+                <button type="submit" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-xs mt-2">Save Supplier</button>
+            </form>
+        </div>
+    </div>
 
-    function selectProductFromList(productId, prefix) {
-      const prod = productsList.find(p => String(p.id) === String(productId));
-      
-      const searchInputId = prefix ? `${prefix.toLowerCase()}PoProductSearch` : 'poProductSearch';
-      const selectedIdField = prefix ? `${prefix.toLowerCase()}SelectedProductId` : 'selectedProductId';
-      const priceField = prefix ? `${prefix.toLowerCase()}PoPrice` : 'poPrice';
-      const resultsDivId = prefix ? `${prefix.toLowerCase()}SearchResultsList` : 'searchResultsList';
+    <!-- HIDDEN INVOICE TEMPLATE FOR PDF GENERATION -->
+    <div id="invoice-pdf-container" class="hidden p-8 bg-white text-slate-900 font-sans" style="width: 700px;">
+        <div class="flex justify-between items-start border-b pb-4 mb-4">
+            <div>
+                <h1 class="text-2xl font-black">Apna DG Store</h1>
+                <p class="text-xs text-slate-500">Official Tax Invoice / Cash Memo</p>
+            </div>
+            <div class="text-right">
+                <h2 id="pdf-order-id" class="text-lg font-mono font-bold">#ORD-000000</h2>
+                <p id="pdf-date" class="text-xs text-slate-500"></p>
+            </div>
+        </div>
 
-      if (prod) {
-        document.getElementById(searchInputId).value = `${prod.name} (SKU: ${prod.sku || prod.id})`;
-        document.getElementById(selectedIdField).value = prod.id;
-        document.getElementById(priceField).value = prod.cost_price || prod.last_purchase_price || 0;
-      }
-      document.getElementById(resultsDivId).style.display = "none";
-    }
+        <div class="mb-6 bg-slate-50 p-4 rounded-xl text-xs">
+            <p class="font-bold text-slate-700 mb-1">Customer Details:</p>
+            <p id="pdf-cust-name" class="font-bold text-slate-900"></p>
+            <p id="pdf-cust-mobile"></p>
+            <p id="pdf-cust-address" class="text-slate-500"></p>
+        </div>
 
-    document.addEventListener("click", function(e) {
-      if (!e.target.closest(".search-select-wrapper")) {
-        document.querySelectorAll(".search-results-list").forEach(el => el.style.display = "none");
-      }
-    });
+        <table class="w-full text-left text-xs mb-6 border-collapse">
+            <thead>
+                <tr class="border-b border-slate-300 text-slate-500">
+                    <th class="py-2">Item Description</th>
+                    <th class="py-2 text-right">Qty</th>
+                    <th class="py-2 text-right">Price</th>
+                    <th class="py-2 text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-items-body" class="divide-y divide-slate-100">
+                <!-- Items -->
+            </tbody>
+        </table>
 
-    function addItemToPoCart() {
-      const prodId = document.getElementById("selectedProductId").value;
-      const qty = Number(document.getElementById("poQty").value);
-      const price = Number(document.getElementById("poPrice").value);
+        <div class="flex justify-end border-t pt-4">
+            <div class="w-48 text-xs space-y-1">
+                <div class="flex justify-between"><span>Subtotal:</span><span id="pdf-subtotal"></span></div>
+                <div class="flex justify-between"><span>Discount:</span><span id="pdf-discount"></span></div>
+                <div class="flex justify-between"><span>Delivery:</span><span id="pdf-delivery"></span></div>
+                <div class="flex justify-between font-black text-sm border-t pt-1"><span>Total:</span><span id="pdf-total"></span></div>
+            </div>
+        </div>
+    </div>
 
-      if (!prodId) return alert("Pehle list me se sahi Product select karein.");
-      if (qty <= 0 || price <= 0) return alert("Sahi Quantity aur Purchase Rate dalein.");
+    <!-- Script Application Logic -->
+    <script>
+        let productsList = [];
+        let suppliersList = [];
+        let poCart = [];
 
-      const prod = productsList.find(p => String(p.id) === String(prodId));
-
-      const existingIdx = poCart.findIndex(i => String(i.product_id) === String(prodId));
-      if (existingIdx > -1) {
-        poCart[existingIdx].quantity += qty;
-        poCart[existingIdx].purchase_price = price;
-      } else {
-        poCart.push({
-          product_id: prodId,
-          product_name: prod ? prod.name : 'Product',
-          quantity: qty,
-          purchase_price: price
+        document.addEventListener("DOMContentLoaded", () => {
+            loadAdminOrders();
+            loadSuppliers();
+            loadProductsMaster();
         });
-      }
 
-      document.getElementById("poProductSearch").value = "";
-      document.getElementById("selectedProductId").value = "";
-      document.getElementById("poPrice").value = "";
-      document.getElementById("poQty").value = "1";
+        // TAB NAVIGATION LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.replace('text-brand-600', 'text-slate-400'));
+            
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).classList.replace('text-slate-400', 'text-brand-600');
 
-      renderPoCart();
-    }
+            if (tabId === 'orders') loadAdminOrders();
+            if (tabId === 'purchases') { loadSuppliers(); loadPurchaseOrdersHistory(); }
+            if (tabId === 'products') loadProductsMaster();
+            if (tabId === 'reports') runAnalytics();
+        }
 
-    function renderPoCart() {
-      const container = document.getElementById("poCartItems");
-      let total = 0;
+        // 1. ORDERS MANAGEMENT
+        async function loadAdminOrders() {
+            const filter = document.getElementById('order-status-filter').value;
+            let query = db.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
+            if (filter !== 'ALL') query = query.eq('status', filter);
 
-      if (poCart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>';
-        document.getElementById("poTotalBill").textContent = "0.00";
-        return;
-      }
+            const { data, error } = await query;
+            const container = document.getElementById('admin-orders-list');
+            
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-3xl text-center text-xs text-slate-400">No orders found.</div>`;
+                return;
+            }
 
-      container.innerHTML = poCart.map((item, idx) => {
-        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
-        total += itemTotal;
-        return `
-          <div class="item-row">
-            <div>
-              <strong>${item.product_name}</strong>
-              <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
-                <label style="font-size:10px;">Qty:</label>
-                <input type="number" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onchange="updateCartItemQuantity(${idx}, this.value)" />
-                <label style="font-size:10px;">Rate (₹):</label>
-                <input type="number" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onchange="updateCartItemPrice(${idx}, this.value)" />
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <strong>₹${itemTotal.toFixed(2)}</strong>
-              <button class="btn-danger" style="padding:3px 6px;" onclick="removeCartItem(${idx})">✕</button>
-            </div>
-          </div>
-        `;
-      }).join("");
+            container.innerHTML = data.map(order => `
+                <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
+                        <div>
+                            <span class="font-mono font-black text-base text-slate-900">${order.order_id}</span>
+                            <span class="text-xs text-slate-400 ml-2">${formatDate(order.created_at)}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 rounded-xl text-xs font-bold uppercase ${getStatusBadge(order.status)}">${order.status}</span>
+                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="bg-slate-100 border border-slate-200 text-xs font-bold rounded-xl px-2 py-1 outline-none">
+                                <option value="">Change Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
 
-      document.getElementById("poTotalBill").textContent = total.toFixed(2);
-    }
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">${order.customer_name} (${order.mobile})</p>
+                            <p class="text-slate-500">${order.address}</p>
+                            <p class="mt-1 font-semibold text-slate-600">Payment: <span class="uppercase">${order.payment_method}</span></p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl space-y-1">
+                            ${order.order_items.map(i => `
+                                <div class="flex justify-between">
+                                    <span>${i.product_name} x${i.quantity}</span>
+                                    <span class="font-bold">${formatCurrency(i.price * i.quantity)}</span>
+                                </div>
+                            `).join('')}
+                            <div class="flex justify-between font-black border-t pt-1 text-slate-900">
+                                <span>Total:</span>
+                                <span class="text-brand-600">${formatCurrency(order.total)}</span>
+                            </div>
+                        </div>
+                    </div>
 
-    function updateCartItemQuantity(idx, value) {
-      poCart[idx].quantity = Number(value) || 1;
-      renderPoCart();
-    }
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button onclick="downloadInvoicePDF('${order.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1">
+                            📄 Download Invoice PDF
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-    function updateCartItemPrice(idx, value) {
-      poCart[idx].purchase_price = Number(value) || 0;
-      renderPoCart();
-    }
+        async function updateOrderStatus(id, newStatus) {
+            if (!newStatus) return;
+            const updatePayload = { status: newStatus };
+            if (newStatus === 'processing') updatePayload.processing_at = new Date().toISOString();
+            if (newStatus === 'completed') updatePayload.completed_at = new Date().toISOString();
+            if (newStatus === 'cancelled') updatePayload.cancelled_at = new Date().toISOString();
 
-    function removeCartItem(idx) {
-      poCart.splice(idx, 1);
-      renderPoCart();
-    }
+            const { error } = await db.from('orders').update(updatePayload).eq('id', id);
+            if (error) showToast('Failed to update status', 'error');
+            else {
+                showToast(`Order status set to ${newStatus}`, 'success');
+                loadAdminOrders();
+            }
+        }
 
-    async function submitPurchaseOrder() {
-      const supplierSelect = document.getElementById("poSupplierSelect");
-      const supplier = supplierSelect.value;
-      if (!supplier) return alert("Supplier select karein.");
-      if (poCart.length === 0) return alert("Kam se kam 1 product add karein.");
+        // 2. SUPPLIERS & PURCHASES
+        async function loadSuppliers() {
+            const { data } = await db.from('suppliers').select('*').order('name');
+            suppliersList = data || [];
 
-      const poNumber = "PO-" + Date.now();
-      const totalAmount = poCart.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
+            const grid = document.getElementById('suppliers-grid');
+            const select = document.getElementById('po-supplier');
 
-      const { data: po, error } = await db.from("purchase_orders").insert([{
-        po_number: poNumber,
-        supplier_name: supplier,
-        total_amount: totalAmount,
-        status: "pending"
-      }]).select("id").single();
+            select.innerHTML = suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            
+            grid.innerHTML = suppliersList.map(s => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900">${s.name}</h4>
+                        <p class="text-xs text-slate-500">${s.phone}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="tel:${s.phone}" class="p-2 bg-slate-100 rounded-xl hover:bg-slate-200 text-xs">📞</a>
+                        <a href="https://wa.me/91${s.phone}" target="_blank" class="p-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 text-xs">💬</a>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-      if (error) return alert("Error: " + error.message);
+        function openSupplierModal() { document.getElementById('supplier-modal').classList.remove('hidden'); }
+        function closeSupplierModal() { document.getElementById('supplier-modal').classList.add('hidden'); }
 
-      const items = poCart.map(i => ({
-        po_id: po.id,
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: i.quantity,
-        purchase_price: i.purchase_price
-      }));
+        async function saveSupplier(e) {
+            e.preventDefault();
+            const name = document.getElementById('sup-name').value;
+            const phone = document.getElementById('sup-phone').value;
 
-      await db.from("purchase_order_items").insert(items);
+            const { error } = await db.from('suppliers').insert([{ name, phone }]);
+            if (error) showToast('Could not add supplier', 'error');
+            else {
+                showToast('Supplier added', 'success');
+                closeSupplierModal();
+                loadSuppliers();
+            }
+        }
 
-      alert(`Purchase order submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
-      poCart = [];
-      supplierSelect.value = "";
-      document.getElementById("poProductSearch").value = "";
-      document.getElementById("selectedProductId").value = "";
-      document.getElementById("poPrice").value = "";
-      document.getElementById("selectedSupplierActions").style.display = "none";
-      
-      renderPoCart();
-      loadPurchaseOrders();
-    }
+        function syncPoRate() {
+            const prodId = document.getElementById('po-product').value;
+            const prod = productsList.find(p => p.id === prodId);
+            if (prod) document.getElementById('po-rate').value = prod.cost_price;
+        }
 
-    /* EDIT PURCHASE REORDER FUNCTIONS */
-    async function openEditPoModal(poId) {
-      const { data: po, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
-      if (error || !po) return alert("Order load nahi ho paya.");
+        function addItemToPoCart() {
+            const prodId = document.getElementById('po-product').value;
+            const prod = productsList.find(p => p.id === prodId);
+            const rate = parseFloat(document.getElementById('po-rate').value) || 0;
+            const qty = parseInt(document.getElementById('po-qty').value) || 1;
 
-      document.getElementById("editPoId").value = po.id;
-      document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id;
-      document.getElementById("editPoSupplierSelect").value = po.supplier_name;
+            if (!prod) return;
 
-      editPoCart = (po.purchase_order_items || []).map(i => ({
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: Number(i.quantity),
-        purchase_price: Number(i.purchase_price)
-      }));
+            poCart.push({
+                product_id: prod.id,
+                product_name: prod.name,
+                purchase_price: rate,
+                quantity: qty
+            });
 
-      renderEditPoCart();
-      document.getElementById("editPoModal").style.display = "flex";
-    }
+            renderPoCartTable();
+        }
 
-    function closeEditPoModal() {
-      document.getElementById("editPoModal").style.display = "none";
-      editPoCart = [];
-    }
+        function renderPoCartTable() {
+            const table = document.getElementById('po-cart-table');
+            let total = 0;
 
-    function addItemToEditPoCart() {
-      const prodId = document.getElementById("editSelectedProductId").value;
-      const qty = Number(document.getElementById("editPoQty").value);
-      const price = Number(document.getElementById("editPoPrice").value);
+            if (poCart.length === 0) {
+                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No items added to PO yet.</td></tr>`;
+            } else {
+                table.innerHTML = poCart.map((item, idx) => {
+                    const sub = item.purchase_price * item.quantity;
+                    total += sub;
+                    return `
+                        <tr>
+                            <td class="p-3 font-bold text-slate-800">${item.product_name}</td>
+                            <td class="p-3">${formatCurrency(item.purchase_price)}</td>
+                            <td class="p-3">${item.quantity}</td>
+                            <td class="p-3 font-bold">${formatCurrency(sub)}</td>
+                            <td class="p-3"><button onclick="poCart.splice(${idx},1); renderPoCartTable();" class="text-rose-600 font-bold">✕</button></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
 
-      if (!prodId) return alert("Pehle Product select karein.");
-      if (qty <= 0 || price <= 0) return alert("Sahi Qty aur Rate dalein.");
+            document.getElementById('po-total-text').innerText = formatCurrency(total);
+        }
 
-      const prod = productsList.find(p => String(p.id) === String(prodId));
+        async function submitPurchaseOrder() {
+            if (poCart.length === 0) { showToast('Add items to PO first', 'warning'); return; }
+            const supplier = document.getElementById('po-supplier').value;
+            const total = poCart.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
+            const poNum = 'PO-' + Math.floor(100000 + Math.random() * 900000);
 
-      editPoCart.push({
-        product_id: prodId,
-        product_name: prod ? prod.name : 'Product',
-        quantity: qty,
-        purchase_price: price
-      });
+            const { data: po, error: poErr } = await db.from('purchase_orders').insert([{
+                po_number: poNum,
+                supplier_name: supplier,
+                total_amount: total,
+                status: 'pending'
+            }]).select().single();
 
-      document.getElementById("editPoProductSearch").value = "";
-      document.getElementById("editSelectedProductId").value = "";
-      document.getElementById("editPoPrice").value = "";
-      document.getElementById("editPoQty").value = "1";
+            if (poErr) { showToast('PO creation failed', 'error'); return; }
 
-      renderEditPoCart();
-    }
+            const poItems = poCart.map(item => ({ ...item, po_id: po.id }));
+            await db.from('purchase_order_items').insert(poItems);
 
-    function renderEditPoCart() {
-      const container = document.getElementById("editPoCartItems");
-      let total = 0;
+            showToast(`Purchase Order ${poNum} Created!`, 'success');
+            poCart = [];
+            renderPoCartTable();
+            loadPurchaseOrdersHistory();
+        }
 
-      if (editPoCart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:8px; font-size:12px; color:var(--text-muted);">Koi item nahi hai.</div>';
-        document.getElementById("editPoTotalBill").textContent = "0.00";
-        return;
-      }
+        async function loadPurchaseOrdersHistory() {
+            const { data } = await db.from('purchase_orders').select('*, purchase_order_items(*)').order('created_at', { ascending: false });
+            const table = document.getElementById('po-history-table');
 
-      container.innerHTML = editPoCart.map((item, idx) => {
-        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
-        total += itemTotal;
-        return `
-          <div class="item-row">
-            <div>
-              <strong>${item.product_name}</strong>
-              <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-                <label style="font-size:10px;">Qty:</label>
-                <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="editPoCart[${idx}].quantity = Number(this.value); renderEditPoCart();" />
-                <label style="font-size:10px;">Rate:</label>
-                <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="editPoCart[${idx}].purchase_price = Number(this.value); renderEditPoCart();" />
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <strong>₹${itemTotal.toFixed(2)}</strong>
-              <button class="btn-danger" style="padding:2px 5px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
-            </div>
-          </div>
-        `;
-      }).join("");
+            if (!data || data.length === 0) {
+                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No POs logged yet.</td></tr>`;
+                return;
+            }
 
-      document.getElementById("editPoTotalBill").textContent = total.toFixed(2);
-    }
-
-    async function saveUpdatedPurchaseOrder() {
-      const poId = document.getElementById("editPoId").value;
-      const supplierName = document.getElementById("editPoSupplierSelect").value;
-
-      if (!supplierName) return alert("Supplier select karein.");
-      if (editPoCart.length === 0) return alert("Order mein kam se kam 1 item hona zaroori hai.");
-
-      const totalAmount = editPoCart.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
-
-      const { error: poErr } = await db.from("purchase_orders").update({
-        supplier_name: supplierName,
-        total_amount: totalAmount
-      }).eq("id", poId);
-
-      if (poErr) return alert("Error: " + poErr.message);
-
-      await db.from("purchase_order_items").delete().eq("po_id", poId);
-
-      const itemsToInsert = editPoCart.map(i => ({
-        po_id: poId,
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: i.quantity,
-        purchase_price: i.purchase_price
-      }));
-
-      await db.from("purchase_order_items").insert(itemsToInsert);
-
-      alert("Purchase order successfully update ho gaya!");
-      closeEditPoModal();
-      loadPurchaseOrders();
-    }
-
-    async function receiveStock(poId) {
-      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Stock Qty aur Cost Price update ho jayegi.")) return;
-
-      const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
-
-      for (let item of items) {
-        const { data: prod } = await db.from("products").select("stock_qty").eq("id", item.product_id).single();
-        const currentQty = prod && prod.stock_qty ? Number(prod.stock_qty) : 0;
-        const newQty = currentQty + Number(item.quantity);
-
-        await db.from("products").update({ 
-          cost_price: item.purchase_price,
-          stock_qty: newQty
-        }).eq("id", item.product_id);
-      }
-
-      await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
-
-      alert("Stock Receive ho gaya! Products Stock Qty update ho gayi.");
-      loadPurchaseOrders();
-      loadProductsForReorder();
-    }
-
-    /* PDF GENERATION LOGIC */
-    async function generateCustomerBillPdf(orderId) {
-      const { data: ord } = await db.from("orders").select("*").eq("id", orderId).single();
-      const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
-
-      if (!ord) return alert("Order Details Not Found!");
-
-      let totalAmount = (items || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-      if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
-        const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
-        if (match && match[1]) totalAmount = Number(match[1]);
-      }
-
-      const printDiv = document.getElementById("printContainer");
-
-      printDiv.innerHTML = `
-        <div style="border:1px solid #000; padding:15px; font-size:12px;">
-          <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
-          <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">Customer Invoice Bill</p>
-          <hr/>
-          <p><strong>Order ID:</strong> ${ord.order_id || ('#' + ord.id)}</p>
-          <p><strong>Customer Name:</strong> ${ord.customer_name || 'N/A'}</p>
-          <p><strong>Mobile:</strong> ${ord.mobile || 'N/A'}</p>
-          <p><strong>Address / Details:</strong> ${ord.address || 'N/A'}</p>
-          <p><strong>Date:</strong> ${formatTime(ord.created_at)}</p>
-          <hr/>
-          <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
-            <thead>
-              <tr style="background:#f1f5f9;">
-                <th>Item Name</th>
-                <th>Qty</th>
-                <th>Rate (₹)</th>
-                <th>Total (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(items || []).length > 0 ? items.map(it => `
+            table.innerHTML = data.map(po => `
                 <tr>
-                  <td>${it.product_name}</td>
-                  <td style="text-align:center;">${it.quantity || 1}</td>
-                  <td style="text-align:right;">${Number(it.price || 0).toFixed(2)}</td>
-                  <td style="text-align:right;">${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</td>
+                    <td class="p-4 font-mono font-bold">${po.po_number}</td>
+                    <td class="p-4 font-medium">${po.supplier_name}</td>
+                    <td class="p-4 font-black">${formatCurrency(po.total_amount)}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${po.status === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${po.status}</span></td>
+                    <td class="p-4 flex gap-2">
+                        ${po.status === 'pending' ? `
+                            <button onclick="receiveStockFromPo('${po.id}')" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">
+                                📥 Receive Stock
+                            </button>
+                        ` : '<span class="text-xs text-slate-400 font-bold">In Stock</span>'}
+                    </td>
                 </tr>
-              `).join('') : `
+            `).join('');
+        }
+
+        // AUTOMATIC STOCK INCREMENT TRIGGER ON PO RECEIVE
+        async function receiveStockFromPo(poId) {
+            if (!confirm('Mark this PO as received? This will automatically increment stock quantities in Products Master.')) return;
+
+            // Fetch PO items
+            const { data: items, error: fetchErr } = await db.from('purchase_order_items').select('*').eq('po_id', poId);
+            if (fetchErr || !items) { showToast('Error fetching PO items', 'error'); return; }
+
+            // Increment Stock for each product
+            for (let item of items) {
+                if (item.product_id) {
+                    const { data: prod } = await db.from('products').select('stock_qty').eq('id', item.product_id).single();
+                    if (prod) {
+                        const newQty = (prod.stock_qty || 0) + item.quantity;
+                        await db.from('products').update({
+                            stock_qty: newQty,
+                            cost_price: item.purchase_price
+                        }).eq('id', item.product_id);
+                    }
+                }
+            }
+
+            // Update PO Status
+            await db.from('purchase_orders').update({ status: 'received', received_at: new Date().toISOString() }).eq('id', poId);
+
+            showToast('Stock received and inventory automatically updated!', 'success');
+            loadPurchaseOrdersHistory();
+            loadProductsMaster();
+        }
+
+        // 3. PRODUCTS MASTER
+        async function loadProductsMaster() {
+            const { data, error } = await db.from('products').select('*').order('name');
+            if (error) return;
+            productsList = data || [];
+
+            const select = document.getElementById('po-product');
+            select.innerHTML = productsList.map(p => `<option value="${p.id}">${p.emoji} ${p.name} (Stock: ${p.stock_qty})</option>`).join('');
+            syncPoRate();
+
+            const table = document.getElementById('products-table-body');
+            table.innerHTML = productsList.map(p => `
+                <tr class="${p.stock_qty <= 5 ? 'bg-rose-50/40' : ''}">
+                    <td class="p-4"><input type="checkbox" class="product-checkbox" value="${p.id}" data-low="${p.stock_qty <= 5}"></td>
+                    <td class="p-4 flex items-center gap-2">
+                        <span class="text-xl">${p.emoji}</span>
+                        <div>
+                            <p class="font-bold text-slate-900">${p.name}</p>
+                            <p class="text-[10px] text-slate-400 font-mono">${p.sku}</p>
+                        </div>
+                    </td>
+                    <td class="p-4 font-medium text-slate-600">${p.category}</td>
+                    <td class="p-4 font-black ${p.stock_qty <= 5 ? 'text-rose-600' : 'text-slate-800'}">
+                        ${p.stock_qty} ${p.unit}
+                        ${p.stock_qty <= 5 ? '<span class="block text-[9px] font-bold text-rose-500 uppercase">Low Stock</span>' : ''}
+                    </td>
+                    <td class="p-4 text-slate-600">${formatCurrency(p.cost_price)}</td>
+                    <td class="p-4 font-bold text-slate-900">${formatCurrency(p.selling_price)}</td>
+                    <td class="p-4">
+                        <button onclick="editProduct('${p.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openProductModal() {
+            document.getElementById('prod-id').value = '';
+            document.getElementById('product-form').reset();
+            document.getElementById('product-modal-title').innerText = 'Add New Product';
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
+
+        function editProduct(id) {
+            const p = productsList.find(item => item.id === id);
+            if (!p) return;
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-name').value = p.name;
+            document.getElementById('prod-emoji').value = p.emoji || '📦';
+            document.getElementById('prod-cat').value = p.category;
+            document.getElementById('prod-sku').value = p.sku;
+            document.getElementById('prod-stock').value = p.stock_qty;
+            document.getElementById('prod-cost').value = p.cost_price;
+            document.getElementById('prod-price').value = p.selling_price;
+
+            document.getElementById('product-modal-title').innerText = 'Edit Product';
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const payload = {
+                name: document.getElementById('prod-name').value,
+                emoji: document.getElementById('prod-emoji').value,
+                category: document.getElementById('prod-cat').value,
+                sku: document.getElementById('prod-sku').value,
+                stock_qty: parseInt(document.getElementById('prod-stock').value),
+                cost_price: parseFloat(document.getElementById('prod-cost').value),
+                selling_price: parseFloat(document.getElementById('prod-price').value)
+            };
+
+            let err;
+            if (id) {
+                const { error } = await db.from('products').update(payload).eq('id', id);
+                err = error;
+            } else {
+                const { error } = await db.from('products').insert([payload]);
+                err = error;
+            }
+
+            if (err) showToast('Failed to save product', 'error');
+            else {
+                showToast('Product saved successfully', 'success');
+                closeProductModal();
+                loadProductsMaster();
+            }
+        }
+
+        function toggleSelectAllProducts(master) {
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = master.checked);
+        }
+
+        function batchCreatePoFromLowStock() {
+            const lowStockProds = productsList.filter(p => p.stock_qty <= 5);
+            if (lowStockProds.length === 0) {
+                showToast('No low stock items found', 'info');
+                return;
+            }
+
+            poCart = lowStockProds.map(p => ({
+                product_id: p.id,
+                product_name: p.name,
+                purchase_price: p.cost_price,
+                quantity: 20
+            }));
+
+            switchTab('purchases');
+            renderPoCartTable();
+            showToast(`Auto-loaded ${lowStockProds.length} low-stock items into PO Cart`, 'success');
+        }
+
+        // 4. REPORTS & COUNTER ENTRY
+        async function submitCounterEntry(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('counter-amount').value);
+            const mode = document.getElementById('counter-mode').value;
+            const note = document.getElementById('counter-note').value;
+            const customOrderId = 'OFFLINE-' + Math.floor(100000 + Math.random() * 900000);
+
+            const { error } = await db.from('orders').insert([{
+                order_id: customOrderId,
+                customer_name: 'Walk-in Customer',
+                mobile: '0000000000',
+                address: note || 'Counter Cash Sale',
+                status: 'completed',
+                payment_method: mode,
+                subtotal: amount,
+                discount: 0,
+                delivery_fee: 0,
+                total: amount
+            }]);
+
+            if (error) showToast('Failed to record counter sale', 'error');
+            else {
+                showToast('Counter sale recorded successfully', 'success');
+                document.getElementById('counter-entry-form').reset();
+                runAnalytics();
+            }
+        }
+
+        function setReportRange(preset) {
+            const now = new Date();
+            let start = new Date();
+
+            if (preset === 'today') { start = now; }
+            if (preset === 'week') { start.setDate(now.getDate() - 7); }
+            if (preset === 'month') { start.setMonth(now.getMonth() - 1); }
+
+            document.getElementById('report-start').value = start.toISOString().split('T')[0];
+            document.getElementById('report-end').value = now.toISOString().split('T')[0];
+            runAnalytics();
+        }
+
+        async function runAnalytics() {
+            let start = document.getElementById('report-start').value;
+            let end = document.getElementById('report-end').value;
+
+            if (!start || !end) {
+                setReportRange('today');
+                return;
+            }
+
+            const isoStart = sanitizeIsoDate(start, false);
+            const isoEnd = sanitizeIsoDate(end, true);
+
+            const { data, error } = await db.from('orders')
+                .select('*')
+                .gte('created_at', isoStart)
+                .lte('created_at', isoEnd)
+                .eq('status', 'completed');
+
+            if (error || !data) return;
+
+            let cashTotal = 0;
+            let onlineTotal = 0;
+            const breakdown = {};
+
+            data.forEach(order => {
+                if (order.payment_method === 'COD') cashTotal += order.total;
+                else onlineTotal += order.total;
+
+                const day = order.created_at.split('T')[0];
+                if (!breakdown[day]) breakdown[day] = { count: 0, cash: 0, upi: 0, total: 0 };
+                breakdown[day].count += 1;
+                if (order.payment_method === 'COD') breakdown[day].cash += order.total;
+                else breakdown[day].upi += order.total;
+                breakdown[day].total += order.total;
+            });
+
+            document.getElementById('stat-cash').innerText = formatCurrency(cashTotal);
+            document.getElementById('stat-online').innerText = formatCurrency(onlineTotal);
+            document.getElementById('stat-total').innerText = formatCurrency(cashTotal + onlineTotal);
+
+            const table = document.getElementById('report-table-body');
+            const dates = Object.keys(breakdown).sort().reverse();
+
+            if (dates.length === 0) {
+                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No completed sales records for this timeframe.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = dates.map(day => `
                 <tr>
-                  <td colspan="3">Counter Sales Collection</td>
-                  <td style="text-align:right;">${totalAmount.toFixed(2)}</td>
+                    <td class="p-4 font-bold text-slate-800">${day}</td>
+                    <td class="p-4 font-semibold">${breakdown[day].count}</td>
+                    <td class="p-4 font-bold text-slate-700">${formatCurrency(breakdown[day].cash)}</td>
+                    <td class="p-4 font-bold text-emerald-600">${formatCurrency(breakdown[day].upi)}</td>
+                    <td class="p-4 font-black text-brand-600">${formatCurrency(breakdown[day].total)}</td>
                 </tr>
-              `}
-            </tbody>
-          </table>
-          <h3 style="text-align:right; margin-top:15px;">GRAND TOTAL: ₹${totalAmount.toFixed(2)}</h3>
-          <p style="text-align:center; margin-top:20px; font-size:10px;">Thank you for shopping with Apna DG Store!</p>
-        </div>
-      `;
+            `).join('');
+        }
 
-      printDiv.style.display = "block";
-      const opt = {
-        margin: 10,
-        filename: `Bill_Order_${ord.order_id || ord.id}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+        // PDF GENERATION LOGIC
+        async function downloadInvoicePDF(orderId) {
+            const { data: order } = await db.from('orders').select('*, order_items(*)').eq('id', orderId).single();
+            if (!order) return;
 
-      await html2pdf().set(opt).from(printDiv).save();
-      printDiv.style.display = "none";
-    }
+            document.getElementById('pdf-order-id').innerText = `#${order.order_id}`;
+            document.getElementById('pdf-date').innerText = formatDate(order.created_at);
+            document.getElementById('pdf-cust-name').innerText = order.customer_name;
+            document.getElementById('pdf-cust-mobile').innerText = `Phone: ${order.mobile}`;
+            document.getElementById('pdf-cust-address').innerText = order.address;
 
-    async function generateSupplierPoPdf(poId) {
-      const { data: po } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
-      if (!po) return alert("Supplier Order Not Found!");
-
-      const supObj = suppliersList.find(s => s.name === po.supplier_name);
-      const phone = supObj ? supObj.phone : null;
-      const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
-
-      const printDiv = document.getElementById("printContainer");
-
-      printDiv.innerHTML = `
-        <div style="border:1px solid #000; padding:15px; font-size:12px;">
-          <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
-          <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">PURCHASE REORDER / MATERIAL LIST</p>
-          <hr/>
-          <p><strong>PO Number:</strong> ${po.po_number}</p>
-          <p><strong>Supplier Name:</strong> ${po.supplier_name}</p>
-          <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
-          <p><strong>Date:</strong> ${formatTime(po.created_at)}</p>
-          <hr/>
-          <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
-            <thead>
-              <tr style="background:#f1f5f9;">
-                <th>Product Name</th>
-                <th>Required Qty</th>
-                <th>Est. Rate (₹)</th>
-                <th>Total (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(po.purchase_order_items || []).map(it => `
-                <tr>
-                  <td>${it.product_name}</td>
-                  <td style="text-align:center;">${it.quantity}</td>
-                  <td style="text-align:right;">${Number(it.purchase_price).toFixed(2)}</td>
-                  <td style="text-align:right;">${(it.quantity * it.purchase_price).toFixed(2)}</td>
+            document.getElementById('pdf-items-body').innerHTML = order.order_items.map(i => `
+                <tr class="border-b border-slate-100">
+                    <td class="py-2 font-bold">${i.product_name}</td>
+                    <td class="py-2 text-right">${i.quantity}</td>
+                    <td class="py-2 text-right">${formatCurrency(i.price)}</td>
+                    <td class="py-2 text-right font-bold">${formatCurrency(i.price * i.quantity)}</td>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <h3 style="text-align:right; margin-top:15px;">EST. TOTAL BILL: ₹${Number(po.total_amount).toFixed(2)}</h3>
-          <p style="text-align:center; margin-top:20px; font-size:10px;">Please confirm price and dispatch material at earliest.</p>
-        </div>
-      `;
+            `).join('');
 
-      printDiv.style.display = "block";
-      const fileName = `Reorder_${po.po_number}.pdf`;
-      const opt = {
-        margin: 10,
-        filename: fileName,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+            document.getElementById('pdf-subtotal').innerText = formatCurrency(order.subtotal);
+            document.getElementById('pdf-discount').innerText = `- ${formatCurrency(order.discount)}`;
+            document.getElementById('pdf-delivery').innerText = formatCurrency(order.delivery_fee);
+            document.getElementById('pdf-total').innerText = formatCurrency(order.total);
 
-      await html2pdf().set(opt).from(printDiv).save();
-      printDiv.style.display = "none";
+            const element = document.getElementById('invoice-pdf-container');
+            element.classList.remove('hidden');
 
-      if (cleanPhone) {
-        const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF list generate ho gaya hai. Kripya PDF attach karke dekh lein aur rate confirm karein.`);
-        window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
-      }
-    }
+            const opt = {
+                margin:       0.5,
+                filename:     `Invoice_${order.order_id}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
 
-    initActiveTab();
-  </script>
+            await html2pdf().set(opt).from(element).save();
+            element.classList.add('hidden');
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'pending': return 'bg-amber-100 text-amber-800';
+                case 'processing': return 'bg-blue-100 text-blue-800';
+                case 'completed': return 'bg-emerald-100 text-emerald-800';
+                case 'cancelled': return 'bg-rose-100 text-rose-800';
+                default: return 'bg-slate-100 text-slate-700';
+            }
+        }
+    </script>
 </body>
 </html>
