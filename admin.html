@@ -312,34 +312,61 @@
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "Orders loading...";
 
-      const { data: orders, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
+      try {
+        const { data: orders, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
 
-      if (error || !orders || orders.length === 0) {
-        container.innerHTML = "No orders found.";
-        return;
-      }
+        if (error) {
+          console.error("Orders Fetch Error:", error);
+          container.innerHTML = `<span style="color:red">Error: ${error.message} (Check Supabase RLS)</span>`;
+          return;
+        }
 
-      container.innerHTML = orders.map(ord => `
-        <div class="order-card">
-          <div style="display:flex; justify-content:space-between; font-weight:bold;">
-            <span>ID: ${ord.order_id || ord.id} (${ord.customer_name || 'Customer'})</span>
-            <span>${ord.status || 'PENDING'}</span>
+        if (!orders || orders.length === 0) {
+          container.innerHTML = "No orders found in database.";
+          return;
+        }
+
+        container.innerHTML = orders.map(ord => `
+          <div class="order-card">
+            <div style="display:flex; justify-content:space-between; font-weight:bold;">
+              <span>ID: ${ord.order_id || ord.id} (${ord.customer_name || 'Customer'})</span>
+              <span>${ord.status || 'PENDING'}</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin:4px 0;">📞 ${ord.mobile || 'N/A'} | 📍 ${ord.address || 'N/A'}</div>
           </div>
-          <div style="font-size:11px; color:var(--text-muted); margin:4px 0;">📞 ${ord.mobile} | 📍 ${ord.address}</div>
-        </div>
-      `).join('');
+        `).join('');
+      } catch (e) {
+        container.innerHTML = "Exception: " + e.message;
+      }
     }
 
     async function loadAllProductsView() {
-      const { data } = await db.from("products").select("*").order("name");
-      productsList = data || [];
-      document.getElementById("totalProductsCount").textContent = productsList.length;
-      renderProductsTable();
+      const tbody = document.getElementById("productsTableBody");
+      tbody.innerHTML = '<tr><td colspan="6">Loading products...</td></tr>';
+      
+      try {
+        const { data, error } = await db.from("products").select("*");
+        if (error) {
+          console.error("Products Fetch Error:", error);
+          tbody.innerHTML = `<tr><td colspan="6" style="color:red">Error: ${error.message} (Check Supabase RLS)</td></tr>`;
+          return;
+        }
+        productsList = data || [];
+        document.getElementById("totalProductsCount").textContent = productsList.length;
+        renderProductsTable();
+      } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="color:red">Error: ${e.message}</td></tr>`;
+      }
     }
 
     function renderProductsTable() {
       const tbody = document.getElementById("productsTableBody");
       const searchVal = document.getElementById("adminProductSearchInput").value.toLowerCase().trim();
+
+      if(productsList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No products found.</td></tr>';
+        return;
+      }
 
       const filtered = productsList.filter(p => String(p.name || '').toLowerCase().includes(searchVal));
 
@@ -348,7 +375,7 @@
         return `
           <tr>
             <td>${p.id}</td>
-            <td>${p.name}</td>
+            <td>${p.name || 'Unnamed'}</td>
             <td>${p.category || '-'}</td>
             <td>${p.stock_qty || 0}</td>
             <td>₹${Number(p.selling_price || p.price || 0).toFixed(2)}</td>
@@ -368,6 +395,14 @@
       loadAllProductsView();
     }
 
+    async function addNewSupplierMaster() {
+      const name = document.getElementById("newSupplierInput").value;
+      const phone = document.getElementById("newSupplierPhone").value;
+      if(!name) return alert("Enter supplier name");
+      
+      alert("Supplier save function ready. Implement table insertion as needed.");
+    }
+
     async function saveOfflineCashEntry() {
       const toDateVal = document.getElementById("manualCashToDate").value;
       const modeVal = document.getElementById("manualCashMode").value;
@@ -375,7 +410,7 @@
 
       if(!toDateVal || amountVal <= 0) return alert("Enter valid details.");
 
-      await db.from("orders").insert([{
+      const { error } = await db.from("orders").insert([{
         order_id: "ORD-CNT-" + Date.now(),
         customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
         mobile: "0000000000",
@@ -384,8 +419,11 @@
         address: `[MODE:${modeVal.toUpperCase()}] Amt: ₹${amountVal}`
       }]);
 
-      alert("Entry saved!");
-      calculateReports();
+      if(error) alert("Error saving: " + error.message);
+      else {
+        alert("Entry saved!");
+        calculateReports();
+      }
     }
 
     function setDateFilter(type) {
@@ -399,9 +437,13 @@
       const fromVal = document.getElementById("reportFromDate").value;
       const toVal = document.getElementById("reportToDate").value;
 
-      const { data: sales } = await db.from("orders").select("*")
+      if(!fromVal || !toVal) return;
+
+      const { data: sales, error } = await db.from("orders").select("*")
         .gte("created_at", new Date(fromVal + "T00:00:00").toISOString())
         .lte("created_at", new Date(toVal + "T23:59:59").toISOString());
+
+      if(error) console.error("Report Fetch Error:", error);
 
       let offline = 0, online = 0;
       (sales || []).forEach(ord => {
@@ -422,7 +464,10 @@
       document.getElementById("purchaseOrdersList").innerHTML = "Feature active.";
     }
 
-    loadCustomerOrders();
+    // Initial Load
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCustomerOrders();
+    });
   </script>
 </body>
 </html>
