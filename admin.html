@@ -13,13 +13,11 @@
     :root {
       --primary: #4f46e5;
       --primary-hover: #4338ca;
-      
       --bg: #f8fafc;
       --surface: #ffffff;
       --border: #e2e8f0;
       --text-dark: #0f172a;
       --text-muted: #64748b;
-      
       --success: #10b981;
       --danger: #ef4444;
       --blue: #3b82f6;
@@ -39,7 +37,6 @@
       padding-bottom: 90px;
     }
 
-    /* MODERN MINIMAL HEADER */
     header {
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(12px);
@@ -66,7 +63,6 @@
       gap: 8px;
     }
 
-    /* FLOATING BOTTOM NAVIGATION BAR */
     .bottom-nav {
       position: fixed;
       bottom: 16px; 
@@ -104,7 +100,6 @@
     }
 
     .bottom-nav-btn .icon { font-size: 18px; transition: transform 0.2s ease; }
-
     .bottom-nav-btn:hover { color: var(--primary); }
 
     .bottom-nav-btn.active {
@@ -155,7 +150,6 @@
       background: #ffffff;
     }
 
-    /* REDESIGNED BUTTON STYLES */
     .btn-primary, .btn-green, .btn-danger, .btn-outline {
       border: 0;
       border-radius: 10px;
@@ -184,7 +178,6 @@
     .btn-outline { background: var(--surface); color: var(--text-dark); border: 1px solid var(--border); }
     .btn-outline:hover, .btn-outline.active-filter { border-color: var(--primary); color: var(--primary); background: rgba(79, 70, 229, 0.05); }
 
-    /* DROPDOWN MENU FOR ACTIONS */
     .dropdown-wrapper { position: relative; display: inline-block; }
     
     .dropdown-btn {
@@ -275,7 +268,6 @@
     .badge-received { background: #d1fae5; color: #059669; }
     .badge-cancelled { background: #fee2e2; color: #dc2626; }
 
-    /* SUMMARY CARDS FOR REPORTS */
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -703,7 +695,6 @@
         if (defaultBtn) defaultBtn.classList.add("active");
       }
 
-      // Save to localStorage so tab doesn't reset on refresh
       localStorage.setItem("activeAdminTab", tabId);
 
       if (tabId === 'customerTab') loadCustomerOrders();
@@ -739,7 +730,7 @@
       });
     }
 
-    /* REPORTS & ANALYTICS LOGIC */
+    /* FIXED REPORTS & ANALYTICS LOGIC (WITH TIMEZONE FIX) */
     async function saveOfflineCashEntry() {
       const fromDateVal = document.getElementById("manualCashFromDate").value;
       const toDateVal = document.getElementById("manualCashToDate").value;
@@ -752,13 +743,15 @@
       const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
       const generatedOrderId = "ORD-CNT-" + Date.now();
 
-      // Insert directly as an Order record to guarantee compatibility
+      // Fix timezone slipping by setting noon time
+      const entryDate = new Date(toDateVal + "T12:00:00");
+
       const { error: ordErr } = await db.from("orders").insert([{
         order_id: generatedOrderId,
         customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
         mobile: "0000000000",
         status: "completed",
-        created_at: new Date(toDateVal).toISOString(),
+        created_at: entryDate.toISOString(),
         address: remarkText
       }]);
 
@@ -768,6 +761,10 @@
         alert("Collection Entry Successfully Saved!");
         document.getElementById("manualCashAmount").value = "";
         document.getElementById("manualCashNote").value = "";
+        
+        // Auto sync dates to report filters and recalculate
+        document.getElementById("reportFromDate").value = fromDateVal;
+        document.getElementById("reportToDate").value = toDateVal;
         calculateReports();
       }
     }
@@ -799,19 +796,18 @@
 
       if(!fromVal || !toVal) return alert("Sahi Dates Select Karein.");
 
-      const fromDate = new Date(fromVal);
-      fromDate.setHours(0,0,0,0);
-      const toDate = new Date(toVal);
-      toDate.setHours(23,59,59,999);
+      const fromIso = new Date(fromVal + "T00:00:00.000").toISOString();
+      const toIso = new Date(toVal + "T23:59:59.999").toISOString();
 
       const { data: sales, error } = await db
         .from("orders")
         .select("*, order_items(*)")
-        .gte("created_at", fromDate.toISOString())
-        .lte("created_at", toDate.toISOString());
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso);
 
       if(error) {
         console.error("Error fetching sales:", error);
+        return;
       }
 
       let offlineTotal = 0;
@@ -824,14 +820,12 @@
           
           let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
 
-          // Check if this was a manually added counter sale from address field
           const addressTxt = String(ord.address || '');
           if (itemsTotal === 0 && addressTxt.includes("Amt: ₹")) {
             const match = addressTxt.match(/Amt:\s*₹\s*([\d.]+)/);
             if (match && match[1]) itemsTotal = Number(match[1]);
           }
 
-          // Determine payment mode
           const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
           
           if (pMode.includes('[mode:online]') || pMode.includes('online')) {
@@ -848,7 +842,6 @@
       document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2);
       document.getElementById("summaryTotalSales").textContent = "₹" + grandTotalSales.toFixed(2);
 
-      // Render Collection Breakdown Table
       const breakdownBody = document.getElementById("collectionBreakdownBody");
       breakdownBody.innerHTML = `
         <tr>
@@ -1168,7 +1161,6 @@
           const items = itemsMap[String(ord.id)] || [];
           let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
           
-          // Fallback amount check for manual counter entries
           if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
             const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
             if (match && match[1]) totalAmount = Number(match[1]);
