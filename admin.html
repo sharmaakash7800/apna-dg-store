@@ -10,110 +10,135 @@
 
   <style>
     :root {
-      --navy: #0f172a;
-      --navy-2: #1e293b;
-      --blue: #2563eb;
-      --yellow: #f59e0b;
-      --green: #16a34a;
-      --bg: #f8fafc;
+      --bg: #f4f6f9;
       --surface: #ffffff;
       --border: #e2e8f0;
-      --text: #0f172a;
-      --muted: #64748b;
-      --danger: #dc2626;
-      --shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      
+      /* Accent Theme Colors */
+      --violet: #7c3aed;
+      --violet-hover: #6d28d9;
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --green: #10b981;
+      --green-hover: #059669;
+      --yellow: #f59e0b;
+      --danger: #ef4444;
+
+      --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      color: var(--text-main);
       background: var(--bg);
       padding-bottom: 30px;
     }
 
     header {
-      background: var(--navy);
-      color: white;
-      padding: 12px 16px;
+      background: var(--surface);
+      color: var(--text-main);
+      padding: 14px 20px;
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
 
-    header h1 { margin: 0 0 10px 0; font-size: 16px; text-align: center; }
+    header h1 { 
+      margin: 0 0 12px 0; 
+      font-size: 18px; 
+      font-weight: 800;
+      text-align: center; 
+      color: var(--violet);
+    }
 
     .nav-tabs {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       overflow-x: auto;
       white-space: nowrap;
       scrollbar-width: none;
+      justify-content: center;
     }
     .nav-tabs::-webkit-scrollbar { display: none; }
 
     .tab-btn {
-      flex: 1;
-      background: var(--navy-2);
-      color: #94a3b8;
+      background: #e2e8f0;
+      color: var(--text-muted);
       border: 0;
-      padding: 10px 14px;
-      border-radius: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
       text-align: center;
+      transition: all 0.2s ease;
     }
 
-    .tab-btn.active { background: var(--yellow); color: #111827; }
+    .tab-btn.active { 
+      background: var(--violet); 
+      color: #ffffff; 
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    }
 
-    .container { width: min(100%, 1200px); padding: 12px; margin: auto; }
+    .container { width: min(100%, 1200px); padding: 16px; margin: auto; }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
     .card {
-      background: white;
-      border-radius: 12px;
+      background: var(--surface);
+      border-radius: 14px;
       border: 1px solid var(--border);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      margin-bottom: 14px;
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 16px;
     }
 
-    .card h2, .card h3 { margin: 0 0 10px 0; font-size: 15px; }
+    .card h2, .card h3 { margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: var(--text-main); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 
     @media (min-width: 600px) {
-      .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
     }
 
     input, select, button {
       width: 100%;
-      padding: 11px;
-      border-radius: 8px;
+      padding: 11px 14px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 13px;
       outline: none;
       background: #fff;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: var(--violet);
     }
 
-    .btn-primary { background: var(--blue); color: white; font-weight: 800; border: 0; cursor: pointer; }
-    .btn-green { background: var(--green); color: white; font-weight: 800; border: 0; cursor: pointer; }
-    .btn-danger { background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; width: auto; }
-    .btn-pdf { background: #7c3aed; color: white; border: 0; font-size: 11px; padding: 5px 9px; border-radius: 6px; cursor: pointer; width: auto; font-weight: 800; }
+    .btn-primary { background: var(--violet); color: white; font-weight: 700; border: 0; cursor: pointer; transition: 0.2s; }
+    .btn-primary:hover { background: var(--violet-hover); }
+
+    .btn-green { background: var(--green); color: white; font-weight: 700; border: 0; cursor: pointer; transition: 0.2s; }
+    .btn-green:hover { background: var(--green-hover); }
+
+    .btn-danger { background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer; width: auto; font-weight: 600; }
+    .btn-pdf { background: var(--blue); color: white; border: 0; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer; width: auto; font-weight: 700; }
 
     .order-card {
-      background: white;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
     .order-header {
@@ -121,60 +146,61 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: bold;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .item-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
+      padding: 8px 0;
       border-bottom: 1px dashed var(--border);
-      font-size: 12px;
+      font-size: 13px;
     }
 
-    .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .badge-pending { background: #fef3c7; color: #92400e; }
-    .badge-processing { background: #e0f2fe; color: #0369a1; }
-    .badge-received { background: #dcfce7; color: #166534; }
-    .badge-cancelled { background: #fee2e2; color: #991b1b; }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-processing { background: #e0f2fe; color: #0284c7; }
+    .badge-received { background: #d1fae5; color: #059669; }
+    .badge-cancelled { background: #fee2e2; color: #dc2626; }
 
     .call-btn {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 700;
       text-decoration: none;
       color: white;
-      background: #16a34a;
+      background: var(--green);
     }
     .wa-btn {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 700;
       text-decoration: none;
       color: white;
       background: #25d366;
     }
 
     .status-timestamps {
-      font-size: 10px;
-      color: var(--muted);
-      margin-top: 4px;
-      background: #f1f5f9;
-      padding: 4px 8px;
-      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 8px;
       display: inline-block;
+      border: 1px solid var(--border);
     }
 
     /* Custom Search Box UI */
@@ -188,20 +214,20 @@
       overflow-y: auto;
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       z-index: 999;
       display: none;
     }
     .search-results-item {
-      padding: 10px 12px;
+      padding: 10px 14px;
       font-size: 12px;
       cursor: pointer;
       border-bottom: 1px solid #f1f5f9;
     }
     .search-results-item:hover {
-      background: #e0f2fe;
-      color: var(--blue);
+      background: #f3e8ff;
+      color: var(--violet);
       font-weight: 600;
     }
 
@@ -209,7 +235,8 @@
     .modal-overlay {
       position: fixed;
       top:0; left:0; right:0; bottom:0;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
       z-index: 1000;
       display: none;
       align-items: center;
@@ -218,21 +245,21 @@
     }
     .modal-card {
       background: white;
-      border-radius: 12px;
+      border-radius: 16px;
       width: min(100%, 650px);
       max-height: 90vh;
       overflow-y: auto;
-      padding: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     }
 
     /* Products Table Styling */
-    .table-responsive { overflow-x: auto; max-height: 400px; }
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .custom-table th, .custom-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
-    .custom-table th { background: #f1f5f9; position: sticky; top: 0; z-index: 10; }
+    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 10px; border: 1px solid var(--border); }
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
-    .chk-box { width: 18px; height: 18px; cursor: pointer; }
+    .chk-box { width: 18px; height: 18px; cursor: pointer; accent-color: var(--violet); }
 
     /* PRINT HIDDEN CONTAINER FOR PDF */
     #printContainer {
@@ -261,10 +288,10 @@
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0;">🛍 Customer Orders List</h2>
-          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh Orders</button>
+          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:8px 14px; font-size:12px;">🔄 Refresh Orders</button>
         </div>
         <div id="customerOrdersContainer">
-          <div style="text-align:center; padding:20px; color:var(--muted);">Orders load ho rahe hain...</div>
+          <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
         </div>
       </div>
     </section>
@@ -273,7 +300,7 @@
     <section id="supplierTab" class="tab-content">
       
       <!-- ADD NEW SUPPLIER SECTION -->
-      <div class="card" style="background:#e0f2fe; border-color:#bae6fd;">
+      <div class="card" style="background:#f8fafc;">
         <h3>➕ Master Supplier Add Karein</h3>
         <div class="form-grid">
           <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam (e.g. Raghav Agency)" />
@@ -283,19 +310,19 @@
       </div>
 
       <!-- SUPPLIERS EDIT / DELETE LIST -->
-      <div class="card" style="background:#f8fafc;">
+      <div class="card">
         <h3>👥 Master Suppliers List & Direct Call/WhatsApp</h3>
         <div id="suppliersMasterList">
-          <div style="text-align:center; padding:10px; color:var(--muted);">Suppliers load ho rahe hain...</div>
+          <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
         </div>
       </div>
 
       <!-- CREATE NEW REORDER -->
-      <div class="card" style="background:#f1f5f9;">
+      <div class="card">
         <h2>➕ Naya Supplier Reorder Banayein</h2>
         <div class="form-grid">
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Select Karein:</label>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
             <select id="poSupplierSelect" onchange="onSupplierChange()">
               <option value="">-- Select Supplier --</option>
             </select>
@@ -304,7 +331,7 @@
 
           <!-- Product Search Input Field -->
           <div class="search-select-wrapper">
-            <label style="font-size:11px; font-weight:700; color:var(--muted);">Product Search Karein (Name / SKU):</label>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein (Name / SKU):</label>
             <input type="text" id="poProductSearch" placeholder="🔍 Type Product Name or SKU..." oninput="filterProducts('')" onfocus="filterProducts('')" autocomplete="off" />
             <input type="hidden" id="selectedProductId" />
             <div id="searchResultsList" class="search-results-list"></div>
@@ -312,11 +339,11 @@
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--muted);">Qty:</label>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Qty:</label>
               <input id="poQty" type="number" min="1" value="1" />
             </div>
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--muted);">Purchase Rate (₹):</label>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Purchase Rate (₹):</label>
               <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
             </div>
           </div>
@@ -324,17 +351,17 @@
         </div>
 
         <div style="margin-top:15px;">
-          <h3 style="font-size:12px; color:var(--muted);">Reorder Items List:</h3>
+          <h3 style="font-size:12px; color:var(--text-muted);">Reorder Items List:</h3>
           <div id="poCartItems">
-            <div style="text-align:center; padding:10px; font-size:12px; color:var(--muted);">Abhi koi item add nahi hai.</div>
+            <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:2px solid #cbd5e1;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:2px solid var(--border);">
             <div>
-              <small style="display:block; color:var(--muted); font-size:10px;">EST. TOTAL BILL</small>
-              <strong style="font-size:18px; color:var(--navy);">₹<span id="poTotalBill">0.00</span></strong>
+              <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
+              <strong style="font-size:20px; color:var(--text-main);">₹<span id="poTotalBill">0.00</span></strong>
             </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto; padding:10px 16px;">🚀 Save Reorder</button>
+            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto; padding:10px 20px;">🚀 Save Reorder</button>
           </div>
         </div>
       </div>
@@ -343,7 +370,7 @@
       <div class="card">
         <h2>📋 Supplier Reorders History</h2>
         <div id="purchaseOrdersList">
-          <div style="text-align:center; padding:15px; color:var(--muted);">Loading reorders...</div>
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading reorders...</div>
         </div>
       </div>
     </section>
@@ -352,17 +379,17 @@
     <section id="productsTab" class="tab-content">
       
       <!-- SELECTED ITEMS REORDER BOX -->
-      <div class="card" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+      <div class="card" style="background:#f5f3ff; border:1px solid #ddd6fe;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <h3 style="margin:0; color:#166534;">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items Selected)</h3>
-            <small style="color:var(--muted);">Jo items aap tick karenge, wo yahan add honge.</small>
+            <h3 style="margin:0; color:var(--violet);">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items Selected)</h3>
+            <small style="color:var(--text-muted);">Jo items aap tick karenge, wo yahan add honge.</small>
           </div>
           <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear Selection</button>
         </div>
 
-        <div id="selectedTickedList" style="margin-top:10px; max-height:180px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px;">
-          <div style="text-align:center; color:var(--muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>
+        <div id="selectedTickedList" style="margin-top:10px; max-height:180px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px;">
+          <div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>
         </div>
 
         <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -371,7 +398,7 @@
               <option value="">-- Select Supplier for Ticked Items --</option>
             </select>
           </div>
-          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto; padding:10px 18px;">🚀 Place Order to Supplier</button>
+          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto; padding:11px 20px;">🚀 Place Order to Supplier</button>
         </div>
       </div>
 
@@ -401,7 +428,7 @@
               </tr>
             </thead>
             <tbody id="productsTableBody">
-              <tr><td colspan="7" style="text-align:center; color:var(--muted);">Products load ho rahe hain...</td></tr>
+              <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
             </tbody>
           </table>
         </div>
@@ -413,20 +440,20 @@
   <!-- EDIT SUPPLIER REORDER MODAL -->
   <div id="editPoModal" class="modal-overlay">
     <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:14px;">
         <h3 style="margin:0; font-size:16px;">✏️ Supplier Order Edit Karein (<span id="editPoNumberText"></span>)</h3>
-        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:#e2e8f0; color:#0f172a; border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
+        <button onclick="closeEditPoModal()" style="width:auto; padding:6px 12px; background:#f1f5f9; color:var(--text-main); border:0; border-radius:8px; cursor:pointer; font-weight:600;">✕ Close</button>
       </div>
 
       <input type="hidden" id="editPoId" />
 
       <div style="margin-bottom:12px;">
-        <label style="font-size:11px; font-weight:700; color:var(--muted);">Supplier Select Karein:</label>
+        <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
         <select id="editPoSupplierSelect"></select>
       </div>
 
-      <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
-        <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Order me Naya Item Add Karein:</strong>
+      <div style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:12px;">
+        <strong style="font-size:12px; display:block; margin-bottom:8px;">➕ Order me Naya Item Add Karein:</strong>
         <div class="form-grid">
           <div class="search-select-wrapper">
             <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product or SKU..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
@@ -441,16 +468,16 @@
         </div>
       </div>
 
-      <strong style="font-size:12px; color:var(--muted);">Order Items List:</strong>
-      <div id="editPoCartItems" style="max-height: 200px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:8px;">
+      <strong style="font-size:12px; color:var(--text-muted);">Order Items List:</strong>
+      <div id="editPoCartItems" style="max-height: 200px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:10px; padding:8px;">
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:2px solid #cbd5e1;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:2px solid var(--border);">
         <div>
-          <small style="display:block; color:var(--muted); font-size:10px;">REVISED TOTAL BILL</small>
-          <strong style="font-size:18px; color:var(--navy);">₹<span id="editPoTotalBill">0.00</span></strong>
+          <small style="display:block; color:var(--text-muted); font-size:10px;">REVISED TOTAL BILL</small>
+          <strong style="font-size:20px; color:var(--text-main);">₹<span id="editPoTotalBill">0.00</span></strong>
         </div>
-        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto; padding:10px 18px;">💾 Save Changes</button>
+        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto; padding:11px 20px;">💾 Save Changes</button>
       </div>
     </div>
   </div>
@@ -468,7 +495,7 @@
     let suppliersList = [];
     let poCart = [];
     let editPoCart = [];
-    let tickedProductsMap = {}; // Holds selected items for bulk reorder
+    let tickedProductsMap = {}; 
 
     function switchTab(tabId, evt) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -492,7 +519,7 @@
     /* PRODUCTS TAB VIEW & CHECKBOX REORDER LOGIC */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted);">Products load ho rahe hain...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
       
       const { data, error } = await db.from("products").select("*").order("name");
       if (error) {
@@ -516,7 +543,7 @@
       );
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted);">Koi product nahi mila.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
         return;
       }
 
@@ -531,8 +558,8 @@
             <td>${p.name || 'N/A'}</td>
             <td>${p.category || 'N/A'}</td>
             <td>${p.unit || '-'}</td>
-            <td style="color:#2563eb; font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
-            <td style="color:#16a34a; font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
+            <td style="color:var(--blue); font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
+            <td style="color:var(--green); font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
           </tr>
         `;
       }).join('');
@@ -561,7 +588,7 @@
       document.getElementById("tickedCount").textContent = keys.length;
 
       if (keys.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>';
         return;
       }
 
@@ -647,7 +674,7 @@
 
       const masterContainer = document.getElementById("suppliersMasterList");
       if (suppliersList.length === 0) {
-        masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--muted); padding:8px;'>Koi supplier added nahi hai.</div>";
+        masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
         return;
       }
 
@@ -657,7 +684,7 @@
           <div class="item-row">
             <div>
               <strong>${s.name}</strong>
-              ${s.phone ? `<br><small style="color:var(--muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
+              ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
             </div>
             <div style="display:flex; gap:6px; align-items:center;">
               ${s.phone ? `
@@ -744,7 +771,7 @@
     /* 2. CUSTOMER ORDERS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
-      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--muted);'>Orders load ho rahe hain...</div>";
+      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Orders load ho rahe hain...</div>";
 
       try {
         const { data: orders, error: orderErr } = await db
@@ -795,7 +822,7 @@
                 <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
                 <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
               </div>
-              <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
                 📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${dateStr}<br>
                 📍 ${ord.address || 'N/A'}
               </div>
@@ -808,7 +835,7 @@
                     <span>• ${it.product_name} (×${it.quantity || 1})</span>
                     <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
                   </div>
-                `).join('') : '<div style="font-size:11px; color:var(--muted);">No item details found</div>'}
+                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">No item details found</div>'}
               </div>
               
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #eee; padding-top:8px; flex-wrap:wrap; gap:8px;">
@@ -818,11 +845,11 @@
                     <button class="btn-green" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
                     <button class="btn-danger" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
                   ` : `
-                    <span style="font-size:11px; font-weight:bold; color:var(--muted);">No actions available</span>
+                    <span style="font-size:11px; font-weight:bold; color:var(--text-muted);">No actions available</span>
                   `}
                   <button class="btn-pdf" onclick="generateCustomerBillPdf('${ord.id}')">📄 Bill PDF</button>
                 </div>
-                <div style="font-weight:bold; font-size:13px; color:var(--navy);">
+                <div style="font-weight:bold; font-size:13px; color:var(--text-main);">
                   Total: ₹${totalAmount.toFixed(2)}
                 </div>
               </div>
@@ -884,14 +911,14 @@
       );
 
       if (filtered.length === 0) {
-        resultsDiv.innerHTML = '<div style="padding:10px; font-size:12px; color:var(--muted);">Koi product nahi mila</div>';
+        resultsDiv.innerHTML = '<div style="padding:10px; font-size:12px; color:var(--text-muted);">Koi product nahi mila</div>';
         resultsDiv.style.display = "block";
         return;
       }
 
       resultsDiv.innerHTML = filtered.slice(0, 50).map(p => `
         <div class="search-results-item" onclick="selectProductFromList('${p.id}', '${prefix}')">
-          <strong>${p.name}</strong> <small style="color:var(--muted);">(SKU: ${p.sku || p.id})</small>
+          <strong>${p.name}</strong> <small style="color:var(--text-muted);">(SKU: ${p.sku || p.id})</small>
         </div>
       `).join("");
 
@@ -950,7 +977,7 @@
       let total = 0;
 
       if (poCart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--muted);">No item added.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">No item added.</div>';
         document.getElementById("poTotalBill").textContent = "0.00";
         return;
       }
@@ -962,7 +989,7 @@
           <div class="item-row">
             <div>
               <strong>${item.product_name}</strong>
-              <div style="font-size:11px; color:var(--muted);">Qty: ${item.quantity} × ₹${item.purchase_price}</div>
+              <div style="font-size:11px; color:var(--text-muted);">Qty: ${item.quantity} × ₹${item.purchase_price}</div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <strong>₹${itemTotal.toFixed(2)}</strong>
@@ -1020,7 +1047,7 @@
       const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
 
       if (error || !pos || pos.length === 0) {
-        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--muted);'>Koi supplier order nahi mila.</div>";
+        container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
         return;
       }
 
@@ -1121,7 +1148,7 @@
       let total = 0;
 
       if (editPoCart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:8px; font-size:12px; color:var(--muted);">Koi item nahi hai.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:8px; font-size:12px; color:var(--text-muted);">Koi item nahi hai.</div>';
         document.getElementById("editPoTotalBill").textContent = "0.00";
         return;
       }
