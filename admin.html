@@ -199,7 +199,10 @@
         </div>
       </div>
       <div class="card">
-        <h2>📑 Purchase Orders History</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h2>📑 Purchase Orders History</h2>
+          <button class="btn-primary" onclick="loadPurchaseOrders()">🔄 Refresh</button>
+        </div>
         <div id="purchaseOrdersList">Loading purchase orders...</div>
       </div>
     </section>
@@ -312,61 +315,34 @@
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "Orders loading...";
 
-      try {
-        const { data: orders, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
+      const { data: orders, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Orders Fetch Error:", error);
-          container.innerHTML = `<span style="color:red">Error: ${error.message} (Check Supabase RLS)</span>`;
-          return;
-        }
-
-        if (!orders || orders.length === 0) {
-          container.innerHTML = "No orders found in database.";
-          return;
-        }
-
-        container.innerHTML = orders.map(ord => `
-          <div class="order-card">
-            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-              <span>ID: ${ord.order_id || ord.id} (${ord.customer_name || 'Customer'})</span>
-              <span>${ord.status || 'PENDING'}</span>
-            </div>
-            <div style="font-size:11px; color:var(--text-muted); margin:4px 0;">📞 ${ord.mobile || 'N/A'} | 📍 ${ord.address || 'N/A'}</div>
-          </div>
-        `).join('');
-      } catch (e) {
-        container.innerHTML = "Exception: " + e.message;
+      if (error || !orders || orders.length === 0) {
+        container.innerHTML = "No orders found.";
+        return;
       }
+
+      container.innerHTML = orders.map(ord => `
+        <div class="order-card">
+          <div style="display:flex; justify-content:space-between; font-weight:bold;">
+            <span>ID: ${ord.order_id || ord.id} (${ord.customer_name || 'Customer'})</span>
+            <span>${ord.status || 'PENDING'}</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin:4px 0;">📞 ${ord.mobile || 'N/A'} | 📍 ${ord.address || 'N/A'}</div>
+        </div>
+      `).join('');
     }
 
     async function loadAllProductsView() {
-      const tbody = document.getElementById("productsTableBody");
-      tbody.innerHTML = '<tr><td colspan="6">Loading products...</td></tr>';
-      
-      try {
-        const { data, error } = await db.from("products").select("*");
-        if (error) {
-          console.error("Products Fetch Error:", error);
-          tbody.innerHTML = `<tr><td colspan="6" style="color:red">Error: ${error.message} (Check Supabase RLS)</td></tr>`;
-          return;
-        }
-        productsList = data || [];
-        document.getElementById("totalProductsCount").textContent = productsList.length;
-        renderProductsTable();
-      } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="color:red">Error: ${e.message}</td></tr>`;
-      }
+      const { data } = await db.from("products").select("*").order("name");
+      productsList = data || [];
+      document.getElementById("totalProductsCount").textContent = productsList.length;
+      renderProductsTable();
     }
 
     function renderProductsTable() {
       const tbody = document.getElementById("productsTableBody");
       const searchVal = document.getElementById("adminProductSearchInput").value.toLowerCase().trim();
-
-      if(productsList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No products found.</td></tr>';
-        return;
-      }
 
       const filtered = productsList.filter(p => String(p.name || '').toLowerCase().includes(searchVal));
 
@@ -375,7 +351,7 @@
         return `
           <tr>
             <td>${p.id}</td>
-            <td>${p.name || 'Unnamed'}</td>
+            <td>${p.name}</td>
             <td>${p.category || '-'}</td>
             <td>${p.stock_qty || 0}</td>
             <td>₹${Number(p.selling_price || p.price || 0).toFixed(2)}</td>
@@ -396,32 +372,78 @@
     }
 
     async function addNewSupplierMaster() {
-      const name = document.getElementById("newSupplierInput").value;
-      const phone = document.getElementById("newSupplierPhone").value;
-      if(!name) return alert("Enter supplier name");
-      
-      alert("Supplier save function ready. Implement table insertion as needed.");
+      const nameInput = document.getElementById("newSupplierInput");
+      const phoneInput = document.getElementById("newSupplierPhone");
+
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.trim();
+
+      if (!name) return alert("Enter supplier name.");
+
+      const { error } = await db.from("suppliers").insert([{ name: name, phone: phone }]);
+
+      if (error) {
+        alert("Error adding supplier: " + error.message);
+      } else {
+        alert("Supplier saved successfully!");
+        nameInput.value = "";
+        phoneInput.value = "";
+      }
     }
 
+    async function loadPurchaseOrders() {
+      const container = document.getElementById("purchaseOrdersList");
+      container.innerHTML = "Purchase orders loading...";
+
+      const { data: purchaseOrders, error } = await db
+        .from("purchase_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error || !purchaseOrders || purchaseOrders.length === 0) {
+        container.innerHTML = "No purchase orders found.";
+        return;
+      }
+
+      container.innerHTML = purchaseOrders.map(po => `
+        <div class="order-card">
+          <div style="display:flex; justify-content:space-between; font-weight:bold;">
+            <span>PO ID: ${po.po_id || po.id}</span>
+            <span style="color:var(--primary);">${po.status || 'CREATED'}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-dark); margin:6px 0;">
+            🏢 Supplier: ${po.supplier_name || po.supplier_id || 'N/A'} <br/>
+            💰 Total Amount: ₹${Number(po.total_amount || po.amount || 0).toFixed(2)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // SAVES ENTRY IN DEDICATED TABLE (offline_collections)
     async function saveOfflineCashEntry() {
+      const fromDateVal = document.getElementById("manualCashFromDate").value;
       const toDateVal = document.getElementById("manualCashToDate").value;
       const modeVal = document.getElementById("manualCashMode").value;
       const amountVal = Number(document.getElementById("manualCashAmount").value);
+      const noteVal = document.getElementById("manualCashNote").value;
 
       if(!toDateVal || amountVal <= 0) return alert("Enter valid details.");
 
-      const { error } = await db.from("orders").insert([{
-        order_id: "ORD-CNT-" + Date.now(),
-        customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
-        mobile: "0000000000",
-        status: "completed",
-        created_at: new Date(toDateVal + "T12:00:00").toISOString(),
-        address: `[MODE:${modeVal.toUpperCase()}] Amt: ₹${amountVal}`
+      const { error } = await db.from("offline_collections").insert([{
+        payment_mode: modeVal,
+        amount: amountVal,
+        from_date: fromDateVal,
+        to_date: toDateVal,
+        note: noteVal,
+        created_at: new Date().toISOString()
       }]);
 
-      if(error) alert("Error saving: " + error.message);
-      else {
-        alert("Entry saved!");
+      if (error) {
+        alert("Error saving collection: " + error.message);
+      } else {
+        alert("Counter Collection saved successfully!");
+        document.getElementById("manualCashAmount").value = "";
+        document.getElementById("manualCashNote").value = "";
         calculateReports();
       }
     }
@@ -433,41 +455,56 @@
       calculateReports();
     }
 
+    // CALCULATES SALES REPORT FROM CUSTOMER ORDERS + COUNTER COLLECTIONS
     async function calculateReports() {
       const fromVal = document.getElementById("reportFromDate").value;
       const toVal = document.getElementById("reportToDate").value;
 
-      if(!fromVal || !toVal) return;
+      if (!fromVal || !toVal) return;
 
-      const { data: sales, error } = await db.from("orders").select("*")
-        .gte("created_at", new Date(fromVal + "T00:00:00").toISOString())
-        .lte("created_at", new Date(toVal + "T23:59:59").toISOString());
+      const startDate = new Date(fromVal + "T00:00:00").toISOString();
+      const endDate = new Date(toVal + "T23:59:59").toISOString();
 
-      if(error) console.error("Report Fetch Error:", error);
+      let cashSales = 0;
+      let onlineSales = 0;
 
-      let offline = 0, online = 0;
-      (sales || []).forEach(ord => {
-        let amt = 0;
-        const match = String(ord.address || '').match(/Amt:\s*₹\s*([\d.]+)/);
-        if(match) amt = Number(match[1]);
+      // 1. Fetch Online Customer Orders
+      const { data: customerOrders } = await db.from("orders")
+        .select("*")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate);
 
-        if(String(ord.address).includes("ONLINE")) online += amt;
-        else offline += amt;
+      (customerOrders || []).forEach(ord => {
+        const amt = Number(ord.total_amount || ord.amount || ord.grand_total || 0);
+        if (String(ord.payment_mode || ord.payment_type).toLowerCase() === 'cash' || String(ord.payment_mode).toLowerCase() === 'cod') {
+          cashSales += amt;
+        } else {
+          onlineSales += amt;
+        }
       });
 
-      document.getElementById("summaryOffline").textContent = "₹" + offline.toFixed(2);
-      document.getElementById("summaryOnline").textContent = "₹" + online.toFixed(2);
-      document.getElementById("summaryTotalSales").textContent = "₹" + (offline + online).toFixed(2);
+      // 2. Fetch Counter Collections from offline_collections table
+      const { data: offlineData } = await db.from("offline_collections")
+        .select("*")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate);
+
+      (offlineData || []).forEach(item => {
+        const amt = Number(item.amount || 0);
+        if (item.payment_mode === 'offline' || item.payment_mode === 'cash') {
+          cashSales += amt;
+        } else {
+          onlineSales += amt;
+        }
+      });
+
+      // Update UI Display
+      document.getElementById("summaryOffline").textContent = "₹" + cashSales.toFixed(2);
+      document.getElementById("summaryOnline").textContent = "₹" + onlineSales.toFixed(2);
+      document.getElementById("summaryTotalSales").textContent = "₹" + (cashSales + onlineSales).toFixed(2);
     }
 
-    async function loadPurchaseOrders() {
-      document.getElementById("purchaseOrdersList").innerHTML = "Feature active.";
-    }
-
-    // Initial Load
-    document.addEventListener("DOMContentLoaded", () => {
-      loadCustomerOrders();
-    });
+    loadCustomerOrders();
   </script>
 </body>
 </html>
