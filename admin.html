@@ -11,11 +11,9 @@
   <style>
     /* COLOR THEMES VARIABLES */
     :root {
-      /* Theme Accents (Default: Indigo) */
       --primary: #4f46e5;
       --primary-hover: #4338ca;
       
-      /* Light Mode Defaults */
       --bg: #f1f5f9;
       --surface: #ffffff;
       --border: #e2e8f0;
@@ -42,12 +40,6 @@
       --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
     }
-
-    /* ACCENT COLOR MODES */
-    body[data-theme="indigo"] { --primary: #4f46e5; --primary-hover: #4338ca; }
-    body[data-theme="emerald"] { --primary: #10b981; --primary-hover: #059669; }
-    body[data-theme="amber"] { --primary: #f59e0b; --primary-hover: #d97706; }
-    body[data-theme="violet"] { --primary: #8b5cf6; --primary-hover: #7c3aed; }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -101,22 +93,13 @@
       background: var(--surface);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 5px 10px;
+      padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
       cursor: pointer;
       font-weight: 600;
       transition: all 0.2s ease;
       box-shadow: var(--shadow-sm);
-    }
-
-    /* REMOVE DROPDOWN ARROW */
-    select.theme-btn {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      text-align: center;
-      padding: 5px 10px;
     }
 
     .theme-btn:hover {
@@ -215,7 +198,7 @@
       border-color: var(--primary);
     }
 
-    /* COMPACT & BALANCED BUTTON STYLES */
+    /* COMPACT BUTTON STYLES */
     .btn-primary, .btn-green, .btn-danger, .btn-outline {
       border: 0;
       border-radius: 8px;
@@ -406,21 +389,13 @@
 </head>
 <body>
 
-  <!-- HEADER -->
+  <!-- HEADER (COLOR SELECTOR REMOVED) -->
   <header>
     <div class="header-title">⚙️ Apna DG Store Admin</div>
     
     <div class="theme-controls">
-      <!-- DAY / NIGHT TOGGLE -->
+      <!-- DAY / NIGHT TOGGLE ONLY -->
       <button id="modeToggleBtn" class="theme-btn" onclick="toggleNightMode()">🌙 Dark</button>
-      
-      <!-- FONT / ACCENT COLOR SELECTOR (ARROW REMOVED) -->
-      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)">
-        <option value="indigo">🔵</option>
-        <option value="emerald">🟢</option>
-        <option value="amber">🟠</option>
-        <option value="violet">🟣</option>
-      </select>
     </div>
   </header>
 
@@ -593,6 +568,29 @@
 
     <!-- TAB 4: REPORTS & ANALYTICS -->
     <section id="reportsTab" class="tab-content">
+      <!-- MANUAL OFFLINE ENTRY CARD -->
+      <div class="card">
+        <h3>💵 Counter / Offline Cash Collection Entry</h3>
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Date:</label>
+            <input type="date" id="manualCashDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
+            <input type="number" id="manualCashAmount" placeholder="Daily Cash Amount" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
+            <input type="text" id="manualCashNote" placeholder="e.g. Counter Sales" />
+          </div>
+          <div>
+            <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
+            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Cash Entry</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>📊 Sales & Purchase Report</h2>
         
@@ -700,18 +698,13 @@
     let editPoCart = [];
     let tickedProductsMap = {}; 
 
-    /* THEME MODE & COLOR SWITCHER LOGIC */
+    /* THEME MODE LOGIC */
     function initThemes() {
       const savedMode = localStorage.getItem("adminMode") || "light";
-      const savedTheme = localStorage.getItem("adminTheme") || "indigo";
-      
       if(savedMode === "dark") {
         document.body.classList.add("dark-mode");
         document.getElementById("modeToggleBtn").textContent = "☀️ Light";
       }
-
-      document.body.setAttribute("data-theme", savedTheme);
-      document.getElementById("colorThemeSelect").value = savedTheme;
     }
 
     function toggleNightMode() {
@@ -727,11 +720,6 @@
       }
     }
 
-    function changeColorTheme(themeName) {
-      document.body.setAttribute("data-theme", themeName);
-      localStorage.setItem("adminTheme", themeName);
-    }
-
     initThemes();
 
     function switchTab(tabId, btnEl) {
@@ -744,7 +732,10 @@
       if (tabId === 'customerTab') loadCustomerOrders();
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
       if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
-      if (tabId === 'reportsTab') { setDateFilter('week'); }
+      if (tabId === 'reportsTab') { 
+        document.getElementById("manualCashDate").value = new Date().toISOString().split('T')[0];
+        setDateFilter('week'); 
+      }
     }
 
     function toggleDropdown(btn) {
@@ -770,10 +761,42 @@
     }
 
     /* REPORTS & ANALYTICS LOGIC */
+    async function saveOfflineCashEntry() {
+      const dateVal = document.getElementById("manualCashDate").value;
+      const amountVal = Number(document.getElementById("manualCashAmount").value);
+      const noteVal = document.getElementById("manualCashNote").value || "Counter Sales";
+
+      if(!dateVal || amountVal <= 0) return alert("Sahi Date aur Amount dalein.");
+
+      const { error } = await db.from("offline_collections").insert([{
+        collection_date: dateVal,
+        amount: amountVal,
+        note: noteVal
+      }]);
+
+      if (error) {
+        // Fallback: If table doesn't exist, create an entry in orders table as Cash Sales
+        const { error: ordErr } = await db.from("orders").insert([{
+          customer_name: "Counter Cash Customer",
+          mobile: "0000000000",
+          payment_mode: "offline",
+          status: "completed",
+          created_at: new Date(dateVal).toISOString()
+        }]);
+        if(ordErr) alert("Error: " + ordErr.message);
+        else alert("Offline Cash Entry Saved!");
+      } else {
+        alert("Offline Cash Entry Saved!");
+      }
+
+      document.getElementById("manualCashAmount").value = "";
+      document.getElementById("manualCashNote").value = "";
+      calculateReports();
+    }
+
     function setDateFilter(type) {
       const today = new Date();
       let from = new Date();
-      let to = new Date();
 
       if (type === 'today') {
         from = new Date(today.setHours(0,0,0,0));
@@ -804,14 +827,21 @@
       toDate.setHours(23,59,59,999);
 
       // Fetch Sales / Orders
-      const { data: sales, error: salesErr } = await db
+      const { data: sales } = await db
         .from("orders")
         .select("*, order_items(*)")
         .gte("created_at", fromDate.toISOString())
         .lte("created_at", toDate.toISOString());
 
+      // Fetch Manual Offline Entries
+      const { data: manualCash } = await db
+        .from("offline_collections")
+        .select("*")
+        .gte("collection_date", fromVal)
+        .lte("collection_date", toVal);
+
       // Fetch Purchases / Supplier Orders
-      const { data: purchases, error: purErr } = await db
+      const { data: purchases } = await db
         .from("purchase_orders")
         .select("*")
         .gte("created_at", fromDate.toISOString())
@@ -820,15 +850,23 @@
       let offlineTotal = 0;
       let onlineTotal = 0;
 
+      // Sum Manual Entries
+      (manualCash || []).forEach(m => {
+        offlineTotal += Number(m.amount || 0);
+      });
+
+      // Sum Orders
       (sales || []).forEach(ord => {
         if (ord.status !== 'cancelled') {
-          const itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-          const pMode = String(ord.payment_mode || ord.payment_type || 'offline').toLowerCase();
+          let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+          if(itemsTotal === 0 && ord.total_amount) itemsTotal = Number(ord.total_amount);
+
+          const pMode = String(ord.payment_mode || ord.payment_type || 'online').toLowerCase();
           
-          if (pMode.includes('online') || pMode.includes('upi') || pMode.includes('card')) {
-            onlineTotal += itemsTotal;
-          } else {
+          if (pMode.includes('offline') || pMode.includes('cash')) {
             offlineTotal += itemsTotal;
+          } else {
+            onlineTotal += itemsTotal;
           }
         }
       });
