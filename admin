@@ -1,1 +1,110 @@
 
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apna DG Store - Admin Dashboard</title>
+  <style>
+    :root { --primary: #4f46e5; --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); padding-bottom: 80px; }
+    header { background: var(--surface); color: var(--primary); padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 18px; font-weight: 800; }
+    .bottom-nav { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); width: min(94%, 500px); height: 60px; background: var(--surface); border: 1px solid var(--border); border-radius: 30px; display: flex; justify-content: space-around; align-items: center; }
+    .bottom-nav-btn { flex: 1; background: transparent; border: 0; display: flex; flex-direction: column; align-items: center; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .bottom-nav-btn.active { color: var(--primary); font-weight: bold; }
+    .container { width: min(100%, 1100px); padding: 16px; margin: auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+    .order-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>⚙️ Apna DG Store Admin</header>
+
+  <nav class="bottom-nav">
+    <button id="nav-customerTab" class="bottom-nav-btn active" onclick="switchTab('customerTab', this)">📋<span>Customer</span></button>
+    <button id="nav-supplierTab" class="bottom-nav-btn" onclick="switchTab('supplierTab', this)">🏬<span>Purchases</span></button>
+    <button id="nav-productsTab" class="bottom-nav-btn" onclick="switchTab('productsTab', this)">📦<span>Products</span></button>
+  </nav>
+
+  <div class="container">
+    <section id="customerTab" class="tab-content active">
+      <div class="card">
+        <h2>🛍 Customer Orders</h2>
+        <div id="customerOrdersContainer">Loading...</div>
+      </div>
+    </section>
+
+    <section id="supplierTab" class="tab-content">
+      <div class="card">
+        <h2>🏬 Purchase Orders History</h2>
+        <div id="purchaseOrdersList">Loading...</div>
+      </div>
+    </section>
+
+    <section id="productsTab" class="tab-content">
+      <div class="card">
+        <h2>📦 Inventory Products</h2>
+        <div id="productsContainer">Loading...</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function switchTab(tabId, btnEl) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".bottom-nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      if(btnEl) btnEl.classList.add("active");
+
+      if (tabId === 'customerTab') loadCustomerOrders();
+      if (tabId === 'supplierTab') loadPurchaseOrders();
+      if (tabId === 'productsTab') loadProducts();
+    }
+
+    async function loadCustomerOrders() {
+      const container = document.getElementById("customerOrdersContainer");
+      const { data: orders } = await db.from("orders").select("*").order("created_at", { ascending: false });
+      if (!orders || orders.length === 0) return container.innerHTML = "No orders found.";
+      container.innerHTML = orders.map(ord => `
+        <div class="order-card">
+          <b>ID: ${ord.order_id || ord.id} (${ord.customer_name || 'Customer'})</b> - ${ord.status || 'PENDING'}
+          <br><small>📞 ${ord.mobile || ''} | 📍 ${ord.address || ''}</small>
+        </div>
+      `).join('');
+    }
+
+    async function loadPurchaseOrders() {
+      const container = document.getElementById("purchaseOrdersList");
+      const { data: pos } = await db.from("purchase_orders").select("*").order("created_at", { ascending: false });
+      if (!pos || pos.length === 0) return container.innerHTML = "No purchase orders found.";
+      container.innerHTML = pos.map(po => `
+        <div class="order-card">
+          <b>PO: ${po.po_number || po.id} (${po.supplier_name || 'Supplier'})</b> - ₹${po.total_amount || 0}
+        </div>
+      `).join('');
+    }
+
+    async function loadProducts() {
+      const container = document.getElementById("productsContainer");
+      const { data: products } = await db.from("products").select("*").order("name");
+      if (!products || products.length === 0) return container.innerHTML = "No products found.";
+      container.innerHTML = products.map(p => `
+        <div class="order-card">
+          <b>${p.name}</b> | Stock: ${p.stock_qty || 0} | Price: ₹${p.selling_price || p.price || 0}
+        </div>
+      `).join('');
+    }
+
+    loadCustomerOrders();
+  </script>
+</body>
+</html>
