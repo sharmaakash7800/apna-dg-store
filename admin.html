@@ -750,9 +750,11 @@
       if(!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
 
       const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
+      const generatedOrderId = "ORD-CNT-" + Date.now();
 
-      // Insert directly as an Order record to guarantee compatibility without schema issues
+      // Insert directly as an Order record to guarantee compatibility
       const { error: ordErr } = await db.from("orders").insert([{
+        order_id: generatedOrderId,
         customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
         mobile: "0000000000",
         status: "completed",
@@ -829,7 +831,7 @@
             if (match && match[1]) itemsTotal = Number(match[1]);
           }
 
-          // Determine payment mode (defaulting to offline if explicitly counter cash)
+          // Determine payment mode
           const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
           
           if (pMode.includes('[mode:online]') || pMode.includes('online')) {
