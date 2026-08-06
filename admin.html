@@ -39,7 +39,7 @@
       padding-bottom: 90px;
     }
 
-    /* MODERN HEADER (COLOR / THEME BUTTON REMOVED) */
+    /* MODERN HEADER */
     header {
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
@@ -339,7 +339,7 @@
 </head>
 <body>
 
-  <!-- HEADER (ALL THEME/COLOR BUTTONS REMOVED) -->
+  <!-- HEADER -->
   <header>
     <div class="header-title">⚙️ Apna DG Store Admin</div>
   </header>
@@ -465,17 +465,21 @@
           <button class="btn-danger" onclick="clearAllSelection()">Clear</button>
         </div>
 
-        <div id="selectedTickedList" style="margin-top:10px; max-height:160px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
+        <div id="selectedTickedList" style="margin-top:10px; max-height:200px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
           <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>
         </div>
 
-        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <div style="flex:1; min-width:180px;">
-            <select id="tickedSupplierSelect">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+          <div>
+            <small style="display:block; color:var(--text-muted); font-size:10px;">TOTAL BILL</small>
+            <strong style="font-size:16px; color:var(--text-dark);">₹<span id="tickedTotalBill">0.00</span></strong>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <select id="tickedSupplierSelect" style="min-width:160px;">
               <option value="">-- Select Supplier --</option>
             </select>
+            <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Order</button>
           </div>
-          <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Order</button>
         </div>
       </div>
 
@@ -513,7 +517,6 @@
 
     <!-- TAB 4: REPORTS & ANALYTICS -->
     <section id="reportsTab" class="tab-content">
-      <!-- MANUAL OFFLINE ENTRY CARD -->
       <div class="card">
         <h3>💵 Counter / Offline Cash Collection Entry</h3>
         <div class="form-grid">
@@ -682,7 +685,7 @@
       });
     }
 
-    /* REPORTS & ANALYTICS LOGIC (COLLECTION WRITE DATA) */
+    /* REPORTS & ANALYTICS LOGIC */
     async function saveOfflineCashEntry() {
       const dateVal = document.getElementById("manualCashDate").value;
       const amountVal = Number(document.getElementById("manualCashAmount").value);
@@ -690,7 +693,6 @@
 
       if(!dateVal || amountVal <= 0) return alert("Sahi Date aur Amount dalein.");
 
-      // Data Writing to 'offline_collections' Table
       const { error } = await db.from("offline_collections").insert([{
         collection_date: dateVal,
         amount: amountVal,
@@ -698,7 +700,6 @@
       }]);
 
       if (error) {
-        // Fallback: If table doesn't exist, create an entry in orders table as Cash Sales
         const { error: ordErr } = await db.from("orders").insert([{
           customer_name: "Counter Cash Customer",
           mobile: "0000000000",
@@ -749,21 +750,18 @@
       const toDate = new Date(toVal);
       toDate.setHours(23,59,59,999);
 
-      // Fetch Sales / Orders
       const { data: sales } = await db
         .from("orders")
         .select("*, order_items(*)")
         .gte("created_at", fromDate.toISOString())
         .lte("created_at", toDate.toISOString());
 
-      // Fetch Manual Offline Entries
       const { data: manualCash } = await db
         .from("offline_collections")
         .select("*")
         .gte("collection_date", fromVal)
         .lte("collection_date", toVal);
 
-      // Fetch Purchases / Supplier Orders
       const { data: purchases } = await db
         .from("purchase_orders")
         .select("*")
@@ -773,12 +771,10 @@
       let offlineTotal = 0;
       let onlineTotal = 0;
 
-      // Sum Manual Entries
       (manualCash || []).forEach(m => {
         offlineTotal += Number(m.amount || 0);
       });
 
-      // Sum Orders
       (sales || []).forEach(ord => {
         if (ord.status !== 'cancelled') {
           let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
@@ -870,6 +866,7 @@
       renderTickedProductsList();
     }
 
+    /* Dynamic Live Calculation for Ticked Products */
     function renderTickedProductsList() {
       const container = document.getElementById("selectedTickedList");
       const keys = Object.keys(tickedProductsMap);
@@ -877,11 +874,16 @@
 
       if (keys.length === 0) {
         container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>';
+        document.getElementById("tickedTotalBill").textContent = "0.00";
         return;
       }
 
+      let total = 0;
       container.innerHTML = keys.map(k => {
         const item = tickedProductsMap[k];
+        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
+        total += itemTotal;
+
         return `
           <div class="item-row">
             <div style="flex:2;">
@@ -889,14 +891,23 @@
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex:1; justify-content:flex-end;">
               <label style="font-size:10px;">Qty:</label>
-              <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="tickedProductsMap['${k}'].quantity = Number(this.value);" />
+              <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="updateTickedItem('${k}', 'quantity', this.value)" />
               <label style="font-size:10px;">Rate:</label>
-              <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="tickedProductsMap['${k}'].purchase_price = Number(this.value);" />
+              <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="updateTickedItem('${k}', 'purchase_price', this.value)" />
               <button class="btn-danger" style="padding:2px 5px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button>
             </div>
           </div>
         `;
       }).join('');
+
+      document.getElementById("tickedTotalBill").textContent = total.toFixed(2);
+    }
+
+    function updateTickedItem(id, field, value) {
+      if (tickedProductsMap[id]) {
+        tickedProductsMap[id][field] = Number(value) || 0;
+        renderTickedProductsList();
+      }
     }
 
     function clearAllSelection() {
@@ -915,7 +926,7 @@
 
       const poNumber = "PO-" + Date.now();
       const itemsList = keys.map(k => tickedProductsMap[k]);
-      const totalAmount = itemsList.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+      const totalAmount = itemsList.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
 
       const { data: po, error } = await db.from("purchase_orders").insert([{
         po_number: poNumber,
@@ -941,7 +952,7 @@
       supplierSelect.value = "";
     }
 
-    /* 1. SUPPLIERS MASTER */
+    /* SUPPLIERS MASTER */
     async function loadSuppliers() {
       const { data } = await db.from("suppliers").select("*").order("name");
       suppliersList = data || [];
@@ -1060,7 +1071,7 @@
       }
     }
 
-    /* 2. CUSTOMER ORDERS */
+    /* CUSTOMER ORDERS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Orders load ho rahe hain...</div>";
@@ -1172,7 +1183,7 @@
       }
     }
 
-    /* 3. SUPPLIER REORDER LOGIC */
+    /* SUPPLIER REORDER LOGIC */
     async function loadProductsForReorder() {
       const { data } = await db.from("products").select("*").order("name");
       productsList = data || [];
@@ -1243,12 +1254,19 @@
 
       const prod = productsList.find(p => String(p.id) === String(prodId));
 
-      poCart.push({
-        product_id: prodId,
-        product_name: prod ? prod.name : 'Product',
-        quantity: qty,
-        purchase_price: price
-      });
+      // Agar product cart me pehle se hai to quantity badha do
+      const existingIdx = poCart.findIndex(i => String(i.product_id) === String(prodId));
+      if (existingIdx > -1) {
+        poCart[existingIdx].quantity += qty;
+        poCart[existingIdx].purchase_price = price;
+      } else {
+        poCart.push({
+          product_id: prodId,
+          product_name: prod ? prod.name : 'Product',
+          quantity: qty,
+          purchase_price: price
+        });
+      }
 
       document.getElementById("poProductSearch").value = "";
       document.getElementById("selectedProductId").value = "";
@@ -1258,34 +1276,55 @@
       renderPoCart();
     }
 
+    /* Live Dynamic Cart Calculation Function */
     function renderPoCart() {
       const container = document.getElementById("poCartItems");
       let total = 0;
 
       if (poCart.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">No item added.</div>';
+        container.innerHTML = '<div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>';
         document.getElementById("poTotalBill").textContent = "0.00";
         return;
       }
 
       container.innerHTML = poCart.map((item, idx) => {
-        const itemTotal = item.quantity * item.purchase_price;
+        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
         total += itemTotal;
         return `
           <div class="item-row">
             <div>
               <strong>${item.product_name}</strong>
-              <div style="font-size:11px; color:var(--text-muted);">Qty: ${item.quantity} × ₹${item.purchase_price}</div>
+              <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
+                <label style="font-size:10px;">Qty:</label>
+                <input type="number" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onchange="updateCartItemQuantity(${idx}, this.value)" />
+                <label style="font-size:10px;">Rate (₹):</label>
+                <input type="number" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onchange="updateCartItemPrice(${idx}, this.value)" />
+              </div>
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
               <strong>₹${itemTotal.toFixed(2)}</strong>
-              <button class="btn-danger" style="padding:2px 6px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button>
+              <button class="btn-danger" style="padding:3px 6px;" onclick="removeCartItem(${idx})">✕</button>
             </div>
           </div>
         `;
       }).join("");
 
       document.getElementById("poTotalBill").textContent = total.toFixed(2);
+    }
+
+    function updateCartItemQuantity(idx, value) {
+      poCart[idx].quantity = Number(value) || 1;
+      renderPoCart();
+    }
+
+    function updateCartItemPrice(idx, value) {
+      poCart[idx].purchase_price = Number(value) || 0;
+      renderPoCart();
+    }
+
+    function removeCartItem(idx) {
+      poCart.splice(idx, 1);
+      renderPoCart();
     }
 
     async function submitPurchaseOrder() {
@@ -1295,7 +1334,7 @@
       if (poCart.length === 0) return alert("Kam se kam 1 product add karein.");
 
       const poNumber = "PO-" + Date.now();
-      const totalAmount = poCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+      const totalAmount = poCart.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
 
       const { data: po, error } = await db.from("purchase_orders").insert([{
         po_number: poNumber,
@@ -1381,7 +1420,7 @@
       }).join("");
     }
 
-    /* 4. EDIT REORDER FUNCTIONS */
+    /* EDIT REORDER FUNCTIONS */
     async function openEditPoModal(poId) {
       const { data: po, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").eq("id", poId).single();
       if (error || !po) return alert("Order load nahi ho paya.");
@@ -1442,7 +1481,7 @@
       }
 
       container.innerHTML = editPoCart.map((item, idx) => {
-        const itemTotal = item.quantity * item.purchase_price;
+        const itemTotal = Number(item.quantity) * Number(item.purchase_price);
         total += itemTotal;
         return `
           <div class="item-row">
@@ -1473,7 +1512,7 @@
       if (!supplierName) return alert("Supplier select karein.");
       if (editPoCart.length === 0) return alert("Order mein kam se kam 1 item hona zaroori hai.");
 
-      const totalAmount = editPoCart.reduce((s, i) => s + (i.quantity * i.purchase_price), 0);
+      const totalAmount = editPoCart.reduce((s, i) => s + (Number(i.quantity) * Number(i.purchase_price)), 0);
 
       const { error: poErr } = await db.from("purchase_orders").update({
         supplier_name: supplierName,
@@ -1522,7 +1561,7 @@
       loadProductsForReorder();
     }
 
-    /* 5. PDF GENERATION LOGIC */
+    /* PDF GENERATION LOGIC */
     async function generateCustomerBillPdf(orderId) {
       const { data: ord } = await db.from("orders").select("*").eq("id", orderId).single();
       const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
@@ -1645,7 +1684,6 @@
       }
     }
 
-    // App Initialization
     loadCustomerOrders();
   </script>
 </body>
