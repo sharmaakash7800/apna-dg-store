@@ -813,7 +813,7 @@
       calculateReports();
     }
 
-    /* SALES CALCULATE FUNCTION WITH COMPLETE BREAKDOWN */
+    /* FIXED SALES CALCULATE FUNCTION WITH EXPLICIT RELATIONSHIP TO PREVENT CONFLICT ERRORS */
     async function calculateReports() {
       const fromVal = document.getElementById("reportFromDate").value;
       const toVal = document.getElementById("reportToDate").value;
@@ -823,23 +823,36 @@
       const fromIso = new Date(fromVal + "T00:00:00.000").toISOString();
       const toIso = new Date(toVal + "T23:59:59.999").toISOString();
 
-      const { data: sales, error } = await db
+      // Safe query with relationship hint
+      let salesData = [];
+      let { data: sales, error } = await db
         .from("orders")
-        .select("*, order_items(*)")
+        .select("*, order_items!order_items_order_id_fkey(*)")
         .gte("created_at", fromIso)
         .lte("created_at", toIso)
         .order("created_at", { ascending: false });
 
       if(error) {
-        console.error("Error fetching sales:", error);
-        return;
+        console.warn("Ret Trying fallback order select...", error.message);
+        const { data: fallbackSales } = await db
+          .from("orders")
+          .select("*")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
+          .order("created_at", { ascending: false });
+        salesData = fallbackSales || [];
+      } else {
+        salesData = sales || [];
       }
 
+      renderSalesReportData(salesData);
+    }
+
+    function renderSalesReportData(sales) {
       let offlineTotal = 0;
       let onlineTotal = 0;
       let counterTotal = 0;
       let validOrderCount = 0;
-
       let entriesHtml = "";
 
       (sales || []).forEach(ord => {
@@ -894,6 +907,9 @@
       document.getElementById("summaryTotalSales").textContent = "₹" + grandTotalSales.toFixed(2);
 
       const breakdownBody = document.getElementById("collectionBreakdownBody");
+      const fromVal = document.getElementById("reportFromDate").value;
+      const toVal = document.getElementById("reportToDate").value;
+      
       breakdownBody.innerHTML = `
         <tr>
           <td><strong>${fromVal}</strong> to <strong>${toVal}</strong></td>
@@ -926,7 +942,7 @@
 
         if (orderErr) throw orderErr;
 
-        // Filter out Counter Sales entries (ORD-CNT-) from Customer Orders tab
+        // Filter out Counter Sales entries (ORD-CNT-)
         const realCustomerOrders = (orders || []).filter(o => {
           const ordId = String(o.order_id || '');
           const addr = String(o.address || '');
