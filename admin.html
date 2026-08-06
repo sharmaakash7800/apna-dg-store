@@ -528,8 +528,12 @@
         <h3>💵 Counter / Offline Cash Collection Entry</h3>
         <div class="form-grid">
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Date:</label>
-            <input type="date" id="manualCashDate" />
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <input type="date" id="manualCashFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <input type="date" id="manualCashToDate" />
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
@@ -547,7 +551,7 @@
       </div>
 
       <div class="card">
-        <h2>📊 Sales & Purchase Report</h2>
+        <h2>📊 Sales Report</h2>
         
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
           <button class="btn-outline" onclick="setDateFilter('today')">Today</button>
@@ -584,13 +588,9 @@
             <small>💰 TOTAL COLLECTION (SALES)</small>
             <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
           </div>
-          <div class="summary-card">
-            <small>🛒 TOTAL PURCHASE (REORDERS)</small>
-            <strong style="color:var(--danger);" id="summaryTotalPurchase">₹0.00</strong>
-          </div>
         </div>
 
-        <!-- NEW DETAILED BREAKDOWN TABLE -->
+        <!-- DETAILED BREAKDOWN TABLE -->
         <div style="margin-top:20px;">
           <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown</h3>
           <div class="table-responsive">
@@ -703,7 +703,9 @@
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
       if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
       if (tabId === 'reportsTab') { 
-        document.getElementById("manualCashDate").value = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById("manualCashFromDate").value = todayStr;
+        document.getElementById("manualCashToDate").value = todayStr;
         if(!document.getElementById("reportFromDate").value) setDateFilter('week'); 
       }
     }
@@ -732,16 +734,19 @@
 
     /* REPORTS & ANALYTICS LOGIC */
     async function saveOfflineCashEntry() {
-      const dateVal = document.getElementById("manualCashDate").value;
+      const fromDateVal = document.getElementById("manualCashFromDate").value;
+      const toDateVal = document.getElementById("manualCashToDate").value;
       const amountVal = Number(document.getElementById("manualCashAmount").value);
       const noteVal = document.getElementById("manualCashNote").value || "Counter Sales";
 
-      if(!dateVal || amountVal <= 0) return alert("Sahi Date aur Amount dalein.");
+      if(!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
+
+      const remarkText = `${noteVal} (Period: ${fromDateVal} to ${toDateVal})`;
 
       const { error } = await db.from("offline_collections").insert([{
-        collection_date: dateVal,
+        collection_date: toDateVal,
         amount: amountVal,
-        note: noteVal
+        note: remarkText
       }]);
 
       if (error) {
@@ -750,7 +755,8 @@
           mobile: "0000000000",
           payment_mode: "offline",
           status: "completed",
-          created_at: new Date(dateVal).toISOString()
+          created_at: new Date(toDateVal).toISOString(),
+          address: remarkText
         }]);
         if(ordErr) alert("Error: " + ordErr.message);
         else alert("Offline Cash Entry Saved!");
@@ -807,12 +813,6 @@
         .gte("collection_date", fromVal)
         .lte("collection_date", toVal);
 
-      const { data: purchases } = await db
-        .from("purchase_orders")
-        .select("*")
-        .gte("created_at", fromDate.toISOString())
-        .lte("created_at", toDate.toISOString());
-
       let offlineTotal = 0;
       let onlineTotal = 0;
       let validOrderCount = 0;
@@ -837,14 +837,11 @@
         }
       });
 
-      let purchaseTotal = (purchases || []).reduce((s, p) => p.status !== 'cancelled' ? s + Number(p.total_amount || 0) : s, 0);
-
       const grandTotalSales = offlineTotal + onlineTotal;
 
       document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2);
       document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2);
       document.getElementById("summaryTotalSales").textContent = "₹" + grandTotalSales.toFixed(2);
-      document.getElementById("summaryTotalPurchase").textContent = "₹" + purchaseTotal.toFixed(2);
 
       // Render Collection Breakdown Table
       const breakdownBody = document.getElementById("collectionBreakdownBody");
