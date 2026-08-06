@@ -66,7 +66,7 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       color: var(--text-dark);
-      padding: 12px 20px;
+      padding: 10px 20px;
       position: sticky;
       top: 0;
       z-index: 90;
@@ -82,7 +82,7 @@
     }
 
     .header-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--primary);
       letter-spacing: -0.2px;
@@ -94,14 +94,14 @@
     .theme-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .theme-btn {
       background: var(--surface);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 20px;
       font-size: 12px;
       cursor: pointer;
@@ -110,19 +110,28 @@
       box-shadow: var(--shadow-sm);
     }
 
+    /* REMOVE DROPDOWN ARROW */
+    select.theme-btn {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      text-align: center;
+      padding: 5px 10px;
+    }
+
     .theme-btn:hover {
       border-color: var(--primary);
       transform: translateY(-1px);
     }
 
-    /* MODERN FLOATING BOTTOM NAVIGATION BAR */
+    /* FLOATING BOTTOM NAVIGATION BAR */
     .bottom-nav {
       position: fixed;
       bottom: 12px; 
       left: 50%;
       transform: translateX(-50%);
-      width: min(92%, 480px);
-      height: 64px;
+      width: min(92%, 520px);
+      height: 60px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 32px;
@@ -131,28 +140,28 @@
       align-items: center;
       z-index: 1000;
       box-shadow: var(--shadow-lg);
-      padding: 0 8px;
+      padding: 0 6px;
     }
 
     .bottom-nav-btn {
       flex: 1;
-      height: 48px;
+      height: 44px;
       background: transparent;
       border: 0;
-      border-radius: 24px;
+      border-radius: 22px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 2px;
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .bottom-nav-btn .icon { font-size: 18px; transition: transform 0.2s ease; }
+    .bottom-nav-btn .icon { font-size: 16px; transition: transform 0.2s ease; }
 
     .bottom-nav-btn:hover {
       color: var(--primary);
@@ -175,27 +184,27 @@
 
     .card {
       background: var(--surface);
-      border-radius: 16px;
+      border-radius: 14px;
       border: 1px solid var(--border);
-      padding: 18px;
+      padding: 16px;
       box-shadow: var(--shadow-sm);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    .card h2, .card h3 { margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
+    .card h2, .card h3 { margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: var(--text-dark); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 
     @media (min-width: 600px) {
-      .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .form-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
     }
 
     input, select {
       width: 100%;
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
       border: 1px solid var(--border);
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
       background: var(--bg);
       color: var(--text-dark);
@@ -206,11 +215,11 @@
       border-color: var(--primary);
     }
 
-    /* IMPROVED BUTTON STYLES */
-    .btn-primary, .btn-green, .btn-danger {
+    /* COMPACT & BALANCED BUTTON STYLES */
+    .btn-primary, .btn-green, .btn-danger, .btn-outline {
       border: 0;
-      border-radius: 10px;
-      padding: 10px 16px;
+      border-radius: 8px;
+      padding: 8px 14px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -220,6 +229,7 @@
       justify-content: center;
       gap: 6px;
       box-shadow: var(--shadow-sm);
+      width: auto;
     }
 
     .btn-primary { background: var(--primary); color: white; }
@@ -228,8 +238,11 @@
     .btn-green { background: var(--success); color: white; }
     .btn-green:hover { opacity: 0.9; transform: translateY(-1px); }
 
-    .btn-danger { background: var(--danger); color: white; font-size: 11px; padding: 6px 12px; border-radius: 8px; }
+    .btn-danger { background: var(--danger); color: white; font-size: 11px; padding: 5px 10px; border-radius: 6px; }
     .btn-danger:hover { opacity: 0.9; }
+
+    .btn-outline { background: var(--surface); color: var(--text-dark); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
 
     /* DROPDOWN MENU FOR ACTIONS */
     .dropdown-wrapper { position: relative; display: inline-block; }
@@ -238,14 +251,14 @@
       background: var(--bg);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 7px 14px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 16px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       transition: all 0.2s ease;
     }
 
@@ -260,11 +273,11 @@
       top: 115%;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 10px;
       box-shadow: var(--shadow-md);
       z-index: 500;
       display: none;
-      min-width: 160px;
+      min-width: 150px;
       overflow: hidden;
       padding: 4px;
     }
@@ -275,12 +288,12 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 12px;
-      font-size: 12px;
+      padding: 8px 10px;
+      font-size: 11px;
       color: var(--text-dark);
       text-decoration: none;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: 6px;
       background: transparent;
       border: 0;
       width: 100%;
@@ -295,8 +308,8 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
     }
 
     .order-header {
@@ -304,9 +317,9 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-      font-size: 13px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
       font-weight: bold;
     }
 
@@ -314,16 +327,35 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
+      padding: 6px 0;
       border-bottom: 1px dashed var(--border);
       font-size: 12px;
     }
 
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
     .badge-pending { background: #fef3c7; color: #d97706; }
     .badge-processing { background: #e0f2fe; color: #0284c7; }
     .badge-received { background: #d1fae5; color: #059669; }
     .badge-cancelled { background: #fee2e2; color: #dc2626; }
+
+    /* SUMMARY CARDS FOR REPORTS */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .summary-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .summary-card small { display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+    .summary-card strong { font-size: 18px; font-weight: 800; }
 
     .search-select-wrapper { position: relative; }
     .search-results-list {
@@ -338,7 +370,7 @@
       z-index: 999;
       display: none;
     }
-    .search-results-item { padding: 10px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
+    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
     .search-results-item:hover { background: var(--bg); color: var(--primary); }
 
     .modal-overlay {
@@ -358,13 +390,13 @@
       width: min(100%, 600px);
       max-height: 90vh;
       overflow-y: auto;
-      padding: 20px;
+      padding: 18px;
       box-shadow: var(--shadow-lg);
     }
 
     .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 10px; border: 1px solid var(--border); }
     .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .custom-table th { background: var(--bg); position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
     .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
@@ -382,8 +414,8 @@
       <!-- DAY / NIGHT TOGGLE -->
       <button id="modeToggleBtn" class="theme-btn" onclick="toggleNightMode()">🌙 Dark</button>
       
-      <!-- FONT / ACCENT COLOR SELECTOR -->
-      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)" style="padding: 5px 8px; font-size: 13px;">
+      <!-- FONT / ACCENT COLOR SELECTOR (ARROW REMOVED) -->
+      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)">
         <option value="indigo">🔵</option>
         <option value="emerald">🟢</option>
         <option value="amber">🟠</option>
@@ -406,6 +438,10 @@
       <span class="icon">📦</span>
       <span>Products</span>
     </button>
+    <button class="bottom-nav-btn" onclick="switchTab('reportsTab', this)">
+      <span class="icon">📊</span>
+      <span>Reports</span>
+    </button>
   </nav>
 
   <div class="container">
@@ -415,7 +451,7 @@
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0;">🛍 Customer Orders</h2>
-          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          <button class="btn-primary" onclick="loadCustomerOrders()" style="padding:5px 10px; font-size:11px;">🔄 Refresh</button>
         </div>
         <div id="customerOrdersContainer">
           <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
@@ -469,7 +505,10 @@
               <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
             </div>
           </div>
-          <button class="btn-primary" onclick="addItemToPoCart()" style="margin-top:4px;">+ Add Item</button>
+          <div>
+            <label style="display:block; visibility:hidden; font-size:11px;">Add</label>
+            <button class="btn-primary" onclick="addItemToPoCart()">+ Add Item</button>
+          </div>
         </div>
 
         <div style="margin-top:15px;">
@@ -483,7 +522,7 @@
               <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
               <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
             </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto;">🚀 Save Reorder</button>
+            <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Reorder</button>
           </div>
         </div>
       </div>
@@ -503,7 +542,7 @@
           <div>
             <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items (<span id="tickedCount">0</span> Selected)</h3>
           </div>
-          <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear</button>
+          <button class="btn-danger" onclick="clearAllSelection()">Clear</button>
         </div>
 
         <div id="selectedTickedList" style="margin-top:10px; max-height:160px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
@@ -516,14 +555,14 @@
               <option value="">-- Select Supplier --</option>
             </select>
           </div>
-          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto;">🚀 Place Order</button>
+          <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Order</button>
         </div>
       </div>
 
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
-          <button class="btn-primary" onclick="loadAllProductsView()" style="width:auto; padding:5px 10px; font-size:11px;">🔄 Refresh</button>
+          <button class="btn-primary" onclick="loadAllProductsView()" style="padding:5px 10px; font-size:11px;">🔄 Refresh</button>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -552,6 +591,54 @@
       </div>
     </section>
 
+    <!-- TAB 4: REPORTS & ANALYTICS -->
+    <section id="reportsTab" class="tab-content">
+      <div class="card">
+        <h2>📊 Sales & Purchase Report</h2>
+        
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn-outline" onclick="setDateFilter('today')">Today</button>
+          <button class="btn-outline" onclick="setDateFilter('week')">This Week</button>
+          <button class="btn-outline" onclick="setDateFilter('month')">This Month</button>
+          <button class="btn-outline" onclick="setDateFilter('year')">This Year</button>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date:</label>
+            <input type="date" id="reportFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date:</label>
+            <input type="date" id="reportToDate" />
+          </div>
+          <div>
+            <label style="display:block; visibility:hidden; font-size:11px;">Calculate</label>
+            <button class="btn-primary" onclick="calculateReports()">📈 Calculate Report</button>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <small>💵 OFFLINE COLLECTION</small>
+            <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>💳 ONLINE COLLECTION</small>
+            <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>💰 TOTAL COLLECTION (SALES)</small>
+            <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>🛒 TOTAL PURCHASE (REORDERS)</small>
+            <strong style="color:var(--danger);" id="summaryTotalPurchase">₹0.00</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <!-- EDIT SUPPLIER REORDER MODAL -->
@@ -559,7 +646,7 @@
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
         <h3 style="margin:0; font-size:15px;">✏️ Edit Order (<span id="editPoNumberText"></span>)</h3>
-        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:var(--bg); color:var(--text-dark); border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
+        <button onclick="closeEditPoModal()" style="padding:4px 10px; background:var(--bg); color:var(--text-dark); border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
       </div>
 
       <input type="hidden" id="editPoId" />
@@ -594,7 +681,7 @@
           <small style="display:block; color:var(--text-muted); font-size:10px;">REVISED TOTAL</small>
           <strong style="font-size:18px; color:var(--text-dark);">₹<span id="editPoTotalBill">0.00</span></strong>
         </div>
-        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto;">💾 Save Changes</button>
+        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()">💾 Save Changes</button>
       </div>
     </div>
   </div>
@@ -657,6 +744,7 @@
       if (tabId === 'customerTab') loadCustomerOrders();
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
       if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
+      if (tabId === 'reportsTab') { setDateFilter('week'); }
     }
 
     function toggleDropdown(btn) {
@@ -679,6 +767,78 @@
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hour12: true
       });
+    }
+
+    /* REPORTS & ANALYTICS LOGIC */
+    function setDateFilter(type) {
+      const today = new Date();
+      let from = new Date();
+      let to = new Date();
+
+      if (type === 'today') {
+        from = new Date(today.setHours(0,0,0,0));
+      } else if (type === 'week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+        from = new Date(today.setDate(diff));
+      } else if (type === 'month') {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+      } else if (type === 'year') {
+        from = new Date(today.getFullYear(), 0, 1);
+      }
+
+      document.getElementById("reportFromDate").value = from.toISOString().split('T')[0];
+      document.getElementById("reportToDate").value = new Date().toISOString().split('T')[0];
+      calculateReports();
+    }
+
+    async function calculateReports() {
+      const fromVal = document.getElementById("reportFromDate").value;
+      const toVal = document.getElementById("reportToDate").value;
+
+      if(!fromVal || !toVal) return alert("Sahi Dates Select Karein.");
+
+      const fromDate = new Date(fromVal);
+      fromDate.setHours(0,0,0,0);
+      const toDate = new Date(toVal);
+      toDate.setHours(23,59,59,999);
+
+      // Fetch Sales / Orders
+      const { data: sales, error: salesErr } = await db
+        .from("orders")
+        .select("*, order_items(*)")
+        .gte("created_at", fromDate.toISOString())
+        .lte("created_at", toDate.toISOString());
+
+      // Fetch Purchases / Supplier Orders
+      const { data: purchases, error: purErr } = await db
+        .from("purchase_orders")
+        .select("*")
+        .gte("created_at", fromDate.toISOString())
+        .lte("created_at", toDate.toISOString());
+
+      let offlineTotal = 0;
+      let onlineTotal = 0;
+
+      (sales || []).forEach(ord => {
+        if (ord.status !== 'cancelled') {
+          const itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+          const pMode = String(ord.payment_mode || ord.payment_type || 'offline').toLowerCase();
+          
+          if (pMode.includes('online') || pMode.includes('upi') || pMode.includes('card')) {
+            onlineTotal += itemsTotal;
+          } else {
+            offlineTotal += itemsTotal;
+          }
+        }
+      });
+
+      let purchaseTotal = (purchases || []).reduce((s, p) => p.status !== 'cancelled' ? s + Number(p.total_amount || 0) : s, 0);
+
+      document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2);
+      document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2);
+      document.getElementById("summaryTotalSales").textContent = "₹" + (offlineTotal + onlineTotal).toFixed(2);
+      document.getElementById("summaryTotalPurchase").textContent = "₹" + purchaseTotal.toFixed(2);
     }
 
     /* PRODUCTS TAB VIEW */
@@ -1253,7 +1413,7 @@
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="padding:6px 12px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
             </div>
           </div>
         `;
