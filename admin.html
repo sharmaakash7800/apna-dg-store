@@ -16,7 +16,7 @@
       --primary-hover: #4338ca;
       
       /* Light Mode Defaults */
-      --bg: #f8fafc;
+      --bg: #f1f5f9;
       --surface: #ffffff;
       --border: #e2e8f0;
       --text-dark: #0f172a;
@@ -27,7 +27,8 @@
       --blue: #3b82f6;
 
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
     }
 
     /* DARK MODE VARIABLES */
@@ -38,7 +39,8 @@
       --text-dark: #f8fafc;
       --text-muted: #94a3b8;
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
     }
 
     /* ACCENT COLOR MODES */
@@ -54,15 +56,17 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text-dark);
       background: var(--bg);
-      padding-bottom: 75px;
+      padding-bottom: 90px;
       transition: background 0.2s, color 0.2s;
     }
 
-    /* HEADER */
+    /* MODERN HEADER */
     header {
-      background: var(--surface);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       color: var(--text-dark);
-      padding: 10px 16px;
+      padding: 12px 20px;
       position: sticky;
       top: 0;
       z-index: 90;
@@ -73,83 +77,114 @@
       box-shadow: var(--shadow-sm);
     }
 
-    .header-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--primary);
+    body.dark-mode header {
+      background: rgba(30, 41, 59, 0.85);
     }
 
-    .theme-controls {
+    .header-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.2px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
+    .theme-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .theme-btn {
-      background: var(--bg);
+      background: var(--surface);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 5px 10px;
-      border-radius: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
       font-size: 12px;
       cursor: pointer;
       font-weight: 600;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
     }
 
-    /* BOTTOM NAVIGATION BAR */
+    .theme-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* MODERN FLOATING BOTTOM NAVIGATION BAR */
     .bottom-nav {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 60px;
+      bottom: 12px; 
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(92%, 480px);
+      height: 64px;
       background: var(--surface);
-      border-top: 1px solid var(--border);
+      border: 1px solid var(--border);
+      border-radius: 32px;
       display: flex;
       justify-content: space-around;
       align-items: center;
       z-index: 1000;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-lg);
+      padding: 0 8px;
     }
 
     .bottom-nav-btn {
       flex: 1;
-      height: 100%;
+      height: 48px;
       background: transparent;
       border: 0;
+      border-radius: 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 2px;
       color: var(--text-muted);
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    .bottom-nav-btn .icon { font-size: 18px; }
+    .bottom-nav-btn .icon { font-size: 18px; transition: transform 0.2s ease; }
+
+    .bottom-nav-btn:hover {
+      color: var(--primary);
+    }
 
     .bottom-nav-btn.active {
       color: var(--primary);
-      font-weight: 800;
+      background: rgba(79, 70, 229, 0.08);
+      font-weight: 700;
     }
 
-    .container { width: min(100%, 1150px); padding: 14px; margin: auto; }
+    .bottom-nav-btn.active .icon {
+      transform: scale(1.15);
+    }
+
+    .container { width: min(100%, 1150px); padding: 16px; margin: auto; }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
     .card {
       background: var(--surface);
-      border-radius: 14px;
+      border-radius: 16px;
       border: 1px solid var(--border);
-      padding: 16px;
+      padding: 18px;
       box-shadow: var(--shadow-sm);
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
-    .card h2, .card h3 { margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
+    .card h2, .card h3 { margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 
     @media (min-width: 600px) {
       .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
@@ -157,26 +192,44 @@
 
     input, select {
       width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 13px;
       outline: none;
-      background: var(--surface);
+      background: var(--bg);
       color: var(--text-dark);
+      transition: border 0.2s;
     }
 
-    .btn-primary { 
-      background: var(--primary); color: white; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: 0.2s; font-size: 13px;
+    input:focus, select:focus {
+      border-color: var(--primary);
     }
 
-    .btn-green { 
-      background: var(--success); color: white; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; transition: 0.2s; font-size: 13px;
+    /* IMPROVED BUTTON STYLES */
+    .btn-primary, .btn-green, .btn-danger {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: var(--shadow-sm);
     }
 
-    .btn-danger { 
-      background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; width: auto; font-weight: 600; 
-    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+    .btn-green { background: var(--success); color: white; }
+    .btn-green:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-danger { background: var(--danger); color: white; font-size: 11px; padding: 6px 12px; border-radius: 8px; }
+    .btn-danger:hover { opacity: 0.9; }
 
     /* DROPDOWN MENU FOR ACTIONS */
     .dropdown-wrapper { position: relative; display: inline-block; }
@@ -185,28 +238,35 @@
       background: var(--bg);
       color: var(--text-dark);
       border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 11px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-btn:hover {
+      border-color: var(--primary);
+      background: var(--surface);
     }
 
     .dropdown-menu {
       position: absolute;
       right: 0;
-      top: 110%;
+      top: 115%;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: var(--shadow-md);
       z-index: 500;
       display: none;
-      min-width: 140px;
+      min-width: 160px;
       overflow: hidden;
+      padding: 4px;
     }
 
     .dropdown-menu.show { display: block; }
@@ -215,16 +275,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
+      padding: 9px 12px;
       font-size: 12px;
       color: var(--text-dark);
       text-decoration: none;
       cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
+      border-radius: 8px;
+      background: transparent;
       border: 0;
       width: 100%;
       text-align: left;
+      font-weight: 500;
+      transition: background 0.15s;
     }
 
     .dropdown-item:hover { background: var(--bg); }
@@ -232,9 +294,9 @@
     .order-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
     }
 
     .order-header {
@@ -242,9 +304,9 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 8px;
-      font-size: 12px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
       font-weight: bold;
     }
 
@@ -257,7 +319,7 @@
       font-size: 12px;
     }
 
-    .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
     .badge-pending { background: #fef3c7; color: #d97706; }
     .badge-processing { background: #e0f2fe; color: #0284c7; }
     .badge-received { background: #d1fae5; color: #059669; }
@@ -271,38 +333,38 @@
       overflow-y: auto;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow: var(--shadow-md);
       z-index: 999;
       display: none;
     }
-    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
+    .search-results-item { padding: 10px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
     .search-results-item:hover { background: var(--bg); color: var(--primary); }
 
     .modal-overlay {
       position: fixed;
       top:0; left:0; right:0; bottom:0;
       background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px);
       z-index: 1000;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 14px;
+      padding: 16px;
     }
     .modal-card {
       background: var(--surface);
-      border-radius: 12px;
+      border-radius: 16px;
       width: min(100%, 600px);
       max-height: 90vh;
       overflow-y: auto;
-      padding: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-shadow: var(--shadow-lg);
     }
 
-    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 8px; border: 1px solid var(--border); }
+    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 10px; border: 1px solid var(--border); }
     .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
     .custom-table th { background: var(--bg); position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
     .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
@@ -320,8 +382,8 @@
       <!-- DAY / NIGHT TOGGLE -->
       <button id="modeToggleBtn" class="theme-btn" onclick="toggleNightMode()">🌙 Dark</button>
       
-      <!-- FONT / ACCENT COLOR SELECTOR (ONLY EMOJIS) -->
-      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)" style="padding: 5px 8px; font-size: 14px;">
+      <!-- FONT / ACCENT COLOR SELECTOR -->
+      <select id="colorThemeSelect" class="theme-btn" onchange="changeColorTheme(this.value)" style="padding: 5px 8px; font-size: 13px;">
         <option value="indigo">🔵</option>
         <option value="emerald">🟢</option>
         <option value="amber">🟠</option>
@@ -1191,7 +1253,7 @@
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 9px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+              ${po.status === 'pending' ? `<button class="btn-green" style="padding:6px 12px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
             </div>
           </div>
         `;
