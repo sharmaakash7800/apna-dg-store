@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Apna DG Store - Admin Dashboard</title>
 
-  <!-- HTML2PDF CDN for PDF Generation -->
+  <!-- HTML2PDF CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
@@ -166,16 +166,9 @@
     }
 
     .btn-primary { background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; }
-    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
     .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-    .btn-green:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
     .btn-danger { background: #fee2e2; color: var(--danger); font-size: 11px; padding: 6px 12px; border-radius: 8px; font-weight: 700; }
-    .btn-danger:hover { background: var(--danger); color: white; }
-
     .btn-outline { background: var(--surface); color: var(--text-dark); border: 1px solid var(--border); }
-    .btn-outline:hover, .btn-outline.active-filter { border-color: var(--primary); color: var(--primary); background: rgba(79, 70, 229, 0.05); }
 
     .dropdown-wrapper { position: relative; display: inline-block; }
     
@@ -191,10 +184,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      transition: all 0.2s ease;
     }
-
-    .dropdown-btn:hover { border-color: var(--primary); background: var(--surface); }
 
     .dropdown-menu {
       position: absolute;
@@ -228,7 +218,6 @@
       width: 100%;
       text-align: left;
       font-weight: 500;
-      transition: background 0.15s;
     }
 
     .dropdown-item:hover { background: var(--bg); }
@@ -261,7 +250,7 @@
       font-size: 12px;
     }
 
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
     .badge-pending { background: #fef3c7; color: #d97706; }
     .badge-processing { background: #e0f2fe; color: #0284c7; }
     .badge-received { background: #d1fae5; color: #059669; }
@@ -280,12 +269,9 @@
       border-radius: 14px;
       padding: 16px;
       text-align: center;
-      transition: transform 0.2s ease;
     }
 
-    .summary-card:hover { transform: translateY(-2px); }
-
-    .summary-card small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .summary-card small { display: block; color: var(--text-muted); font-size: 10px; font-weight: 800; margin-bottom: 6px; }
     .summary-card strong { font-size: 20px; font-weight: 800; }
 
     .search-select-wrapper { position: relative; }
@@ -301,7 +287,7 @@
       z-index: 999;
       display: none;
     }
-    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
+    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
     .search-results-item:hover { background: var(--bg); color: var(--primary); }
 
     .modal-overlay {
@@ -367,7 +353,7 @@
 
   <div class="container">
 
-    <!-- TAB 1: CUSTOMER ORDERS (SALES) -->
+    <!-- TAB 1: CUSTOMER ORDERS -->
     <section id="customerTab" class="tab-content active">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -380,7 +366,7 @@
       </div>
     </section>
 
-    <!-- TAB 2: MY PURCHASES & SUPPLIER REORDERS -->
+    <!-- TAB 2: MY PURCHASES -->
     <section id="supplierTab" class="tab-content">
       <div class="card">
         <h3>➕ Naya Supplier Add Karein</h3>
@@ -595,7 +581,7 @@
           </div>
         </div>
 
-        <!-- DETAILED BREAKDOWN TABLE -->
+        <!-- SUMMARY BREAKDOWN TABLE -->
         <div style="margin-top:20px;">
           <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown</h3>
           <div class="table-responsive">
@@ -617,7 +603,7 @@
           </div>
         </div>
 
-        <!-- RECENT SALES ENTRIES HISTORY -->
+        <!-- DETAILED SALES ENTRIES TABLE -->
         <div style="margin-top:20px;">
           <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Selected Period Detailed Sales Entries</h3>
           <div class="table-responsive">
@@ -815,7 +801,7 @@
       calculateReports();
     }
 
-    /* SAFE & ERROR-PROOF CALCULATE REPORTS FUNCTION */
+    /* CALCULATE REPORTS FUNCTION */
     async function calculateReports() {
       const fromVal = document.getElementById("reportFromDate").value;
       const toVal = document.getElementById("reportToDate").value;
@@ -827,37 +813,24 @@
 
       let salesData = [];
       
-      // Attempt 1: Fetch with Foreign Key Hint
       let { data: sales, error } = await db
         .from("orders")
-        .select("*, order_items!order_items_order_id_fkey(*)")
+        .select("*")
         .gte("created_at", fromIso)
         .lte("created_at", toIso)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        // Fallback Attempt 2: Fetch orders and items separately
-        const { data: fallbackSales } = await db
-          .from("orders")
-          .select("*")
-          .gte("created_at", fromIso)
-          .lte("created_at", toIso)
-          .order("created_at", { ascending: false });
+      if (sales && sales.length > 0) {
+        const ids = sales.map(o => o.id);
+        const { data: fallbackItems } = await db.from("order_items").select("*").in("order_id", ids);
+        
+        const itemsMap = {};
+        (fallbackItems || []).forEach(it => {
+          if(!itemsMap[it.order_id]) itemsMap[it.order_id] = [];
+          itemsMap[it.order_id].push(it);
+        });
 
-        if (fallbackSales && fallbackSales.length > 0) {
-          const ids = fallbackSales.map(o => o.id);
-          const { data: fallbackItems } = await db.from("order_items").select("*").in("order_id", ids);
-          
-          const itemsMap = {};
-          (fallbackItems || []).forEach(it => {
-            if(!itemsMap[it.order_id]) itemsMap[it.order_id] = [];
-            itemsMap[it.order_id].push(it);
-          });
-
-          salesData = fallbackSales.map(o => ({ ...o, order_items: itemsMap[o.id] || [] }));
-        }
-      } else {
-        salesData = sales || [];
+        salesData = sales.map(o => ({ ...o, order_items: itemsMap[o.id] || [] }));
       }
 
       renderSalesReportData(salesData);
@@ -944,7 +917,7 @@
       }
     }
 
-    /* CUSTOMER ORDERS TABLE LOAD (FILTERED OUT ORD-CNT ENTRIES) */
+    /* CUSTOMER ORDERS TABLE LOAD */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
       container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Customer orders load ho rahe hain...</div>";
