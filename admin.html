@@ -23,238 +23,52 @@
     </script>
     <!-- Supabase JS Client v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- HTML2PDF CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased font-sans pb-24">
 
-    <!-- Admin Top App Bar -->
     <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="p-2 bg-brand-600 rounded-xl text-lg">⚡</span>
                 <div>
                     <h1 class="font-black text-base leading-none">Apna DG Store <span class="text-brand-500">Admin</span></h1>
-                    <p class="text-[10px] text-slate-400">Management & Operations Panel</p>
+                    <p class="text-[10px] text-slate-400">Management Panel</p>
                 </div>
             </div>
-            <a href="index.html" target="_blank" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl transition-all">
-                🌐 Visit Store
-            </a>
         </div>
     </header>
 
-    <!-- Main Dynamic Tab Container -->
     <main class="max-w-7xl mx-auto px-4 py-6">
 
-        <!-- SECTION 1: CUSTOMER SALES ORDERS -->
-        <section id="tab-orders" class="tab-content">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-xl font-black text-slate-900">Customer Sales Orders</h2>
-                    <p class="text-xs text-slate-500">Real-time orders queue and status management.</p>
-                </div>
-                <div class="flex gap-2">
-                    <select id="order-status-filter" onchange="loadAdminOrders()" class="bg-white border border-slate-300 text-xs font-bold rounded-xl px-3 py-2 outline-none">
-                        <option value="ALL">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="admin-orders-list" class="space-y-4">
-                <!-- Dynamic Customer Orders List -->
-            </div>
-        </section>
-
-        <!-- SECTION 2: PURCHASES & REORDERS -->
-        <section id="tab-purchases" class="tab-content hidden space-y-8">
+        <!-- SECTION: PURCHASES & SUPPLIERS -->
+        <section id="tab-purchases" class="space-y-8">
             <div>
                 <div class="flex justify-between items-center mb-4">
                     <div>
                         <h2 class="text-xl font-black text-slate-900">Supplier Management</h2>
-                        <p class="text-xs text-slate-500">Manage supplier profiles and direct contacts.</p>
+                        <p class="text-xs text-slate-500">Manage suppliers and contacts from DB.</p>
                     </div>
                     <button onclick="openSupplierModal()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800">+ Add Supplier</button>
                 </div>
                 <div id="suppliers-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Dynamic Suppliers -->
+                    <!-- Dynamic Suppliers From DB -->
                 </div>
             </div>
 
             <hr class="border-slate-200">
 
-            <!-- Purchase Order Generator -->
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                <h3 class="text-lg font-black text-slate-900 mb-4">Create Purchase Reorder (PO)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Supplier</label>
-                        <select id="po-supplier" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Product</label>
-                        <select id="po-product" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none" onchange="syncPoRate()">
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Cost Rate (₹)</label>
-                            <input type="number" id="po-rate" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Qty</label>
-                            <input type="number" id="po-qty" value="10" min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none">
-                        </div>
-                    </div>
-                </div>
-                <button onclick="addItemToPoCart()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all mb-4">
-                    + Add Item to PO
-                </button>
-
-                <!-- PO Itemized Cart -->
-                <div class="border border-slate-200 rounded-2xl overflow-hidden mb-4">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                            <tr><th class="p-3">Product</th><th class="p-3">Rate</th><th class="p-3">Qty</th><th class="p-3">Total</th><th class="p-3">Action</th></tr>
-                        </thead>
-                        <tbody id="po-cart-table" class="divide-y divide-slate-100">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-400">No items added to PO yet.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-black">PO Total: <span id="po-total-text" class="text-brand-600">₹0.00</span></span>
-                    <button onclick="submitPurchaseOrder()" class="px-6 py-2.5 bg-brand-600 text-white font-bold rounded-xl text-xs hover:bg-brand-700">Save & Issue Purchase Order</button>
-                </div>
-            </div>
-
-            <!-- PO History Table -->
             <div>
-                <h3 class="text-lg font-black text-slate-900 mb-4">Purchase Orders History</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-black text-slate-900">Purchase Orders History</h3>
+                    <button onclick="loadPurchaseOrdersHistory()" class="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-xl">🔄 Refresh DB Data</button>
+                </div>
                 <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                            <tr><th class="p-4">PO Number</th><th class="p-4">Supplier</th><th class="p-4">Amount</th><th class="p-4">Status</th><th class="p-4">Actions</th></tr>
+                            <tr><th class="p-4">PO ID</th><th class="p-4">Supplier Name</th><th class="p-4">Amount</th><th class="p-4">Status</th><th class="p-4">Date</th></tr>
                         </thead>
                         <tbody id="po-history-table" class="divide-y divide-slate-100">
-                            <!-- Dynamic PO list -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 3: PRODUCTS MASTER -->
-        <section id="tab-products" class="tab-content hidden">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-xl font-black text-slate-900">Products Master & Stock</h2>
-                    <p class="text-xs text-slate-500">Manage catalog, cost rates, and monitor low stock.</p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="batchCreatePoFromLowStock()" class="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100">
-                        ⚡ Batch PO for Low Stock (≤5)
-                    </button>
-                    <button onclick="openProductModal()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700">
-                        + New Product
-                    </button>
-                </div>
-            </div>
-
-            <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                        <tr>
-                            <th class="p-4"><input type="checkbox" id="select-all-products" onclick="toggleSelectAllProducts(this)"></th>
-                            <th class="p-4">SKU / Item</th>
-                            <th class="p-4">Category</th>
-                            <th class="p-4">Stock</th>
-                            <th class="p-4">Cost Price</th>
-                            <th class="p-4">Selling Price</th>
-                            <th class="p-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="products-table-body" class="divide-y divide-slate-100">
-                        <!-- Dynamic items -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- SECTION 4: SALES REPORTS & COUNTER ENTRY -->
-        <section id="tab-reports" class="tab-content hidden space-y-6">
-            <!-- Counter Cash Entry Form -->
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-                <h3 class="text-lg font-black text-slate-900 mb-1">Counter Cash / Offline Sale Entry</h3>
-                <p class="text-xs text-slate-500 mb-4">Record quick manual offline counter collection.</p>
-                
-                <form id="counter-entry-form" onsubmit="submitCounterEntry(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Amount (₹)</label>
-                        <input type="number" step="0.01" id="counter-amount" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Mode</label>
-                        <select id="counter-mode" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none">
-                            <option value="COD">Cash</option>
-                            <option value="UPI">UPI / Online</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Note / Remark</label>
-                        <input type="text" id="counter-note" placeholder="Counter sale..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Record Counter Sale</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Analytics Filter & Cards -->
-            <div>
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <h3 class="text-lg font-black text-slate-900">Sales Analytics</h3>
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <button onclick="setReportRange('today')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">Today</button>
-                        <button onclick="setReportRange('week')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">This Week</button>
-                        <button onclick="setReportRange('month')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold rounded-xl">This Month</button>
-                        <input type="date" id="report-start" class="bg-white border border-slate-200 text-xs rounded-xl px-2 py-1 outline-none" onchange="runAnalytics()">
-                        <input type="date" id="report-end" class="bg-white border border-slate-200 text-xs rounded-xl px-2 py-1 outline-none" onchange="runAnalytics()">
-                    </div>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400">Cash / COD Collection</p>
-                        <h4 id="stat-cash" class="text-2xl font-black text-slate-900 mt-1">₹0.00</h4>
-                    </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400">Online / UPI Collection</p>
-                        <h4 id="stat-online" class="text-2xl font-black text-emerald-600 mt-1">₹0.00</h4>
-                    </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400">Total Net Revenue</p>
-                        <h4 id="stat-total" class="text-2xl font-black text-brand-600 mt-1">₹0.00</h4>
-                    </div>
-                </div>
-
-                <!-- Sales Breakdown Table -->
-                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                            <tr><th class="p-4">Date</th><th class="p-4">Total Orders</th><th class="p-4">Cash Sales</th><th class="p-4">UPI Sales</th><th class="p-4">Total Income</th></tr>
-                        </thead>
-                        <tbody id="report-table-body" class="divide-y divide-slate-100">
-                            <!-- Dynamic sales breakdown -->
+                            <!-- Dynamic POs From DB -->
                         </tbody>
                     </table>
                 </div>
@@ -263,28 +77,6 @@
 
     </main>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg">
-        <div class="max-w-md mx-auto flex justify-around py-2">
-            <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn flex flex-col items-center gap-1 text-brand-600">
-                <span class="text-lg">🛍️</span>
-                <span class="text-[10px] font-bold">Orders</span>
-            </button>
-            <button onclick="switchTab('purchases')" id="nav-purchases" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
-                <span class="text-lg">🏬</span>
-                <span class="text-[10px] font-bold">Purchases</span>
-            </button>
-            <button onclick="switchTab('products')" id="nav-products" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
-                <span class="text-lg">📦</span>
-                <span class="text-[10px] font-bold">Products</span>
-            </button>
-            <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600">
-                <span class="text-lg">📊</span>
-                <span class="text-[10px] font-bold">Reports</span>
-            </button>
-        </div>
-    </nav>
-
     <!-- SUPPLIER MODAL -->
     <div id="supplier-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
         <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
@@ -292,207 +84,67 @@
             <h3 class="text-lg font-black mb-4">Add New Supplier</h3>
             <form onsubmit="saveSupplier(event)" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Supplier / Firm Name</label>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Supplier Name</label>
                     <input type="text" id="sup-name" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
-                    <input type="tel" id="sup-phone" required pattern="[0-9]{10}" class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
+                    <input type="tel" id="sup-phone" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
                 </div>
                 <button type="submit" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-xs mt-2">Save Supplier</button>
             </form>
         </div>
     </div>
 
-    <!-- PRODUCT MODAL -->
-    <div id="product-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
-            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
-            <h3 id="product-modal-title" class="text-lg font-black mb-4">Add New Product</h3>
-            
-            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3">
-                <input type="hidden" id="prod-id">
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Product Name</label>
-                        <input type="text" id="prod-name" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Emoji</label>
-                        <input type="text" id="prod-emoji" value="📦" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs text-center outline-none">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
-                        <input type="text" id="prod-cat" required placeholder="Dairy, Bakery..." class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">SKU</label>
-                        <input type="text" id="prod-sku" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Stock Qty</label>
-                        <input type="number" id="prod-stock" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Cost Price</label>
-                        <input type="number" step="0.01" id="prod-cost" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Selling Price</label>
-                        <input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-50 border rounded-xl p-2 text-xs outline-none">
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl text-xs mt-2 hover:bg-brand-700">
-                    Save Product Master
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Script Application Logic -->
     <script>
-        // Supabase Direct Client Setup
         const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let productsList = [];
-        let suppliersList = [];
-        let poCart = [];
-
-        function formatCurrency(amt) {
-            return "₹" + Number(amt || 0).toFixed(2);
-        }
-
-        function formatDate(d) {
-            return d ? new Date(d).toLocaleString('hi-IN') : '';
-        }
-
-        function showToast(msg, type = 'info') {
-            alert(`[${type.toUpperCase()}] ${msg}`);
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
-            loadAdminOrders();
             loadSuppliers();
-            loadProductsMaster();
+            loadPurchaseOrdersHistory();
         });
 
-        // TAB NAVIGATION
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(el => {
-                el.classList.remove('text-brand-600');
-                el.classList.add('text-slate-400');
-            });
-            
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`nav-${tabId}`);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-slate-400');
-                activeBtn.classList.add('text-brand-600');
-            }
-
-            if (tabId === 'orders') loadAdminOrders();
-            if (tabId === 'purchases') { loadSuppliers(); loadPurchaseOrdersHistory(); }
-            if (tabId === 'products') loadProductsMaster();
-            if (tabId === 'reports') runAnalytics();
-        }
-
-        // 1. ORDERS MANAGEMENT
-        async function loadAdminOrders() {
-            const container = document.getElementById('admin-orders-list');
-            container.innerHTML = `<div class="bg-white p-6 rounded-3xl text-center text-xs text-slate-500">Orders loading...</div>`;
-
-            const filter = document.getElementById('order-status-filter').value;
-            let query = db.from('orders').select('*').order('created_at', { ascending: false });
-            if (filter !== 'ALL') query = query.eq('status', filter);
-
-            const { data, error } = await query;
-            
-            if (error || !data || data.length === 0) {
-                container.innerHTML = `<div class="bg-white p-8 rounded-3xl text-center text-xs text-slate-400">No orders found.</div>`;
-                return;
-            }
-
-            container.innerHTML = data.map(order => `
-                <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
-                        <div>
-                            <span class="font-mono font-black text-base text-slate-900">${order.order_id || order.id}</span>
-                            <span class="text-xs text-slate-400 ml-2">${formatDate(order.created_at)}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 rounded-xl text-xs font-bold uppercase ${getStatusBadge(order.status)}">${order.status || 'pending'}</span>
-                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="bg-slate-100 border border-slate-200 text-xs font-bold rounded-xl px-2 py-1 outline-none">
-                                <option value="">Change Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">${order.customer_name || 'Customer'} (${order.mobile || 'N/A'})</p>
-                            <p class="text-slate-500">${order.address || 'N/A'}</p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-2xl flex justify-between items-center">
-                            <span class="font-bold">Total Amount:</span>
-                            <span class="text-brand-600 font-black text-sm">${formatCurrency(order.total || order.total_amount || 0)}</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function updateOrderStatus(id, newStatus) {
-            if (!newStatus) return;
-            const { error } = await db.from('orders').update({ status: newStatus }).eq('id', id);
-            if (error) showToast('Failed to update status', 'error');
-            else {
-                showToast(`Order status set to ${newStatus}`, 'success');
-                loadAdminOrders();
-            }
-        }
-
-        // 2. SUPPLIERS & PURCHASES
         async function loadSuppliers() {
             const grid = document.getElementById('suppliers-grid');
-            const select = document.getElementById('po-supplier');
-            grid.innerHTML = "Loading suppliers...";
+            grid.innerHTML = '<div class="col-span-3 text-xs text-slate-400">Loading suppliers...</div>';
 
             const { data, error } = await db.from('suppliers').select('*').order('name');
-            suppliersList = data || [];
-
-            if (suppliersList.length === 0) {
-                grid.innerHTML = `<div class="col-span-3 text-center text-xs text-slate-400 p-4">No suppliers found in DB. Add one above.</div>`;
-                select.innerHTML = `<option value="">No suppliers available</option>`;
+            if (error || !data || data.length === 0) {
+                grid.innerHTML = '<div class="col-span-3 text-xs text-slate-400">No suppliers found in DB.</div>';
                 return;
             }
 
-            select.innerHTML = suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-            
-            grid.innerHTML = suppliersList.map(s => `
+            grid.innerHTML = data.map(s => `
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
                     <div>
                         <h4 class="font-bold text-sm text-slate-900">${s.name}</h4>
                         <p class="text-xs text-slate-500">${s.phone || 'N/A'}</p>
                     </div>
-                    <div class="flex gap-2">
-                        <a href="tel:${s.phone}" class="p-2 bg-slate-100 rounded-xl hover:bg-slate-200 text-xs">📞</a>
-                        <a href="https://wa.me/91${s.phone}" target="_blank" class="p-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 text-xs">💬</a>
-                    </div>
                 </div>
+            `).join('');
+        }
+
+        async function loadPurchaseOrdersHistory() {
+            const table = document.getElementById('po-history-table');
+            table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">Loading DB data...</td></tr>`;
+
+            const { data, error } = await db.from('purchase_orders').select('*').order('created_at', { ascending: false });
+
+            if (error || !data || data.length === 0) {
+                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No POs found in DB.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = data.map(po => `
+                <tr>
+                    <td class="p-4 font-mono font-bold">${po.po_number || po.po_id || po.id}</td>
+                    <td class="p-4 font-medium">${po.supplier_name || 'N/A'}</td>
+                    <td class="p-4 font-black">₹${Number(po.total_amount || 0).toFixed(2)}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase bg-amber-100 text-amber-800">${po.status || 'pending'}</span></td>
+                    <td class="p-4 text-slate-400">${po.created_at ? new Date(po.created_at).toLocaleDateString('hi-IN') : '-'}</td>
+                </tr>
             `).join('');
         }
 
@@ -505,315 +157,11 @@
             const phone = document.getElementById('sup-phone').value;
 
             const { error } = await db.from('suppliers').insert([{ name, phone }]);
-            if (error) showToast('Could not add supplier: ' + error.message, 'error');
+            if (error) alert('Error adding supplier: ' + error.message);
             else {
-                showToast('Supplier added successfully!', 'success');
+                alert('Supplier saved!');
                 closeSupplierModal();
                 loadSuppliers();
-            }
-        }
-
-        function syncPoRate() {
-            const prodId = document.getElementById('po-product').value;
-            const prod = productsList.find(p => p.id == prodId);
-            if (prod) document.getElementById('po-rate').value = prod.cost_price || prod.selling_price || 0;
-        }
-
-        function addItemToPoCart() {
-            const prodId = document.getElementById('po-product').value;
-            const prod = productsList.find(p => p.id == prodId);
-            const rate = parseFloat(document.getElementById('po-rate').value) || 0;
-            const qty = parseInt(document.getElementById('po-qty').value) || 1;
-
-            if (!prod) return alert("Select product first");
-
-            poCart.push({
-                product_id: prod.id,
-                product_name: prod.name,
-                purchase_price: rate,
-                quantity: qty
-            });
-
-            renderPoCartTable();
-        }
-
-        function renderPoCartTable() {
-            const table = document.getElementById('po-cart-table');
-            let total = 0;
-
-            if (poCart.length === 0) {
-                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No items added to PO yet.</td></tr>`;
-            } else {
-                table.innerHTML = poCart.map((item, idx) => {
-                    const sub = item.purchase_price * item.quantity;
-                    total += sub;
-                    return `
-                        <tr>
-                            <td class="p-3 font-bold text-slate-800">${item.product_name}</td>
-                            <td class="p-3">${formatCurrency(item.purchase_price)}</td>
-                            <td class="p-3">${item.quantity}</td>
-                            <td class="p-3 font-bold">${formatCurrency(sub)}</td>
-                            <td class="p-3"><button onclick="poCart.splice(${idx},1); renderPoCartTable();" class="text-rose-600 font-bold">✕</button></td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            document.getElementById('po-total-text').innerText = formatCurrency(total);
-        }
-
-        async function submitPurchaseOrder() {
-            if (poCart.length === 0) { showToast('Add items to PO first', 'warning'); return; }
-            const supplier = document.getElementById('po-supplier').value;
-            const total = poCart.reduce((sum, item) => sum + (item.purchase_price * item.quantity), 0);
-            const poNum = 'PO-' + Math.floor(100000 + Math.random() * 900000);
-
-            const { data: po, error: poErr } = await db.from('purchase_orders').insert([{
-                po_number: poNum,
-                supplier_name: supplier,
-                total_amount: total,
-                status: 'pending'
-            }]).select().single();
-
-            if (poErr) { showToast('PO creation failed: ' + poErr.message, 'error'); return; }
-
-            const poItems = poCart.map(item => ({ ...item, po_id: po.id }));
-            await db.from('purchase_order_items').insert(poItems);
-
-            showToast(`Purchase Order ${poNum} Created!`, 'success');
-            poCart = [];
-            renderPoCartTable();
-            loadPurchaseOrdersHistory();
-        }
-
-        async function loadPurchaseOrdersHistory() {
-            const table = document.getElementById('po-history-table');
-            table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">Loading history...</td></tr>`;
-
-            const { data, error } = await db.from('purchase_orders').select('*').order('created_at', { ascending: false });
-
-            if (error || !data || data.length === 0) {
-                table.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">No POs logged yet.</td></tr>`;
-                return;
-            }
-
-            table.innerHTML = data.map(po => `
-                <tr>
-                    <td class="p-4 font-mono font-bold">${po.po_number || po.po_id || po.id}</td>
-                    <td class="p-4 font-medium">${po.supplier_name || 'N/A'}</td>
-                    <td class="p-4 font-black">${formatCurrency(po.total_amount)}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${po.status === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${po.status || 'pending'}</span></td>
-                    <td class="p-4">
-                        ${po.status === 'pending' ? `
-                            <button onclick="receiveStockFromPo('${po.id}')" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">
-                                📥 Receive Stock
-                            </button>
-                        ` : '<span class="text-xs text-slate-400 font-bold">In Stock</span>'}
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function receiveStockFromPo(poId) {
-            if (!confirm('Mark this PO as received? This will update stock in Products Master.')) return;
-
-            const { data: items } = await db.from('purchase_order_items').select('*').eq('po_id', poId);
-            
-            if (items) {
-                for (let item of items) {
-                    if (item.product_id) {
-                        const { data: prod } = await db.from('products').select('stock_qty').eq('id', item.product_id).single();
-                        if (prod) {
-                            await db.from('products').update({
-                                stock_qty: (prod.stock_qty || 0) + item.quantity
-                            }).eq('id', item.product_id);
-                        }
-                    }
-                }
-            }
-
-            await db.from('purchase_orders').update({ status: 'received' }).eq('id', poId);
-            showToast('Stock received and inventory updated!', 'success');
-            loadPurchaseOrdersHistory();
-            loadProductsMaster();
-        }
-
-        // 3. PRODUCTS MASTER
-        async function loadProductsMaster() {
-            const { data, error } = await db.from('products').select('*').order('name');
-            if (error) return;
-            productsList = data || [];
-
-            const select = document.getElementById('po-product');
-            select.innerHTML = productsList.map(p => `<option value="${p.id}">${p.emoji || '📦'} ${p.name} (Stock: ${p.stock_qty || 0})</option>`).join('');
-            syncPoRate();
-
-            const table = document.getElementById('products-table-body');
-            table.innerHTML = productsList.map(p => `
-                <tr class="${(p.stock_qty || 0) <= 5 ? 'bg-rose-50/40' : ''}">
-                    <td class="p-4"><input type="checkbox" class="product-checkbox" value="${p.id}"></td>
-                    <td class="p-4 flex items-center gap-2">
-                        <span class="text-xl">${p.emoji || '📦'}</span>
-                        <div>
-                            <p class="font-bold text-slate-900">${p.name}</p>
-                            <p class="text-[10px] text-slate-400 font-mono">${p.sku || p.id}</p>
-                        </div>
-                    </td>
-                    <td class="p-4 font-medium text-slate-600">${p.category || '-'}</td>
-                    <td class="p-4 font-black ${(p.stock_qty || 0) <= 5 ? 'text-rose-600' : 'text-slate-800'}">
-                        ${p.stock_qty || 0}
-                    </td>
-                    <td class="p-4 text-slate-600">${formatCurrency(p.cost_price || 0)}</td>
-                    <td class="p-4 font-bold text-slate-900">${formatCurrency(p.selling_price || p.price || 0)}</td>
-                    <td class="p-4">
-                        <button onclick="editProduct('${p.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold">Edit</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function openProductModal() {
-            document.getElementById('prod-id').value = '';
-            document.getElementById('product-form').reset();
-            document.getElementById('product-modal').classList.remove('hidden');
-        }
-
-        function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
-
-        function editProduct(id) {
-            const p = productsList.find(item => item.id == id);
-            if (!p) return;
-            document.getElementById('prod-id').value = p.id;
-            document.getElementById('prod-name').value = p.name;
-            document.getElementById('prod-emoji').value = p.emoji || '📦';
-            document.getElementById('prod-cat').value = p.category || '';
-            document.getElementById('prod-sku').value = p.sku || p.id;
-            document.getElementById('prod-stock').value = p.stock_qty || 0;
-            document.getElementById('prod-cost').value = p.cost_price || 0;
-            document.getElementById('prod-price').value = p.selling_price || p.price || 0;
-
-            document.getElementById('product-modal').classList.remove('hidden');
-        }
-
-        async function saveProduct(e) {
-            e.preventDefault();
-            const id = document.getElementById('prod-id').value;
-            const payload = {
-                name: document.getElementById('prod-name').value,
-                emoji: document.getElementById('prod-emoji').value,
-                category: document.getElementById('prod-cat').value,
-                sku: document.getElementById('prod-sku').value,
-                stock_qty: parseInt(document.getElementById('prod-stock').value),
-                cost_price: parseFloat(document.getElementById('prod-cost').value),
-                selling_price: parseFloat(document.getElementById('prod-price').value)
-            };
-
-            let err;
-            if (id) {
-                const { error } = await db.from('products').update(payload).eq('id', id);
-                err = error;
-            } else {
-                const { error } = await db.from('products').insert([payload]);
-                err = error;
-            }
-
-            if (err) showToast('Failed to save product: ' + err.message, 'error');
-            else {
-                showToast('Product saved successfully', 'success');
-                closeProductModal();
-                loadProductsMaster();
-            }
-        }
-
-        function batchCreatePoFromLowStock() {
-            const lowStockProds = productsList.filter(p => (p.stock_qty || 0) <= 5);
-            if (lowStockProds.length === 0) {
-                showToast('No low stock items found', 'info');
-                return;
-            }
-
-            poCart = lowStockProds.map(p => ({
-                product_id: p.id,
-                product_name: p.name,
-                purchase_price: p.cost_price || 0,
-                quantity: 20
-            }));
-
-            switchTab('purchases');
-            renderPoCartTable();
-            showToast(`Auto-loaded ${lowStockProds.length} low-stock items into PO Cart`, 'success');
-        }
-
-        // 4. REPORTS & COUNTER SALE
-        async function submitCounterEntry(e) {
-            e.preventDefault();
-            const amount = parseFloat(document.getElementById('counter-amount').value);
-            const mode = document.getElementById('counter-mode').value;
-            const note = document.getElementById('counter-note').value;
-
-            const { error } = await db.from('offline_collections').insert([{
-                amount: amount,
-                payment_mode: mode.toLowerCase(),
-                note: note,
-                created_at: new Date().toISOString()
-            }]);
-
-            if (error) showToast('Failed to record counter sale: ' + error.message, 'error');
-            else {
-                showToast('Counter sale recorded in Reports!', 'success');
-                document.getElementById('counter-entry-form').reset();
-                runAnalytics();
-            }
-        }
-
-        function setReportRange(preset) {
-            const now = new Date();
-            let start = new Date();
-
-            if (preset === 'today') { start = now; }
-            if (preset === 'week') { start.setDate(now.getDate() - 7); }
-            if (preset === 'month') { start.setMonth(now.getMonth() - 1); }
-
-            document.getElementById('report-start').value = start.toISOString().split('T')[0];
-            document.getElementById('report-end').value = now.toISOString().split('T')[0];
-            runAnalytics();
-        }
-
-        async function runAnalytics() {
-            let start = document.getElementById('report-start').value;
-            let end = document.getElementById('report-end').value;
-
-            if (!start || !end) { setReportRange('today'); return; }
-
-            const isoStart = new Date(start + "T00:00:00").toISOString();
-            const isoEnd = new Date(end + "T23:59:59").toISOString();
-
-            let cashTotal = 0;
-            let onlineTotal = 0;
-
-            const { data: offlineData } = await db.from("offline_collections")
-                .select("*")
-                .gte("created_at", isoStart)
-                .lte("created_at", isoEnd);
-
-            (offlineData || []).forEach(item => {
-                const amt = Number(item.amount || 0);
-                if (item.payment_mode === 'cod' || item.payment_mode === 'offline' || item.payment_mode === 'cash') cashTotal += amt;
-                else onlineTotal += amt;
-            });
-
-            document.getElementById('stat-cash').innerText = formatCurrency(cashTotal);
-            document.getElementById('stat-online').innerText = formatCurrency(onlineTotal);
-            document.getElementById('stat-total').innerText = formatCurrency(cashTotal + onlineTotal);
-        }
-
-        function getStatusBadge(status) {
-            switch(status) {
-                case 'pending': return 'bg-amber-100 text-amber-800';
-                case 'processing': return 'bg-blue-100 text-blue-800';
-                case 'completed': return 'bg-emerald-100 text-emerald-800';
-                case 'cancelled': return 'bg-rose-100 text-rose-800';
-                default: return 'bg-slate-100 text-slate-700';
             }
         }
     </script>
