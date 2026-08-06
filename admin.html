@@ -10,84 +10,142 @@
 
   <style>
     :root {
-      --bg: #f4f6f9;
+      --bg: #f8fafc;
       --surface: #ffffff;
+      --sidebar-bg: #0f172a;
       --border: #e2e8f0;
-      --text-main: #1e293b;
+      
+      --text-dark: #0f172a;
       --text-muted: #64748b;
       
-      /* Accent Theme Colors */
-      --violet: #7c3aed;
-      --violet-hover: #6d28d9;
-      --blue: #2563eb;
-      --blue-hover: #1d4ed8;
-      --green: #10b981;
-      --green-hover: #059669;
-      --yellow: #f59e0b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --success: #10b981;
+      --success-hover: #059669;
       --danger: #ef4444;
+      --blue: #3b82f6;
 
-      --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-dark);
       background: var(--bg);
       padding-bottom: 30px;
     }
 
     header {
       background: var(--surface);
-      color: var(--text-main);
-      padding: 14px 20px;
+      color: var(--text-dark);
+      padding: 12px 16px;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 90;
       border-bottom: 1px solid var(--border);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    }
-
-    header h1 { 
-      margin: 0 0 12px 0; 
-      font-size: 18px; 
-      font-weight: 800;
-      text-align: center; 
-      color: var(--violet);
-    }
-
-    .nav-tabs {
       display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      white-space: nowrap;
-      scrollbar-width: none;
-      justify-content: center;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
     }
-    .nav-tabs::-webkit-scrollbar { display: none; }
 
-    .tab-btn {
-      background: #e2e8f0;
-      color: var(--text-muted);
+    .header-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .menu-toggle-btn {
+      background: #f1f5f9;
+      color: var(--text-dark);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    /* SIDEBAR DRAWER */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .sidebar-overlay.active { opacity: 1; visibility: visible; }
+
+    .sidebar-drawer {
+      position: fixed;
+      top: 0; left: -280px;
+      width: 260px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      color: white;
+      z-index: 1001;
+      padding: 20px 16px;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-drawer.active { left: 0; }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #334155;
+      margin-bottom: 16px;
+    }
+
+    .sidebar-close-btn {
+      background: #1e293b;
+      color: #94a3b8;
       border: 0;
-      padding: 10px 18px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .sidebar-menu-btn {
+      width: 100%;
+      background: transparent;
+      color: #94a3b8;
+      border: 0;
+      padding: 12px 14px;
       border-radius: 10px;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 700;
-      text-align: center;
-      transition: all 0.2s ease;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
     }
 
-    .tab-btn.active { 
-      background: var(--violet); 
-      color: #ffffff; 
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
-    }
+    .sidebar-menu-btn.active { background: var(--primary); color: white; }
 
-    .container { width: min(100%, 1200px); padding: 16px; margin: auto; }
+    .container { width: min(100%, 1150px); padding: 14px; margin: auto; }
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -96,49 +154,115 @@
       background: var(--surface);
       border-radius: 14px;
       border: 1px solid var(--border);
-      padding: 18px;
-      box-shadow: var(--card-shadow);
-      margin-bottom: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
     }
 
-    .card h2, .card h3 { margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .card h2, .card h3 { margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 
     @media (min-width: 600px) {
-      .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     }
 
-    input, select, button {
+    input, select {
       width: 100%;
-      padding: 11px 14px;
-      border-radius: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 13px;
       outline: none;
       background: #fff;
-      transition: border-color 0.2s;
-    }
-    input:focus, select:focus {
-      border-color: var(--violet);
     }
 
-    .btn-primary { background: var(--violet); color: white; font-weight: 700; border: 0; cursor: pointer; transition: 0.2s; }
-    .btn-primary:hover { background: var(--violet-hover); }
+    input:focus, select:focus { border-color: var(--primary); }
 
-    .btn-green { background: var(--green); color: white; font-weight: 700; border: 0; cursor: pointer; transition: 0.2s; }
-    .btn-green:hover { background: var(--green-hover); }
+    .btn-primary { 
+      background: var(--primary); 
+      color: white; 
+      font-weight: 700; 
+      border: 0; 
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer; 
+      transition: 0.2s;
+      font-size: 13px;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
 
-    .btn-danger { background: var(--danger); color: white; border: 0; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer; width: auto; font-weight: 600; }
-    .btn-pdf { background: var(--blue); color: white; border: 0; font-size: 11px; padding: 6px 12px; border-radius: 8px; cursor: pointer; width: auto; font-weight: 700; }
+    .btn-green { 
+      background: var(--success); 
+      color: white; 
+      font-weight: 700; 
+      border: 0; 
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer; 
+      transition: 0.2s;
+      font-size: 13px;
+    }
+    .btn-green:hover { background: var(--success-hover); }
+
+    .btn-danger { 
+      background: var(--danger); 
+      color: white; 
+      border: 0; 
+      font-size: 11px; 
+      padding: 6px 10px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      width: auto; 
+      font-weight: 600; 
+    }
+
+    .btn-pdf { 
+      background: var(--blue); 
+      color: white; 
+      border: 0; 
+      font-size: 11px; 
+      padding: 6px 10px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      width: auto; 
+      font-weight: 700; 
+    }
+
+    .action-btn-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    .call-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+      color: white;
+      background: var(--success);
+    }
+
+    .wa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+      color: white;
+      background: #25d366;
+    }
 
     .order-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
     }
 
     .order-header {
@@ -146,10 +270,10 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-      font-size: 13px;
-      font-weight: 700;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: bold;
     }
 
     .item-row {
@@ -158,85 +282,36 @@
       align-items: center;
       padding: 8px 0;
       border-bottom: 1px dashed var(--border);
-      font-size: 13px;
+      font-size: 12px;
     }
 
-    .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
     .badge-pending { background: #fef3c7; color: #d97706; }
     .badge-processing { background: #e0f2fe; color: #0284c7; }
     .badge-received { background: #d1fae5; color: #059669; }
     .badge-cancelled { background: #fee2e2; color: #dc2626; }
 
-    .call-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      text-decoration: none;
-      color: white;
-      background: var(--green);
-    }
-    .wa-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      text-decoration: none;
-      color: white;
-      background: #25d366;
-    }
-
-    .status-timestamps {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 6px;
-      background: #f8fafc;
-      padding: 6px 10px;
-      border-radius: 8px;
-      display: inline-block;
-      border: 1px solid var(--border);
-    }
-
-    /* Custom Search Box UI */
     .search-select-wrapper { position: relative; }
     .search-results-list {
       position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      max-height: 220px;
+      top: 100%; left: 0; right: 0;
+      max-height: 200px;
       overflow-y: auto;
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
       z-index: 999;
       display: none;
     }
-    .search-results-item {
-      padding: 10px 14px;
-      font-size: 12px;
-      cursor: pointer;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .search-results-item:hover {
-      background: #f3e8ff;
-      color: var(--violet);
-      font-weight: 600;
-    }
+    .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+    .search-results-item:hover { background: #e0e7ff; color: var(--primary); }
 
-    /* EDIT REORDER MODAL UI */
     .modal-overlay {
       position: fixed;
       top:0; left:0; right:0; bottom:0;
       background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(2px);
       z-index: 1000;
       display: none;
       align-items: center;
@@ -245,41 +320,52 @@
     }
     .modal-card {
       background: white;
-      border-radius: 16px;
-      width: min(100%, 650px);
+      border-radius: 12px;
+      width: min(100%, 600px);
       max-height: 90vh;
       overflow-y: auto;
-      padding: 20px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
 
-    /* Products Table Styling */
-    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 10px; border: 1px solid var(--border); }
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 8px; border: 1px solid var(--border); }
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
-    .chk-box { width: 18px; height: 18px; cursor: pointer; accent-color: var(--violet); }
+    .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 
-    /* PRINT HIDDEN CONTAINER FOR PDF */
-    #printContainer {
-      display: none;
-      background: white;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-    }
+    #printContainer { display: none; background: white; padding: 20px; font-family: Arial, sans-serif; }
   </style>
 </head>
 <body>
 
+  <!-- HEADER -->
   <header>
-    <h1>⚙️ Store Admin Dashboard</h1>
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('customerTab', event)">📋 Customer Orders</button>
-      <button class="tab-btn" onclick="switchTab('supplierTab', event)">🏬 Supplier Reorder</button>
-      <button class="tab-btn" onclick="switchTab('productsTab', event)">📦 Products List</button>
-    </div>
+    <div class="header-title">⚙️ Store Admin</div>
+    <button class="menu-toggle-btn" onclick="toggleSidebar(true)">
+      ☰ <span style="font-size:12px;">Menu</span>
+    </button>
   </header>
+
+  <!-- SIDEBAR OVERLAY & DRAWER -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <aside id="sidebarDrawer" class="sidebar-drawer">
+    <div class="sidebar-header">
+      <strong style="font-size:15px; color:white;">⚙️ Admin Menu</strong>
+      <button class="sidebar-close-btn" onclick="toggleSidebar(false)">✕</button>
+    </div>
+    
+    <button class="sidebar-menu-btn active" onclick="switchTab('customerTab', event)">
+      📋 Customer Orders
+    </button>
+    <button class="sidebar-menu-btn" onclick="switchTab('supplierTab', event)">
+      🏬 Supplier Reorder
+    </button>
+    <button class="sidebar-menu-btn" onclick="switchTab('productsTab', event)">
+      📦 Products List
+    </button>
+  </aside>
 
   <div class="container">
 
@@ -288,7 +374,7 @@
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0;">🛍 Customer Orders List</h2>
-          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:8px 14px; font-size:12px;">🔄 Refresh Orders</button>
+          <button class="btn-primary" onclick="loadCustomerOrders()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh</button>
         </div>
         <div id="customerOrdersContainer">
           <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
@@ -303,7 +389,7 @@
       <div class="card" style="background:#f8fafc;">
         <h3>➕ Master Supplier Add Karein</h3>
         <div class="form-grid">
-          <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam (e.g. Raghav Agency)" />
+          <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
           <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
           <button class="btn-primary" onclick="addNewSupplierMaster()">Save Supplier</button>
         </div>
@@ -311,7 +397,7 @@
 
       <!-- SUPPLIERS EDIT / DELETE LIST -->
       <div class="card">
-        <h3>👥 Master Suppliers List & Direct Call/WhatsApp</h3>
+        <h3>👥 Master Suppliers List</h3>
         <div id="suppliersMasterList">
           <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
         </div>
@@ -329,10 +415,9 @@
             <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
           </div>
 
-          <!-- Product Search Input Field -->
           <div class="search-select-wrapper">
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein (Name / SKU):</label>
-            <input type="text" id="poProductSearch" placeholder="🔍 Type Product Name or SKU..." oninput="filterProducts('')" onfocus="filterProducts('')" autocomplete="off" />
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein:</label>
+            <input type="text" id="poProductSearch" placeholder="🔍 Product Name or SKU..." oninput="filterProducts('')" onfocus="filterProducts('')" autocomplete="off" />
             <input type="hidden" id="selectedProductId" />
             <div id="searchResultsList" class="search-results-list"></div>
           </div>
@@ -343,7 +428,7 @@
               <input id="poQty" type="number" min="1" value="1" />
             </div>
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Purchase Rate (₹):</label>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Rate (₹):</label>
               <input id="poPrice" type="number" step="0.01" placeholder="Rate" />
             </div>
           </div>
@@ -356,12 +441,12 @@
             <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add nahi hai.</div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:2px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
             <div>
               <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
-              <strong style="font-size:20px; color:var(--text-main);">₹<span id="poTotalBill">0.00</span></strong>
+              <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
             </div>
-            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto; padding:10px 20px;">🚀 Save Reorder</button>
+            <button class="btn-green" onclick="submitPurchaseOrder()" style="width:auto;">🚀 Save Reorder</button>
           </div>
         </div>
       </div>
@@ -379,56 +464,55 @@
     <section id="productsTab" class="tab-content">
       
       <!-- SELECTED ITEMS REORDER BOX -->
-      <div class="card" style="background:#f5f3ff; border:1px solid #ddd6fe;">
+      <div class="card" style="background:#eef2ff; border:1px solid #c7d2fe;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <h3 style="margin:0; color:var(--violet);">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items Selected)</h3>
-            <small style="color:var(--text-muted);">Jo items aap tick karenge, wo yahan add honge.</small>
+            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items for Reorder (<span id="tickedCount">0</span> Items)</h3>
           </div>
           <button class="btn-danger" style="width:auto;" onclick="clearAllSelection()">Clear Selection</button>
         </div>
 
-        <div id="selectedTickedList" style="margin-top:10px; max-height:180px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px;">
-          <div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>
+        <div id="selectedTickedList" style="margin-top:10px; max-height:160px; overflow-y:auto; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px;">
+          <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>
         </div>
 
-        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <div style="flex:1; min-width:200px;">
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <div style="flex:1; min-width:180px;">
             <select id="tickedSupplierSelect">
-              <option value="">-- Select Supplier for Ticked Items --</option>
+              <option value="">-- Select Supplier --</option>
             </select>
           </div>
-          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto; padding:11px 20px;">🚀 Place Order to Supplier</button>
+          <button class="btn-green" onclick="submitTickedReorder()" style="width:auto;">🚀 Place Order</button>
         </div>
       </div>
 
       <!-- ALL PRODUCTS TABLE -->
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <h2 style="margin:0;">📦 All Store Products List (<span id="totalProductsCount">0</span>)</h2>
-          <button class="btn-primary" onclick="loadAllProductsView()" style="width:auto; padding:6px 12px; font-size:11px;">🔄 Refresh Items</button>
+          <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
+          <button class="btn-primary" onclick="loadAllProductsView()" style="width:auto; padding:5px 10px; font-size:11px;">🔄 Refresh</button>
         </div>
 
-        <!-- Product Filter / Search -->
-        <div style="margin-bottom: 12px;">
-          <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product by ID, Name or Category..." oninput="renderProductsTable()" />
+        <div style="margin-bottom: 10px;">
+          <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product..." oninput="renderProductsTable()" />
         </div>
 
         <div class="table-responsive">
           <table class="custom-table">
             <thead>
               <tr>
-                <th style="width:40px; text-align:center;">Select</th>
+                <th style="width:30px; text-align:center;">Select</th>
                 <th>ID</th>
                 <th>Item Name</th>
                 <th>Category</th>
                 <th>Unit</th>
-                <th>Cost Price (₹)</th>
-                <th>Selling Price (₹)</th>
+                <th>Stock Qty</th>
+                <th>Cost (₹)</th>
+                <th>Selling (₹)</th>
               </tr>
             </thead>
             <tbody id="productsTableBody">
-              <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
+              <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
             </tbody>
           </table>
         </div>
@@ -440,23 +524,23 @@
   <!-- EDIT SUPPLIER REORDER MODAL -->
   <div id="editPoModal" class="modal-overlay">
     <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:14px;">
-        <h3 style="margin:0; font-size:16px;">✏️ Supplier Order Edit Karein (<span id="editPoNumberText"></span>)</h3>
-        <button onclick="closeEditPoModal()" style="width:auto; padding:6px 12px; background:#f1f5f9; color:var(--text-main); border:0; border-radius:8px; cursor:pointer; font-weight:600;">✕ Close</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:15px;">✏️ Edit Order (<span id="editPoNumberText"></span>)</h3>
+        <button onclick="closeEditPoModal()" style="width:auto; padding:4px 10px; background:#f1f5f9; border:0; border-radius:6px; cursor:pointer;">✕ Close</button>
       </div>
 
       <input type="hidden" id="editPoId" />
 
-      <div style="margin-bottom:12px;">
+      <div style="margin-bottom:10px;">
         <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
         <select id="editPoSupplierSelect"></select>
       </div>
 
-      <div style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:12px;">
-        <strong style="font-size:12px; display:block; margin-bottom:8px;">➕ Order me Naya Item Add Karein:</strong>
+      <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
+        <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Item Add Karein:</strong>
         <div class="form-grid">
           <div class="search-select-wrapper">
-            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product or SKU..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
+            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
             <input type="hidden" id="editSelectedProductId" />
             <div id="editSearchResultsList" class="search-results-list"></div>
           </div>
@@ -464,25 +548,24 @@
             <input id="editPoQty" type="number" min="1" value="1" placeholder="Qty" />
             <input id="editPoPrice" type="number" step="0.01" placeholder="Rate (₹)" />
           </div>
-          <button class="btn-primary" onclick="addItemToEditPoCart()">+ Add to Order</button>
+          <button class="btn-primary" onclick="addItemToEditPoCart()">+ Add</button>
         </div>
       </div>
 
-      <strong style="font-size:12px; color:var(--text-muted);">Order Items List:</strong>
-      <div id="editPoCartItems" style="max-height: 200px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:10px; padding:8px;">
+      <strong style="font-size:11px; color:var(--text-muted);">Order Items List:</strong>
+      <div id="editPoCartItems" style="max-height: 180px; overflow-y:auto; margin-top:6px; border:1px solid var(--border); border-radius:8px; padding:6px;">
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:2px solid var(--border);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
         <div>
-          <small style="display:block; color:var(--text-muted); font-size:10px;">REVISED TOTAL BILL</small>
-          <strong style="font-size:20px; color:var(--text-main);">₹<span id="editPoTotalBill">0.00</span></strong>
+          <small style="display:block; color:var(--text-muted); font-size:10px;">REVISED TOTAL</small>
+          <strong style="font-size:18px; color:var(--text-dark);">₹<span id="editPoTotalBill">0.00</span></strong>
         </div>
-        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto; padding:11px 20px;">💾 Save Changes</button>
+        <button class="btn-green" onclick="saveUpdatedPurchaseOrder()" style="width:auto;">💾 Save Changes</button>
       </div>
     </div>
   </div>
 
-  <!-- HIDDEN PRINT AREA FOR PDF GENERATION -->
   <div id="printContainer"></div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -497,11 +580,26 @@
     let editPoCart = [];
     let tickedProductsMap = {}; 
 
+    function toggleSidebar(open) {
+      const overlay = document.getElementById("sidebarOverlay");
+      const drawer = document.getElementById("sidebarDrawer");
+      if (open) {
+        overlay.classList.add("active");
+        drawer.classList.add("active");
+      } else {
+        overlay.classList.remove("active");
+        drawer.classList.remove("active");
+      }
+    }
+
     function switchTab(tabId, evt) {
       document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".sidebar-menu-btn").forEach(b => b.classList.remove("active"));
+      
       document.getElementById(tabId).classList.add("active");
       if(evt) evt.target.classList.add("active");
+
+      toggleSidebar(false);
 
       if (tabId === 'customerTab') loadCustomerOrders();
       if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
@@ -516,14 +614,14 @@
       });
     }
 
-    /* PRODUCTS TAB VIEW & CHECKBOX REORDER LOGIC */
+    /* PRODUCTS TAB VIEW & STOCK QTY LOGIC */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
       
       const { data, error } = await db.from("products").select("*").order("name");
       if (error) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
         return;
       }
 
@@ -543,12 +641,13 @@
       );
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
         return;
       }
 
       tbody.innerHTML = filtered.map(p => {
         const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
+        const qtyVal = p.stock_qty !== null && p.stock_qty !== undefined ? p.stock_qty : 0;
         return `
           <tr>
             <td style="text-align:center;">
@@ -558,8 +657,9 @@
             <td>${p.name || 'N/A'}</td>
             <td>${p.category || 'N/A'}</td>
             <td>${p.unit || '-'}</td>
+            <td style="font-weight:bold; color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${qtyVal}</td>
             <td style="color:var(--blue); font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
-            <td style="color:var(--green); font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
+            <td style="color:var(--success); font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
           </tr>
         `;
       }).join('');
@@ -588,7 +688,7 @@
       document.getElementById("tickedCount").textContent = keys.length;
 
       if (keys.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:10px; font-size:12px;">Niche list me se jo items mangwane hain unpar ☑️ Tick mark karein.</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>';
         return;
       }
 
@@ -599,12 +699,12 @@
             <div style="flex:2;">
               <strong>${item.product_name}</strong>
             </div>
-            <div style="display:flex; gap:8px; align-items:center; flex:1; justify-content:flex-end;">
-              <label style="font-size:11px;">Qty:</label>
-              <input type="number" min="1" value="${item.quantity}" style="width:60px; padding:3px 6px; font-size:11px;" onchange="tickedProductsMap['${k}'].quantity = Number(this.value);" />
-              <label style="font-size:11px;">Rate:</label>
-              <input type="number" step="0.01" value="${item.purchase_price}" style="width:75px; padding:3px 6px; font-size:11px;" onchange="tickedProductsMap['${k}'].purchase_price = Number(this.value);" />
-              <button class="btn-danger" style="padding:2px 6px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button>
+            <div style="display:flex; gap:6px; align-items:center; flex:1; justify-content:flex-end;">
+              <label style="font-size:10px;">Qty:</label>
+              <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="tickedProductsMap['${k}'].quantity = Number(this.value);" />
+              <label style="font-size:10px;">Rate:</label>
+              <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="tickedProductsMap['${k}'].purchase_price = Number(this.value);" />
+              <button class="btn-danger" style="padding:2px 5px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button>
             </div>
           </div>
         `;
@@ -686,12 +786,12 @@
               <strong>${s.name}</strong>
               ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
+            <div class="action-btn-group">
               ${s.phone ? `
                 <a href="tel:${s.phone}" class="call-btn">📞 Call</a>
                 <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WA</a>
               ` : ''}
-              <button class="btn-primary" style="width:auto; padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
+              <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit</button>
               <button class="btn-danger" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
             </div>
           </div>
@@ -709,10 +809,10 @@
       if (phone) {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         actionsDiv.style.display = "flex";
-        actionsDiv.style.gap = "8px";
+        actionsDiv.style.gap = "6px";
         actionsDiv.innerHTML = `
-          <a href="tel:${phone}" class="call-btn">📞 Call ${supplierName}</a>
-          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WhatsApp Rate Query</a>
+          <a href="tel:${phone}" class="call-btn">📞 Call Supplier</a>
+          <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(supplierName)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="wa-btn">💬 WhatsApp Query</a>
         `;
       } else {
         actionsDiv.style.display = "none";
@@ -811,11 +911,6 @@
           else if (statusLower === 'processing' || statusLower === 'under process') badgeClass = 'badge-processing';
           else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
 
-          let timeHistoryHtml = '';
-          if (ord.processing_at) timeHistoryHtml += `🔄 Processed: <b>${formatTime(ord.processing_at)}</b> &nbsp;`;
-          if (ord.completed_at) timeHistoryHtml += `✅ Completed: <b>${formatTime(ord.completed_at)}</b> &nbsp;`;
-          if (ord.cancelled_at) timeHistoryHtml += `❌ Cancelled: <b>${formatTime(ord.cancelled_at)}</b> &nbsp;`;
-
           return `
             <div class="order-card">
               <div class="order-header">
@@ -827,8 +922,6 @@
                 📍 ${ord.address || 'N/A'}
               </div>
 
-              ${timeHistoryHtml ? `<div class="status-timestamps">${timeHistoryHtml}</div>` : ''}
-
               <div style="margin-top:6px;">
                 ${items.length > 0 ? items.map(it => `
                   <div class="item-row">
@@ -838,18 +931,16 @@
                 `).join('') : '<div style="font-size:11px; color:var(--text-muted);">No item details found</div>'}
               </div>
               
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #eee; padding-top:8px; flex-wrap:wrap; gap:8px;">
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid #eee; padding-top:8px; flex-wrap:wrap; gap:6px;">
+                <div class="action-btn-group">
                   ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `
-                    ${statusLower !== 'processing' ? `<button class="btn-primary" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process Order</button>` : ''}
-                    <button class="btn-green" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
-                    <button class="btn-danger" style="width:auto; padding:5px 9px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
-                  ` : `
-                    <span style="font-size:11px; font-weight:bold; color:var(--text-muted);">No actions available</span>
-                  `}
+                    ${statusLower !== 'processing' ? `<button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'processing')">🔄 Process</button>` : ''}
+                    <button class="btn-green" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'completed')">✅ Complete</button>
+                    <button class="btn-danger" style="padding:4px 8px; font-size:11px;" onclick="updateOrderStatus(${ord.id}, 'cancelled')">❌ Cancel</button>
+                  ` : ''}
                   <button class="btn-pdf" onclick="generateCustomerBillPdf('${ord.id}')">📄 Bill PDF</button>
                 </div>
-                <div style="font-weight:bold; font-size:13px; color:var(--text-main);">
+                <div style="font-weight:bold; font-size:13px; color:var(--text-dark);">
                   Total: ₹${totalAmount.toFixed(2)}
                 </div>
               </div>
@@ -911,7 +1002,7 @@
       );
 
       if (filtered.length === 0) {
-        resultsDiv.innerHTML = '<div style="padding:10px; font-size:12px; color:var(--text-muted);">Koi product nahi mila</div>';
+        resultsDiv.innerHTML = '<div style="padding:8px; font-size:12px; color:var(--text-muted);">Koi product nahi mila</div>';
         resultsDiv.style.display = "block";
         return;
       }
@@ -991,9 +1082,9 @@
               <strong>${item.product_name}</strong>
               <div style="font-size:11px; color:var(--text-muted);">Qty: ${item.quantity} × ₹${item.purchase_price}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
               <strong>₹${itemTotal.toFixed(2)}</strong>
-              <button class="btn-danger" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button>
+              <button class="btn-danger" style="padding:2px 6px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button>
             </div>
           </div>
         `;
@@ -1059,15 +1150,15 @@
         return `
           <div class="order-card">
             <div class="order-header">
-              <span>Supplier: ${po.supplier_name} (${po.po_number || ''})</span>
+              <span>Supplier: ${po.supplier_name}</span>
               <div>
                 <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
-                ${po.status === 'pending' ? `<button class="btn-primary" style="width:auto; padding:3px 8px; font-size:10px; margin-left:6px;" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                ${po.status === 'pending' ? `<button class="btn-primary" style="padding:2px 6px; font-size:10px; margin-left:4px;" onclick="openEditPoModal(${po.id})">✏️ Edit</button>` : ''}
               </div>
             </div>
             ${phone ? `
-              <div style="margin-bottom:8px; display:flex; gap:6px;">
-                <a href="tel:${phone}" class="call-btn">📞 Call (${phone})</a>
+              <div class="action-btn-group" style="margin-bottom:8px;">
+                <a href="tel:${phone}" class="call-btn">📞 Call</a>
                 <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="wa-btn">💬 WA Query</a>
                 <button class="btn-pdf" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
               </div>
@@ -1086,7 +1177,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="width:auto; padding:6px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--green); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 9px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
             </div>
           </div>
         `;
@@ -1162,14 +1253,14 @@
               <strong>${item.product_name}</strong>
               <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
                 <label style="font-size:10px;">Qty:</label>
-                <input type="number" min="1" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px;" onchange="editPoCart[${idx}].quantity = Number(this.value); renderEditPoCart();" />
+                <input type="number" min="1" value="${item.quantity}" style="width:50px; padding:2px 4px; font-size:11px;" onchange="editPoCart[${idx}].quantity = Number(this.value); renderEditPoCart();" />
                 <label style="font-size:10px;">Rate:</label>
-                <input type="number" step="0.01" value="${item.purchase_price}" style="width:75px; padding:3px 6px; font-size:11px;" onchange="editPoCart[${idx}].purchase_price = Number(this.value); renderEditPoCart();" />
+                <input type="number" step="0.01" value="${item.purchase_price}" style="width:65px; padding:2px 4px; font-size:11px;" onchange="editPoCart[${idx}].purchase_price = Number(this.value); renderEditPoCart();" />
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
               <strong>₹${itemTotal.toFixed(2)}</strong>
-              <button class="btn-danger" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
+              <button class="btn-danger" style="padding:2px 5px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
             </div>
           </div>
         `;
@@ -1212,22 +1303,30 @@
     }
 
     async function receiveStock(poId) {
-      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Cost Price update ho jayegi.")) return;
+      if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Stock Qty aur Cost Price update ho jayegi.")) return;
 
       const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
 
       for (let item of items) {
-        await db.from("products").update({ cost_price: item.purchase_price }).eq("id", item.product_id);
+        // Increment stock and update cost price
+        const { data: prod } = await db.from("products").select("stock_qty").eq("id", item.product_id).single();
+        const currentQty = prod && prod.stock_qty ? Number(prod.stock_qty) : 0;
+        const newQty = currentQty + Number(item.quantity);
+
+        await db.from("products").update({ 
+          cost_price: item.purchase_price,
+          stock_qty: newQty
+        }).eq("id", item.product_id);
       }
 
       await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
 
-      alert("Stock Receive ho gaya aur Cost Price update ho gayi!");
+      alert("Stock Receive ho gaya! Products Stock Qty update ho gayi.");
       loadPurchaseOrders();
       loadProductsForReorder();
     }
 
-    /* 5. PDF GENERATION LOGIC (CUSTOMER INVOICE & SUPPLIER REORDER) */
+    /* 5. PDF GENERATION LOGIC */
     async function generateCustomerBillPdf(orderId) {
       const { data: ord } = await db.from("orders").select("*").eq("id", orderId).single();
       const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
@@ -1350,7 +1449,6 @@
       }
     }
 
-    // Auto-load page
     loadCustomerOrders();
   </script>
 </body>
