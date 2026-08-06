@@ -749,34 +749,25 @@
 
       if(!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
 
-      const remarkText = `${noteVal} (Period: ${fromDateVal} to ${toDateVal})`;
+      const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
 
-      const { error } = await db.from("offline_collections").insert([{
-        collection_date: toDateVal,
-        amount: amountVal,
-        note: remarkText,
-        payment_mode: modeVal
+      // Insert directly as an Order record to guarantee compatibility without schema issues
+      const { error: ordErr } = await db.from("orders").insert([{
+        customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
+        mobile: "0000000000",
+        status: "completed",
+        created_at: new Date(toDateVal).toISOString(),
+        address: remarkText
       }]);
 
-      if (error) {
-        const { error: ordErr } = await db.from("orders").insert([{
-          customer_name: modeVal === 'online' ? "Counter Online Customer" : "Counter Cash Customer",
-          mobile: "0000000000",
-          payment_mode: modeVal,
-          status: "completed",
-          created_at: new Date(toDateVal).toISOString(),
-          address: remarkText,
-          total_amount: amountVal
-        }]);
-        if(ordErr) alert("Error: " + ordErr.message);
-        else alert("Collection Entry Saved!");
+      if (ordErr) {
+        alert("Error saving entry: " + ordErr.message);
       } else {
-        alert("Collection Entry Saved!");
+        alert("Collection Entry Successfully Saved!");
+        document.getElementById("manualCashAmount").value = "";
+        document.getElementById("manualCashNote").value = "";
+        calculateReports();
       }
-
-      document.getElementById("manualCashAmount").value = "";
-      document.getElementById("manualCashNote").value = "";
-      calculateReports();
     }
 
     function setDateFilter(type) {
@@ -811,43 +802,40 @@
       const toDate = new Date(toVal);
       toDate.setHours(23,59,59,999);
 
-      const { data: sales } = await db
+      const { data: sales, error } = await db
         .from("orders")
         .select("*, order_items(*)")
         .gte("created_at", fromDate.toISOString())
         .lte("created_at", toDate.toISOString());
 
-      const { data: manualCash } = await db
-        .from("offline_collections")
-        .select("*")
-        .gte("collection_date", fromVal)
-        .lte("collection_date", toVal);
+      if(error) {
+        console.error("Error fetching sales:", error);
+      }
 
       let offlineTotal = 0;
       let onlineTotal = 0;
       let validOrderCount = 0;
 
-      (manualCash || []).forEach(m => {
-        const mode = String(m.payment_mode || 'offline').toLowerCase();
-        if (mode.includes('online') || mode.includes('upi') || mode.includes('card')) {
-          onlineTotal += Number(m.amount || 0);
-        } else {
-          offlineTotal += Number(m.amount || 0);
-        }
-      });
-
       (sales || []).forEach(ord => {
         if (ord.status !== 'cancelled') {
           validOrderCount++;
-          let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-          if(itemsTotal === 0 && ord.total_amount) itemsTotal = Number(ord.total_amount);
-
-          const pMode = String(ord.payment_mode || ord.payment_type || 'online').toLowerCase();
           
-          if (pMode.includes('offline') || pMode.includes('cash')) {
-            offlineTotal += itemsTotal;
-          } else {
+          let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+
+          // Check if this was a manually added counter sale from address field
+          const addressTxt = String(ord.address || '');
+          if (itemsTotal === 0 && addressTxt.includes("Amt: ₹")) {
+            const match = addressTxt.match(/Amt:\s*₹\s*([\d.]+)/);
+            if (match && match[1]) itemsTotal = Number(match[1]);
+          }
+
+          // Determine payment mode (defaulting to offline if explicitly counter cash)
+          const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
+          
+          if (pMode.includes('[mode:online]') || pMode.includes('online')) {
             onlineTotal += itemsTotal;
+          } else {
+            offlineTotal += itemsTotal;
           }
         }
       });
@@ -1176,9 +1164,15 @@
 
         container.innerHTML = orders.map(ord => {
           const items = itemsMap[String(ord.id)] || [];
-          const totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          const dateStr = formatTime(ord.created_at) || 'N/A';
+          let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
           
+          // Fallback amount check for manual counter entries
+          if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
+            const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
+            if (match && match[1]) totalAmount = Number(match[1]);
+          }
+
+          const dateStr = formatTime(ord.created_at) || 'N/A';
           const statusLower = String(ord.status || 'pending').toLowerCase();
           
           let badgeClass = 'badge-pending';
@@ -1203,7 +1197,7 @@
                     <span>• ${it.product_name} (×${it.quantity || 1})</span>
                     <strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong>
                   </div>
-                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">No item details found</div>'}
+                `).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}
               </div>
               
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
@@ -1638,7 +1632,12 @@
 
       if (!ord) return alert("Order Details Not Found!");
 
-      const totalAmount = (items || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+      let totalAmount = (items || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+      if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) {
+        const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
+        if (match && match[1]) totalAmount = Number(match[1]);
+      }
+
       const printDiv = document.getElementById("printContainer");
 
       printDiv.innerHTML = `
@@ -1649,7 +1648,7 @@
           <p><strong>Order ID:</strong> ${ord.order_id || ('#' + ord.id)}</p>
           <p><strong>Customer Name:</strong> ${ord.customer_name || 'N/A'}</p>
           <p><strong>Mobile:</strong> ${ord.mobile || 'N/A'}</p>
-          <p><strong>Address:</strong> ${ord.address || 'N/A'}</p>
+          <p><strong>Address / Details:</strong> ${ord.address || 'N/A'}</p>
           <p><strong>Date:</strong> ${formatTime(ord.created_at)}</p>
           <hr/>
           <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
@@ -1662,14 +1661,19 @@
               </tr>
             </thead>
             <tbody>
-              ${(items || []).map(it => `
+              ${(items || []).length > 0 ? items.map(it => `
                 <tr>
                   <td>${it.product_name}</td>
                   <td style="text-align:center;">${it.quantity || 1}</td>
                   <td style="text-align:right;">${Number(it.price || 0).toFixed(2)}</td>
                   <td style="text-align:right;">${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</td>
                 </tr>
-              `).join('')}
+              `).join('') : `
+                <tr>
+                  <td colspan="3">Counter Sales Collection</td>
+                  <td style="text-align:right;">${totalAmount.toFixed(2)}</td>
+                </tr>
+              `}
             </tbody>
           </table>
           <h3 style="text-align:right; margin-top:15px;">GRAND TOTAL: ₹${totalAmount.toFixed(2)}</h3>
