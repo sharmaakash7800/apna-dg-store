@@ -595,7 +595,7 @@
       </button>
     </nav>
 
-    <div class="container" style="flex:1; margin:0 auto; padding-top:16px;">
+    <div class="container" style="flex:1; max-width:1380px; margin:0 auto; padding:20px 24px;">
 
       <!-- VIEW 1: CUSTOMER ORDERS -->
       <section id="view-customerOrders" class="admin-view">
@@ -773,7 +773,7 @@
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h2 style="margin:0;" id="headingReorderHistory">📋 Supplier Reorders History</h2>
-            <button class="btn-primary" onclick="loadPurchaseOrders()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+            <button class="btn-primary" id="btnRefreshHist" onclick="loadPurchaseOrders()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
           </div>
           <div id="purchaseOrdersList">
             <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading reorders...</div>
@@ -784,8 +784,65 @@
       <!-- VIEW 4: PRODUCTS LIST -->
       <section id="view-productsAdmin" class="admin-view" style="display:none;">
         <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+          <button class="btn-primary" id="btnAddNewProductToggle" onclick="toggleAddNewProductCard()">➕ Naya Product Add Karein</button>
           <button class="btn-outline" id="btnMasterAddProd" onclick="toggleMasterSupplierAddCard('prod_')">➕ Master Supplier Add Karein</button>
           <button class="btn-outline" id="btnMasterListProd" onclick="toggleMasterSupplierListCard('prod_')">👥 Master Suppliers List</button>
+        </div>
+
+        <!-- ADD NEW PRODUCT FORM CARD -->
+        <div class="card" id="addNewProductCard" style="display:none; transition:all 0.3s ease;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; color:var(--primary);" id="headingAddProductForm">➕ Add New Product to DB</h3>
+            <button onclick="toggleAddNewProductCard()" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:bold;">✕ Close</button>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Name *:</label>
+              <input type="text" id="newProdName" placeholder="e.g. Parle-G Biscuit 100g" />
+            </div>
+
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Category *:</label>
+              <input type="text" id="newProdCategory" list="existingCategoriesList" placeholder="e.g. Biscuit, Grocery, Food..." />
+              <datalist id="existingCategoriesList"></datalist>
+            </div>
+
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Unit:</label>
+              <select id="newProdUnit">
+                <option value="Piece">Piece / Nos</option>
+                <option value="Packet">Packet / Box</option>
+                <option value="Kg">Kg</option>
+                <option value="gram">gram</option>
+                <option value="Ltr">Ltr / ml</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Cost Price (Khareedi Rate ₹):</label>
+              <input type="number" step="0.01" id="newProdCostPrice" placeholder="e.g. 8.50" />
+            </div>
+
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Selling Price (Bechne Ka Rate ₹) *:</label>
+              <input type="number" step="0.01" id="newProdSellingPrice" placeholder="e.g. 10.00" />
+            </div>
+
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Initial Stock Quantity:</label>
+              <input type="number" min="0" id="newProdStockQty" value="10" placeholder="e.g. 50" />
+            </div>
+
+            <div style="grid-column: 1 / -1;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Picture Image URL (Optional):</label>
+              <input type="text" id="newProdImageUrl" placeholder="https://example.com/item.jpg" />
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top:4px;">
+              <button class="btn-green" style="width:100%; padding:12px; font-size:13px; font-weight:bold;" onclick="saveNewProductToDb()">🚀 Save Product to DB</button>
+            </div>
+          </div>
         </div>
 
         <div class="card" id="prod_masterSupplierAddCard" style="display:none;">
@@ -1292,6 +1349,7 @@
         btnMasterList: { hinglish: "👥 Master Suppliers List", english: "👥 Master Suppliers List", hindi: "👥 मास्टर सप्लायर सूची" },
         btnMasterAddProd: { hinglish: "➕ Master Supplier Add Karein", english: "➕ Add Master Supplier", hindi: "➕ मास्टर सप्लायर जोड़ें" },
         btnMasterListProd: { hinglish: "👥 Master Suppliers List", english: "👥 Master Suppliers List", hindi: "👥 मास्टर सप्लायर सूची" },
+        btnAddNewProductToggle: { hinglish: "➕ Naya Product Add Karein", english: "➕ Add New Product", hindi: "➕ नया उत्पाद जोड़ें" },
 
         // Interactive Action & Filter Buttons
         btnCounterCollection: { hinglish: "💵 ➕ Counter Collection Entry Karein", english: "💵 ➕ Enter Counter Collection", hindi: "💵 ➕ काउंटर कलेक्शन प्रविष्टि करें" },
@@ -1311,6 +1369,7 @@
         headingNewReorder: { hinglish: "➕ Naya Supplier Reorder Banayein", english: "➕ Create New Supplier Reorder", hindi: "➕ नया सप्लायर रीऑर्डर बनाएं" },
         headingReorderHistory: { hinglish: "📋 Supplier Reorders History", english: "📋 Supplier Reorders History", hindi: "📋 सप्लायर रीऑर्डर इतिहास" },
         headingProductsList: { hinglish: "📦 Products List", english: "📦 Products List", hindi: "📦 उत्पाद सूची" },
+        headingAddProductForm: { hinglish: "➕ Add New Product to DB", english: "➕ Add New Product to DB", hindi: "➕ डेटाबेस में नया उत्पाद जोड़ें" },
         headingSalesReport: { hinglish: "📊 Sales Report", english: "📊 Sales Report", hindi: "📊 बिक्री रिपोर्ट" },
         headingSupplierReport: { hinglish: "🏬 Supplier-Wise Purchase Report", english: "🏬 Supplier Purchase Report", hindi: "🏬 सप्लायर खरीदारी रिपोर्ट" }
       };
@@ -2158,6 +2217,71 @@
         if (mainName) mainName.value = "";
         if (mainPhone) mainPhone.value = "";
         loadSuppliers();
+      }
+    }
+
+    /* ADD NEW PRODUCT LOGIC */
+    function toggleAddNewProductCard() {
+      const card = document.getElementById("addNewProductCard");
+      if (!card) return;
+      const isHidden = card.style.display === "none" || !card.style.display;
+      card.style.display = isHidden ? "block" : "none";
+
+      if (isHidden) {
+        // Populate category datalist
+        const cats = [...new Set(productsList.map(p => p.category).filter(Boolean))];
+        const dl = document.getElementById("existingCategoriesList");
+        if (dl) dl.innerHTML = cats.map(c => `<option value="${c}">`).join('');
+        document.getElementById("newProdName").focus();
+      }
+    }
+
+    async function saveNewProductToDb() {
+      const name = document.getElementById("newProdName").value.trim();
+      const category = document.getElementById("newProdCategory").value.trim();
+      const unit = document.getElementById("newProdUnit").value;
+      const costPrice = Number(document.getElementById("newProdCostPrice").value) || 0;
+      const sellingPrice = Number(document.getElementById("newProdSellingPrice").value) || 0;
+      const stockQty = Number(document.getElementById("newProdStockQty").value) || 0;
+      const imageUrl = document.getElementById("newProdImageUrl").value.trim();
+
+      if (!name) return alert("Product ka Name likhna zaroori hai.");
+      if (!category) return alert("Product ki Category likhna zaroori hai.");
+
+      // Generate custom ID like PAR-123 or BAS-456
+      const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PRD');
+      const randomNum = Math.floor(100 + Math.random() * 900);
+      const customId = `${prefix}-${randomNum}`;
+
+      const newProductObj = {
+        id: customId,
+        name: name,
+        category: category,
+        unit: unit,
+        cost_price: costPrice,
+        selling_price: sellingPrice,
+        price: sellingPrice,
+        stock_qty: stockQty,
+        image_url: imageUrl || null,
+        active: true
+      };
+
+      const { data, error } = await db.from("products").insert([newProductObj]).select();
+
+      if (error) {
+        alert("Product Save Error: " + error.message);
+      } else {
+        alert(`Product '${name}' (ID: ${customId}) Database me successfully Add ho gaya!`);
+        // Reset form inputs
+        document.getElementById("newProdName").value = "";
+        document.getElementById("newProdCategory").value = "";
+        document.getElementById("newProdCostPrice").value = "";
+        document.getElementById("newProdSellingPrice").value = "";
+        document.getElementById("newProdStockQty").value = "10";
+        document.getElementById("newProdImageUrl").value = "";
+
+        toggleAddNewProductCard();
+        loadAllProductsView();
       }
     }
 
