@@ -258,6 +258,28 @@
 
     .bottom-nav-btn.active .icon { transform: scale(1.15); }
 
+    .sidebar-close-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dark);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .sidebar-close-btn:hover {
+      background: var(--danger);
+      color: #ffffff;
+      border-color: var(--danger);
+    }
+
     .container { width: min(100%, 1150px); padding: 20px 16px; margin: auto; }
 
     .tab-content { display: none; }
@@ -270,6 +292,14 @@
       padding: 20px;
       box-shadow: var(--shadow-sm);
       margin-bottom: 16px;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .products-layout-grid > div, .reinvest-grid > div {
+      min-width: 0;
+      max-width: 100%;
     }
 
     .card h2, .card h3 { margin: 0 0 14px 0; font-size: 15px; font-weight: 700; color: var(--text-dark); }
@@ -479,11 +509,26 @@
       box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
     }
 
+    .prod-search-controls-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+      background: var(--bg);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
     @media (max-width: 768px) {
-      .container { padding: 10px 8px !important; }
-      .card { padding: 12px 10px !important; border-radius: 12px !important; }
-      .products-layout-grid, .reinvest-grid { grid-template-columns: 1fr !important; }
+      .container { padding: 12px 14px !important; width: 100% !important; max-width: 100% !important; overflow-x: hidden; box-sizing: border-box; }
+      .card { padding: 14px 12px !important; border-radius: 14px !important; max-width: 100% !important; box-sizing: border-box; margin-bottom: 14px !important; }
+      .products-layout-grid, .reinvest-grid { grid-template-columns: 1fr !important; width: 100% !important; }
       .custom-table th, .custom-table td { padding: 8px 6px !important; font-size: 11px !important; }
+      .prod-search-controls-bar { flex-direction: column !important; align-items: stretch !important; }
+      .prod-search-controls-bar > div { width: 100% !important; min-width: 100% !important; }
+      .prod-search-controls-bar input, .prod-search-controls-bar select { width: 100% !important; min-width: 100% !important; }
     }
 
     .modal-overlay {
@@ -508,16 +553,43 @@
     }
 
     .table-responsive { 
-      overflow-x: auto; 
-      -webkit-overflow-scrolling: touch;
+      display: block;
       width: 100%; 
-      max-height: 480px; 
+      max-width: 100%;
+      overflow-x: auto !important; 
+      overflow-y: auto;
+      resize: vertical;
+      min-height: 280px;
+      max-height: 80vh;
+      -webkit-overflow-scrolling: touch;
       border-radius: 12px; 
       border: 1px solid var(--border); 
+      box-sizing: border-box;
+      background: var(--surface);
+      margin-top: 8px;
     }
-    .custom-table { width: 100%; min-width: 580px; border-collapse: collapse; font-size: 12px; }
-    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
-    .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
+    .table-responsive::-webkit-scrollbar {
+      height: 10px !important;
+      width: 8px !important;
+    }
+    .table-responsive::-webkit-scrollbar-track {
+      background: var(--bg);
+      border-radius: 6px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 6px;
+      border: 2px solid var(--bg);
+    }
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-hover);
+    }
+
+    .custom-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 12px; }
+    .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 9px 12px; text-align: left; vertical-align: middle; white-space: nowrap; }
+    .custom-table td:nth-child(3) { white-space: normal; min-width: 160px; }
+    .custom-table th { background: var(--bg); position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-dark); border-bottom: 2px solid var(--border); }
+    html[data-theme="dark"] .custom-table th { background: #1e293b; color: #f8fafc; }
 
     .chk-box { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 
@@ -532,7 +604,7 @@
       <button class="menu-toggle-btn" onclick="toggleSidebar()">
         ☰ <span>Menu</span>
       </button>
-      <div class="header-title">⚙️ Apna DG Store Admin</div>
+      <div class="header-title">Apna DG Store Admin</div>
     </div>
   </header>
 
@@ -543,11 +615,11 @@
   <div class="admin-container-wrapper">
 
     <!-- SIDEBAR DRAWER MENU -->
-    <aside id="sidebarDrawer" class="sidebar-drawer" style="display:flex; flex-direction:column; justify-content:space-between;">
+    <aside id="sidebarDrawer" class="sidebar-drawer">
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
           <span class="sidebar-title" style="padding:0;">NAVIGATION MENU</span>
-          <button onclick="closeSidebar()" style="border:0; background:var(--bg); border-radius:6px; padding:4px 8px; cursor:pointer; font-weight:bold;" class="mobile-only-close">✕</button>
+          <button onclick="closeSidebar()" class="sidebar-close-btn" type="button" title="Close Menu">✕</button>
         </div>
 
         <button class="sidebar-btn active" data-view="customerOrders" onclick="switchAdminView('customerOrders')">
@@ -568,26 +640,26 @@
         <button class="sidebar-btn" data-view="supplierReport" onclick="switchAdminView('supplierReport')">
           <span>🏬</span> <span id="lblNavSupplierReport">Supplier Purchase Report</span>
         </button>
-      </div>
 
-      <!-- SIDEBAR PREFERENCES & SETTINGS (LANGUAGE + THEME MODE) -->
-      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-        <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px; letter-spacing:0.5px;">PREFERENCES & SETTINGS</div>
-        
-        <div style="margin-bottom:12px;">
-          <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🌐 Language / भाषा:</label>
-          <select id="langSelect" style="width:100%; padding:8px 10px; font-size:12px; border-radius:10px; cursor:pointer; font-weight:700; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);" onchange="changeLanguage(this.value)">
-            <option value="hinglish">🌐 Hinglish</option>
-            <option value="english">🌐 English</option>
-            <option value="hindi">🌐 हिन्दी (Hindi)</option>
-          </select>
-        </div>
+        <!-- SIDEBAR PREFERENCES & SETTINGS (IMMEDIATELY BELOW MENU ITEMS) -->
+        <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+          <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">PREFERENCES & SETTINGS</div>
+          
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🌐 Language / भाषा:</label>
+            <select id="langSelect" style="width:100%; padding:8px 10px; font-size:12px; border-radius:10px; cursor:pointer; font-weight:700; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);" onchange="changeLanguage(this.value)">
+              <option value="hinglish">🌐 Hinglish</option>
+              <option value="english">🌐 English</option>
+              <option value="hindi">🌐 हिन्दी (Hindi)</option>
+            </select>
+          </div>
 
-        <div>
-          <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🎨 Appearance:</label>
-          <button id="themeToggleBtn" class="btn-outline" style="width:100%; padding:8px 12px; font-size:12px; border-radius:10px; cursor:pointer; justify-content:center; background:var(--surface); color:var(--text-dark);" onclick="toggleTheme()">
-            🌙 Dark Mode
-          </button>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🎨 Appearance:</label>
+            <button id="themeToggleBtn" class="btn-outline" style="width:100%; padding:8px 12px; font-size:12px; border-radius:10px; cursor:pointer; justify-content:center; background:var(--surface); color:var(--text-dark);" onclick="toggleTheme()">
+              🌙 Dark Mode
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -624,25 +696,26 @@
 
           <!-- DATE RANGE FILTER FOR CUSTOMER ORDERS (DEFAULT LAST 7 DAYS) -->
           <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-              <button class="btn-outline" id="btnDateToday" onclick="setCustOrdersDateFilter('today')">Today</button>
-              <button class="btn-outline active-filter" id="custDateBtnWeek" onclick="setCustOrdersDateFilter('week')">📅 Last 7 Days (Default)</button>
-              <button class="btn-outline" id="btnDateMonth" onclick="setCustOrdersDateFilter('month')">This Month</button>
-              <button class="btn-outline" id="btnDateYear" onclick="setCustOrdersDateFilter('year')">This Year</button>
-            </div>
-
-            <div class="form-grid">
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+              <div style="flex:1; max-width:210px; min-width:140px;">
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Date Preset:</label>
+                <select id="custDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;" onchange="setCustOrdersDateFilter(this.value)">
+                  <option value="today">Today</option>
+                  <option value="week" selected>📅 Last 7 Days (Default)</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+              <div style="flex:1; max-width:200px; min-width:130px;">
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date (Start):</label>
                 <input type="date" id="custFromDate" onchange="loadCustomerOrders()" />
               </div>
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+              <div style="flex:1; max-width:200px; min-width:130px;">
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date (End):</label>
                 <input type="date" id="custToDate" onchange="loadCustomerOrders()" />
               </div>
               <div>
-                <label style="display:block; visibility:hidden; font-size:11px;">Apply</label>
-                <button class="btn-primary" id="btnFilterOrders" onclick="loadCustomerOrders()">🔍 Filter Orders</button>
+                <button class="btn-primary" id="btnFilterOrders" onclick="loadCustomerOrders()" style="padding:10px 14px;">🔍 Filter Orders</button>
               </div>
             </div>
           </div>
@@ -882,10 +955,10 @@
           </div>
         </div>
 
-        <!-- PRODUCTS TAB MAIN LAYOUT (GRID: TABLE LEFT, CART RIGHT) -->
-        <div class="products-layout-grid" style="display:grid; grid-template-columns: 1fr 320px; gap:14px; align-items:start;">
+        <!-- PRODUCTS TAB MAIN LAYOUT (FULL WIDTH TABLE CARD, REORDER PLACED VIA FLOATING BOTTOM DRAWER) -->
+        <div class="products-layout-grid" style="display:grid; grid-template-columns: 1fr; gap:14px; align-items:start;">
           
-          <!-- LEFT COLUMN: PRODUCTS LIST TABLE -->
+          <!-- PRODUCTS LIST TABLE -->
           <div class="card" style="margin:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
               <h2 style="margin:0;"><span id="headingProductsList">📦 Products List</span> (<span id="totalProductsCount">0</span>)</h2>
@@ -893,7 +966,7 @@
             </div>
 
             <!-- SEARCH & BULK CATEGORY CONTROL BAR -->
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--border);">
+            <div class="prod-search-controls-bar">
               <div style="flex:2; min-width:180px;">
                 <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product name, category..." oninput="renderProductsTable()" />
               </div>
@@ -927,35 +1000,6 @@
                   <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <!-- RIGHT COLUMN: STICKY TICKED ITEMS CART -->
-          <div class="card" id="tickedCartCard" style="margin:0; position:sticky; top:80px; z-index:40;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px;">
-              <h3 style="margin:0; color:var(--primary); font-size:14px;">🛒 Ticked Items (<span id="tickedCount">0</span>)</h3>
-              <div style="display:flex; gap:6px;">
-                <button class="btn-outline" style="padding:3px 8px; font-size:11px;" onclick="openTickedCartModal()">📱 Drawer</button>
-                <button class="btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearAllSelection()">Clear</button>
-              </div>
-            </div>
-
-            <div id="selectedTickedList" style="max-height:360px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px; margin-bottom:10px;">
-              <div style="text-align:center; color:var(--text-muted); padding:12px; font-size:12px;">Left list me se items par ☑️ Tick mark karein.</div>
-            </div>
-
-            <div style="border-top:1px solid var(--border); padding-top:8px;">
-              <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                <small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL REORDER BILL:</small>
-                <strong style="font-size:16px; color:var(--success);">₹<span id="tickedTotalBill">0.00</span></strong>
-              </div>
-
-              <div style="margin-bottom:10px;">
-                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
-                <select id="tickedSupplierSelect" style="width:100%; margin-top:4px; font-size:12px;"></select>
-              </div>
-
-              <button class="btn-green" style="width:100%; padding:10px; font-size:13px; font-weight:bold;" onclick="submitTickedReorder()">🚀 Place Order</button>
             </div>
           </div>
 
@@ -1012,20 +1056,22 @@
             <button class="btn-primary" style="padding:4px 10px; font-size:11px;" onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
           </div>
 
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-            <button class="btn-outline" onclick="setReinvestmentDateFilter('today')">Today</button>
-            <button class="btn-outline active-filter" onclick="setReinvestmentDateFilter('week')">This Week</button>
-            <button class="btn-outline" onclick="setReinvestmentDateFilter('month')">This Month</button>
-            <button class="btn-outline" onclick="setReinvestmentDateFilter('year')">This Year</button>
-          </div>
-
-          <div class="form-grid" style="margin-bottom:14px;">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Date Preset:</label>
+              <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;" onchange="setReinvestmentDateFilter(this.value)">
+                <option value="today">Today</option>
+                <option value="week" selected>📅 This Week (Default)</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date (Start):</label>
               <input type="date" id="reinvestmentFromDate" />
             </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <div style="flex:1; max-width:220px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date (End):</label>
               <input type="date" id="reinvestmentToDate" />
             </div>
           </div>
@@ -1038,25 +1084,27 @@
         <div class="card">
           <h2>📊 Sales Report</h2>
           
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-            <button class="btn-outline" onclick="setDateFilter('today')">Today</button>
-            <button class="btn-outline" onclick="setDateFilter('week')">This Week</button>
-            <button class="btn-outline" onclick="setDateFilter('month')">This Month</button>
-            <button class="btn-outline" onclick="setDateFilter('year')">This Year</button>
-          </div>
-
-          <div class="form-grid">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date:</label>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+            <div style="flex:1; max-width:210px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Date Preset:</label>
+              <select id="salesReportDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;" onchange="setDateFilter(this.value)">
+                <option value="today">Today</option>
+                <option value="week" selected>This Week</option>
+                <option value="last_week">Last week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date:</label>
               <input type="date" id="reportFromDate" />
             </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date:</label>
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date:</label>
               <input type="date" id="reportToDate" />
             </div>
             <div>
-              <label style="display:block; visibility:hidden; font-size:11px;">Calculate</label>
-              <button class="btn-primary" onclick="calculateReports()">📈 Calculate Report</button>
+              <button class="btn-primary" onclick="calculateReports()" style="padding:10px 14px;">📈 Calculate Report</button>
             </div>
           </div>
 
@@ -2353,6 +2401,36 @@
       document.getElementById("reinvestmentFromDate").value = from.toISOString().split('T')[0];
       document.getElementById("reinvestmentToDate").value = new Date().toISOString().split('T')[0];
       calculateWeeklyReinvestmentComparison();
+    }
+
+    function setDateFilter(type) {
+      const today = new Date();
+      let from = new Date();
+      let to = new Date();
+
+      if (type === 'today') {
+        from = new Date(today.setHours(0,0,0,0));
+      } else if (type === 'week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        from = new Date(today.setDate(diff));
+      } else if (type === 'last_week') {
+        const day = today.getDay();
+        const diffToLastSunday = today.getDate() - day;
+        const diffToLastMonday = diffToLastSunday - 6;
+        from = new Date(today.setDate(diffToLastMonday));
+        to = new Date(new Date().setDate(diffToLastSunday));
+      } else if (type === 'month') {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+      } else if (type === 'year') {
+        from = new Date(today.getFullYear(), 0, 1);
+      }
+
+      const reportFrom = document.getElementById("reportFromDate");
+      const reportTo = document.getElementById("reportToDate");
+      if (reportFrom) reportFrom.value = from.toISOString().split('T')[0];
+      if (reportTo) reportTo.value = to.toISOString().split('T')[0];
+      calculateReports();
     }
 
     async function executeCategoryBulkAction(action) {
