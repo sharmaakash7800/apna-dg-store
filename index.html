@@ -118,41 +118,61 @@
       white-space: nowrap;
     }
 
-    /* Search Bar */
+    /* Modern E-Commerce Header Search Bar */
     .search-wrap {
       display: grid;
-      grid-template-columns: 110px 1fr 44px;
+      grid-template-columns: 130px 1fr 48px;
       background: white;
-      border-radius: 8px;
+      border-radius: 10px;
       overflow: hidden;
       width: 100%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
     }
 
-    .search-wrap select,
-    .search-wrap input {
-      border: 0;
-      outline: 0;
-      height: 40px;
-      background: white;
-      font-size: 13px;
+    .search-wrap:focus-within {
+      border-color: #f59e0b;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
     }
 
     .search-wrap select {
-      padding: 0 6px;
+      padding: 0 8px;
+      border: 0;
       border-right: 1px solid var(--border);
-      color: #334155;
-      font-weight: 600;
+      color: #1e293b;
+      font-weight: 700;
+      background: #f8fafc;
+      cursor: pointer;
+      font-size: 12px;
+      outline: 0;
+      height: 42px;
     }
 
-    .search-wrap input { padding: 0 10px; min-width: 0; }
+    .search-wrap input {
+      border: 0;
+      outline: 0;
+      height: 42px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: #0f172a;
+      background: white;
+      width: 100%;
+    }
 
     .search-btn {
       border: 0;
       cursor: pointer;
-      background: var(--yellow);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
       font-size: 16px;
       display: grid;
       place-items: center;
+      transition: background 0.2s;
+    }
+
+    .search-btn:hover {
+      background: linear-gradient(135deg, #d97706, #b45309);
     }
 
     /* Category Landing Page */
@@ -325,11 +345,13 @@
     }
 
     .product-visual {
-      min-height: 110px;
+      height: 120px;
+      min-height: 120px;
       display: grid;
       place-items: center;
       background: linear-gradient(135deg, #eff6ff, #fff7ed);
-      font-size: 42px;
+      overflow: hidden;
+      position: relative;
     }
 
     .product-body {
@@ -660,12 +682,11 @@
           <h2 id="activeCategoryTitle">All Products</h2>
           <span id="resultCount"></span>
         </div>
-        <select id="sideCategoryFilter"><option value="">All Categories</option></select>
         <select id="sortProducts">
-          <option value="name-asc">Name: A to Z</option>
-          <option value="name-desc">Name: Z to A</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
+          <option value="name-asc">Sort: Name A to Z</option>
+          <option value="name-desc">Sort: Name Z to A</option>
+          <option value="price-low">Sort: Price Low to High</option>
+          <option value="price-high">Sort: Price High to Low</option>
         </select>
       </div>
 
@@ -830,7 +851,6 @@
     const productsEl = document.getElementById("products");
     const productSearchEl = document.getElementById("productSearch");
     const topCategoryFilterEl = document.getElementById("topCategoryFilter");
-    const sideCategoryFilterEl = document.getElementById("sideCategoryFilter");
     const sortProductsEl = document.getElementById("sortProducts");
     const categoryRailEl = document.getElementById("categoryRail");
     const activeCategoryTitleEl = document.getElementById("activeCategoryTitle");
@@ -1001,9 +1021,6 @@
       topCategoryFilterEl.innerHTML = '<option value="">All</option>' + 
         categories.map(c => `<option value="${c}">${c}</option>`).join("");
 
-      sideCategoryFilterEl.innerHTML = '<option value="">All Categories</option>' + 
-        categories.map(c => `<option value="${c}">${c}</option>`).join("");
-
       categoryRailEl.innerHTML = `
         <button class="category-rail-button active" data-category="">
           <span class="category-icon">🛒</span><span>All</span>
@@ -1024,6 +1041,43 @@
       });
     }
 
+    function getProductPrice(p) {
+      if (!p) return 0;
+      const val = p.selling_price ?? p.price ?? p.sell_price ?? p.saleprice ?? p.mrp ?? 0;
+      const num = Number(val);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function getCategoryEmoji(cat, name) {
+      const n = String(name || '').toLowerCase();
+      const c = String(cat || '').toLowerCase();
+      
+      if (c.includes('disposal') || n.includes('cup') || n.includes('dona') || n.includes('pattal') || n.includes('napkin') || n.includes('foil')) return '🥤';
+      if (c.includes('baby') || n.includes('diaper') || n.includes('pants')) return '👶';
+      if (c.includes('beverage') || n.includes('drink') || n.includes('juice') || n.includes('water')) return '🧃';
+      if (c.includes('biscuit') || n.includes('wafer') || n.includes('cookie')) return '🍪';
+      if (c.includes('chocolate') || n.includes('candy')) return '🍫';
+      if (c.includes('clean') || n.includes('soap') || n.includes('tissue')) return '🧻';
+      if (n.includes('atta') || n.includes('rice') || n.includes('dal') || n.includes('oil')) return '🌾';
+      return '📦';
+    }
+
+    function getProductFallbackVisual(p) {
+      if (p.image_url && p.image_url.trim()) {
+        return `<img src="${p.image_url.trim()}" alt="${p.name}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:44px;\\'>${p.emoji || getCategoryEmoji(p.category, p.name)}</span>'" />`;
+      }
+      return `<span style="font-size:44px;">${p.emoji || getCategoryEmoji(p.category, p.name)}</span>`;
+    }
+
+    function handleSearch() {
+      const searchVal = productSearchEl.value.trim();
+      if (searchVal || selectedCategory) {
+        categoryLandingEl.style.display = "none";
+        productsAreaEl.style.display = "grid";
+      }
+      renderProducts();
+    }
+
     function renderProducts() {
       const search = productSearchEl.value.trim().toLowerCase();
       let filtered = products.filter(p => {
@@ -1032,8 +1086,17 @@
         return matchSearch && matchCat;
       });
 
+      // Sorting Logic
+      const sortVal = sortProductsEl ? sortProductsEl.value : 'name-asc';
+      filtered.sort((a, b) => {
+        if (sortVal === 'price-low') return getProductPrice(a) - getProductPrice(b);
+        if (sortVal === 'price-high') return getProductPrice(b) - getProductPrice(a);
+        if (sortVal === 'name-desc') return b.name.localeCompare(a.name);
+        return a.name.localeCompare(b.name);
+      });
+
       resultCountEl.textContent = `${filtered.length} products found`;
-      activeCategoryTitleEl.textContent = selectedCategory || "All Products";
+      activeCategoryTitleEl.textContent = selectedCategory || (search ? `Search: "${productSearchEl.value.trim()}"` : "All Products");
 
       if (!filtered.length) {
         productsEl.innerHTML = '<div class="empty">Koi product nahi mila.</div>';
@@ -1042,10 +1105,10 @@
 
       productsEl.innerHTML = filtered.map(p => `
         <article class="product">
-          <div class="product-visual">${p.emoji || "📦"}</div>
+          <div class="product-visual">${getProductFallbackVisual(p)}</div>
           <div class="product-body">
             <h3>${p.name}</h3>
-            <div class="price">₹${Number(p.price).toFixed(2)}</div>
+            <div class="price">₹${getProductPrice(p).toFixed(2)}</div>
             <button class="add-btn" onclick='addToCartById("${p.id}")'>Add to Cart</button>
           </div>
         </article>
@@ -1062,7 +1125,6 @@
     function syncCategory(val) {
       selectedCategory = val;
       topCategoryFilterEl.value = val;
-      sideCategoryFilterEl.value = val;
       document.querySelectorAll(".category-rail-button").forEach(b => {
         b.classList.toggle("active", b.dataset.category === selectedCategory);
       });
@@ -1071,12 +1133,53 @@
       renderProducts();
     }
 
+    // Attach E-Commerce Event Listeners for Live Search, Filters, and Navigation
+    if (productSearchEl) {
+      productSearchEl.addEventListener("input", handleSearch);
+      productSearchEl.addEventListener("keydown", (e) => { if (e.key === "Enter") handleSearch(); });
+    }
+
+    const mainSearchBtn = document.querySelector(".search-btn");
+    if (mainSearchBtn) {
+      mainSearchBtn.addEventListener("click", handleSearch);
+    }
+
+    if (topCategoryFilterEl) {
+      topCategoryFilterEl.addEventListener("change", () => syncCategory(topCategoryFilterEl.value));
+    }
+
+    if (sortProductsEl) {
+      sortProductsEl.addEventListener("change", () => renderProducts());
+    }
+
+    if (backToCategoriesBtn) {
+      backToCategoriesBtn.addEventListener("click", () => {
+        selectedCategory = "";
+        if (productSearchEl) productSearchEl.value = "";
+        topCategoryFilterEl.value = "";
+        categoryLandingEl.style.display = "block";
+        productsAreaEl.style.display = "none";
+      });
+    }
+
+    const brandLogoHome = document.getElementById("brandHome");
+    if (brandLogoHome) {
+      brandLogoHome.addEventListener("click", () => {
+        selectedCategory = "";
+        if (productSearchEl) productSearchEl.value = "";
+        topCategoryFilterEl.value = "";
+        categoryLandingEl.style.display = "block";
+        productsAreaEl.style.display = "none";
+      });
+    }
+
     window.addToCartById = function(id) {
       const p = products.find(x => x.id === id);
       if (!p) return;
       const exist = cart.find(x => x.id === id);
+      const itemPrice = getProductPrice(p);
       if (exist) exist.quantity++;
-      else cart.push({ id: p.id, name: p.name, price: Number(p.price), quantity: 1 });
+      else cart.push({ id: p.id, name: p.name, price: itemPrice, quantity: 1 });
       renderCart();
     };
 
@@ -1279,7 +1382,7 @@
 
             if (price === 0 && item.product_id) {
               const matchedProd = products.find(p => String(p.id) === String(item.product_id));
-              if (matchedProd) price = Number(matchedProd.price || 0);
+              if (matchedProd) price = getProductPrice(matchedProd);
             }
             return sum + (price * qty);
           }, 0);
@@ -1305,7 +1408,7 @@
                       let itemPrice = Number(it.price || 0);
                       if (itemPrice === 0 && it.product_id) {
                         const mp = products.find(p => String(p.id) === String(it.product_id));
-                        if (mp) itemPrice = Number(mp.price || 0);
+                        if (mp) itemPrice = getProductPrice(mp);
                       }
                       return `
                         <div class="order-item-row">
