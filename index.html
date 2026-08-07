@@ -1246,7 +1246,7 @@
       try {
         const { data: orders, error: orderErr } = await db
           .from("orders")
-          .select("*, order_items!fk_orders(*)")
+          .select("*")
           .or(`mobile.eq.${mobileClean},mobile.eq.${mobileWithZero}`)
           .order("created_at", { ascending: false });
 
@@ -1257,8 +1257,21 @@
           return;
         }
 
+        const orderIds = orders.map(o => o.id);
+        const { data: allItems } = await db
+          .from("order_items")
+          .select("*")
+          .in("order_id", orderIds);
+
+        const itemsMap = {};
+        (allItems || []).forEach(it => {
+          const k = String(it.order_id);
+          if (!itemsMap[k]) itemsMap[k] = [];
+          itemsMap[k].push(it);
+        });
+
         orderHistoryContainer.innerHTML = orders.map(order => {
-          let items = order.order_items || [];
+          let items = itemsMap[String(order.id)] || [];
 
           let itemsSubtotal = items.reduce((sum, item) => {
             let price = Number(item.price || 0);
