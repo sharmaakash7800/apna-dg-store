@@ -479,10 +479,11 @@
       box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
     }
 
-    @media (max-width: 900px) {
-      .products-layout-grid, .reinvest-grid {
-        grid-template-columns: 1fr !important;
-      }
+    @media (max-width: 768px) {
+      .container { padding: 10px 8px !important; }
+      .card { padding: 12px 10px !important; border-radius: 12px !important; }
+      .products-layout-grid, .reinvest-grid { grid-template-columns: 1fr !important; }
+      .custom-table th, .custom-table td { padding: 8px 6px !important; font-size: 11px !important; }
     }
 
     .modal-overlay {
@@ -506,8 +507,15 @@
       box-shadow: var(--shadow-lg);
     }
 
-    .table-responsive { overflow-x: auto; max-height: 420px; border-radius: 12px; border: 1px solid var(--border); }
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .table-responsive { 
+      overflow-x: auto; 
+      -webkit-overflow-scrolling: touch;
+      width: 100%; 
+      max-height: 480px; 
+      border-radius: 12px; 
+      border: 1px solid var(--border); 
+    }
+    .custom-table { width: 100%; min-width: 580px; border-collapse: collapse; font-size: 12px; }
     .custom-table th, .custom-table td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }
     .custom-table th { background: #f8fafc; position: sticky; top: 0; z-index: 10; font-weight: 700; color: var(--text-muted); }
 
@@ -526,16 +534,6 @@
       </button>
       <div class="header-title">⚙️ Apna DG Store Admin</div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <select id="langSelect" class="btn-outline" style="padding:6px 10px; font-size:12px; border-radius:20px; cursor:pointer; font-weight:700; background:var(--surface); color:var(--primary);" onchange="changeLanguage(this.value)">
-        <option value="hinglish">🌐 Hinglish</option>
-        <option value="english">🌐 English</option>
-        <option value="hindi">🌐 हिन्दी (Hindi)</option>
-      </select>
-      <button id="themeToggleBtn" class="btn-outline" style="padding:6px 14px; font-size:12px; border-radius:20px; cursor:pointer;" onclick="toggleTheme()">
-        🌙 Dark Mode
-      </button>
-    </div>
   </header>
 
   <!-- OVERLAY FOR MOBILE SIDEBAR DRAWER -->
@@ -545,38 +543,57 @@
   <div class="admin-container-wrapper">
 
     <!-- SIDEBAR DRAWER MENU -->
-    <aside id="sidebarDrawer" class="sidebar-drawer">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 4px;">
-        <span class="sidebar-title" style="padding:0;">NAVIGATION MENU</span>
-        <button onclick="closeSidebar()" style="border:0; background:var(--bg); border-radius:6px; padding:4px 8px; cursor:pointer; font-weight:bold;" class="mobile-only-close">✕</button>
+    <aside id="sidebarDrawer" class="sidebar-drawer" style="display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+          <span class="sidebar-title" style="padding:0;">NAVIGATION MENU</span>
+          <button onclick="closeSidebar()" style="border:0; background:var(--bg); border-radius:6px; padding:4px 8px; cursor:pointer; font-weight:bold;" class="mobile-only-close">✕</button>
+        </div>
+
+        <button class="sidebar-btn active" data-view="customerOrders" onclick="switchAdminView('customerOrders')">
+          <span>🛍</span> <span id="lblNavCustOrders">Customer Orders</span>
+        </button>
+        <button class="sidebar-btn" data-view="supplierReorder" onclick="switchAdminView('supplierReorder')">
+          <span>➕</span> <span id="lblNavSupplierReorder">Naya Supplier Reorder</span>
+        </button>
+        <button class="sidebar-btn" data-view="supplierHistory" onclick="switchAdminView('supplierHistory')">
+          <span>📋</span> <span id="lblNavSupplierHistory">Supplier Reorders History</span>
+        </button>
+        <button class="sidebar-btn" data-view="productsAdmin" onclick="switchAdminView('productsAdmin')">
+          <span>📦</span> <span id="lblNavProductsList">Products List</span>
+        </button>
+        <button class="sidebar-btn" data-view="salesReport" onclick="switchAdminView('salesReport')">
+          <span>📊</span> <span id="lblNavSalesReport">Sales Report</span>
+        </button>
+        <button class="sidebar-btn" data-view="supplierReport" onclick="switchAdminView('supplierReport')">
+          <span>🏬</span> <span id="lblNavSupplierReport">Supplier Purchase Report</span>
+        </button>
       </div>
 
-      <button class="sidebar-btn active" data-view="customerOrders" onclick="switchAdminView('customerOrders')">
-        <span>🛍</span> <span id="lblNavCustOrders">Customer Orders</span>
-      </button>
-      <button class="sidebar-btn" data-view="supplierReorder" onclick="switchAdminView('supplierReorder')">
-        <span>➕</span> <span id="lblNavSupplierReorder">Naya Supplier Reorder</span>
-      </button>
-      <button class="sidebar-btn" data-view="supplierHistory" onclick="switchAdminView('supplierHistory')">
-        <span>📋</span> <span id="lblNavSupplierHistory">Supplier Reorders History</span>
-      </button>
-      <button class="sidebar-btn" data-view="productsAdmin" onclick="switchAdminView('productsAdmin')">
-        <span>📦</span> <span id="lblNavProductsList">Products List</span>
-      </button>
-      <button class="sidebar-btn" data-view="salesReport" onclick="switchAdminView('salesReport')">
-        <span>📊</span> <span id="lblNavSalesReport">Sales Report</span>
-      </button>
-      <button class="sidebar-btn" data-view="supplierReport" onclick="switchAdminView('supplierReport')">
-        <span>🏬</span> <span id="lblNavSupplierReport">Supplier Purchase Report</span>
-      </button>
+      <!-- SIDEBAR PREFERENCES & SETTINGS (LANGUAGE + THEME MODE) -->
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+        <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px; letter-spacing:0.5px;">PREFERENCES & SETTINGS</div>
+        
+        <div style="margin-bottom:12px;">
+          <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🌐 Language / भाषा:</label>
+          <select id="langSelect" style="width:100%; padding:8px 10px; font-size:12px; border-radius:10px; cursor:pointer; font-weight:700; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);" onchange="changeLanguage(this.value)">
+            <option value="hinglish">🌐 Hinglish</option>
+            <option value="english">🌐 English</option>
+            <option value="hindi">🌐 हिन्दी (Hindi)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">🎨 Appearance:</label>
+          <button id="themeToggleBtn" class="btn-outline" style="width:100%; padding:8px 12px; font-size:12px; border-radius:10px; cursor:pointer; justify-content:center; background:var(--surface); color:var(--text-dark);" onclick="toggleTheme()">
+            🌙 Dark Mode
+          </button>
+        </div>
+      </div>
     </aside>
 
     <!-- FLOATING BOTTOM NAVIGATION BAR (MOBILE) -->
     <nav class="bottom-nav">
-      <button class="bottom-nav-btn" onclick="toggleSidebar()">
-        <span class="icon">☰</span>
-        <span>Menu</span>
-      </button>
       <button id="nav-customerOrders" class="bottom-nav-btn active" onclick="switchAdminView('customerOrders')">
         <span class="icon">🛍</span>
         <span>Orders</span>
@@ -785,8 +802,6 @@
       <section id="view-productsAdmin" class="admin-view" style="display:none;">
         <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
           <button class="btn-primary" id="btnAddNewProductToggle" onclick="toggleAddNewProductCard()">➕ Naya Product Add Karein</button>
-          <button class="btn-outline" id="btnMasterAddProd" onclick="toggleMasterSupplierAddCard('prod_')">➕ Master Supplier Add Karein</button>
-          <button class="btn-outline" id="btnMasterListProd" onclick="toggleMasterSupplierListCard('prod_')">👥 Master Suppliers List</button>
         </div>
 
         <!-- ADD NEW PRODUCT FORM CARD -->
@@ -950,7 +965,8 @@
       <!-- VIEW 5: SALES REPORT -->
       <section id="view-salesReport" class="admin-view" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-          <button class="btn-outline active-filter" id="btnCounterCollection" style="font-weight:700;" onclick="toggleCounterCollectionCard()">💵 ➕ Counter Collection Entry Karein</button>
+          <h2 style="margin:0;" id="headingSalesReport">📊 Sales Report</h2>
+          <button class="btn-primary" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter Counter Collection</button>
         </div>
 
         <div class="card" id="counterCollectionCard" style="display:none; transition:all 0.3s ease;">

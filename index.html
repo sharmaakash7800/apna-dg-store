@@ -783,39 +783,39 @@
     </aside>
   </div>
 
-  <!-- 100% FREE DIRECT UPI PAYMENT MODAL -->
+  <!-- DIRECT UPI PAYMENT MODAL -->
   <div id="upiModal" class="modal-overlay">
     <aside class="modal-panel" style="max-width:390px; text-align:center;">
       <div class="modal-header">
-        <h2 style="font-size:15px; color:var(--navy);">⚡ Free Direct UPI Payment (₹0 Charge)</h2>
+        <h2 style="font-size:15px; color:var(--navy);">⚡ Online UPI Payment</h2>
         <button id="closeUpiBtn" class="close-btn" type="button">✕</button>
       </div>
 
       <div class="upi-box" style="padding:14px; background:#f8fafc; border-radius:12px; border:1px solid var(--border);">
-        <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; color:var(--muted);">GPay / PhonePe / Paytm / BHIM se QR Scan Karein:</p>
+        <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; color:var(--muted);">Scan QR Code using Google Pay, PhonePe, Paytm, or BHIM:</p>
         <img id="upiQrCodeImg" class="upi-qr" src="" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:2px solid #e2e8f0; background:#fff; padding:6px;" />
         
         <div style="margin:10px 0 4px 0;">
-          <small style="color:var(--muted); font-size:10px; text-transform:uppercase; font-weight:700; display:block;">Total Amount to Pay</small>
+          <small style="color:var(--muted); font-size:10px; text-transform:uppercase; font-weight:700; display:block;">Total Amount Payable</small>
           <span style="font-weight:900; font-size:22px; color:#1e1b4b;" id="upiPayAmount">₹0.00</span>
         </div>
 
         <small style="color:var(--muted); display:block; font-size:11px; margin-bottom:10px;">UPI ID: <strong style="color:var(--navy);">board.black@ibl</strong></small>
         
-        <a id="directUpiLink" href="#" onclick="handleDirectUpiPayment()" class="upi-pay-btn" style="background:#2563eb; color:white; padding:10px 14px; border-radius:10px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:bold; font-size:13px; width:100%;">📲 Pay via Mobile UPI App</a>
+        <a id="directUpiLink" href="#" target="_blank" class="upi-pay-btn" style="background:#2563eb; color:white; padding:10px 14px; border-radius:10px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:bold; font-size:13px; width:100%;">📲 Pay via Mobile UPI App</a>
       </div>
 
       <!-- UPI UTR / TRANSACTION NO VERIFICATION BOX -->
       <div style="margin-top:12px; background:#ffffff; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0; text-align:left;">
-        <label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">12-Digit UPI Ref / UTR No. (Optional):</label>
+        <label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">12-Digit UPI UTR / Ref No. (After Payment):</label>
         <div style="display:flex; gap:6px;">
           <input type="text" id="upiUtrInput" placeholder="e.g. 421598371024" style="border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:12px; flex:1;" />
           <button type="button" onclick="submitUpiUtrNumber()" class="action-btn" style="margin:0; width:95px; font-size:11px; padding:6px; font-weight:bold;">Submit UTR</button>
         </div>
       </div>
 
-      <div style="text-align:center; margin-top:10px; padding:8px; background:#dcfce7; border-radius:8px; color:#166534; font-size:11px; font-weight:700;">
-        🎉 Order Database me Save Ho Gaya!
+      <div style="text-align:center; margin-top:10px; padding:8px; background:#e0f2fe; border-radius:8px; color:#0369a1; font-size:11px; font-weight:700;">
+        ℹ️ Order Registered! Complete payment above to proceed.
       </div>
     </aside>
   </div>
@@ -921,17 +921,17 @@
 
     document.getElementById("sendOtpBtn").addEventListener("click", async () => {
       const rawPhone = document.getElementById("otpPhone").value.trim();
-      if (!rawPhone) return alert("Pehle Mobile Number Enter Karein.");
+      if (!rawPhone) return alert("Please enter your mobile number.");
 
       const cleanPhone = rawPhone.replace(/\D/g, "");
-      if (cleanPhone.length < 10) return alert("Kripya Sahi 10-Digit Mobile Number Likhein.");
+      if (cleanPhone.length < 10) return alert("Please enter a valid 10-digit mobile number.");
 
       const fullPhone = rawPhone.startsWith("+91") ? rawPhone : "+91" + cleanPhone;
 
-      // Generate a new random 4-digit OTP every single time (e.g. 5892, 4710, 8319)
+      // Generate a new random 4-digit OTP every single time
       currentDemoOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-      alert(`📲 Mobile Number (${cleanPhone}) Par Verification Code Bheja Gaya:\n\n👉 AAPKA OTP CODE: ${currentDemoOtp}\n\n(Is 4-Digit Code Ko Niche Box Me Enter Karke Verify Karein)`);
+      alert(`📲 Verification Code sent to mobile (${cleanPhone}):\n\n👉 YOUR OTP CODE IS: ${currentDemoOtp}\n\n(Please enter this 4-digit code below to verify)`);
 
       document.getElementById("otpStep").style.display = "block";
       const codeInput = document.getElementById("otpCode");
@@ -947,14 +947,14 @@
       const fullPhone = rawPhone.startsWith("+91") ? rawPhone : "+91" + cleanPhone;
       const token = document.getElementById("otpCode").value.trim();
 
-      if (!token) return alert("Kripya OTP enter karein.");
+      if (!token) return alert("Please enter the OTP code.");
 
       if (token === currentDemoOtp) {
         alert("✅ Mobile Verification Successful!");
         currentUser = { id: "cust-" + cleanPhone, phone: fullPhone };
         loadUserProfile(currentUser);
       } else {
-        alert(`❌ Galat OTP Code!\n\nAapka Sahi Verification Code: ${currentDemoOtp}`);
+        alert(`❌ Invalid OTP Code!\n\nYour correct verification code is: ${currentDemoOtp}`);
       }
     });
 
@@ -1234,8 +1234,13 @@
       document.getElementById("deliveryAmt").textContent = currentDeliveryFee.toFixed(2);
       document.getElementById("grandTotal").textContent = grandTotal.toFixed(2);
 
+      const placeOrderBtn = document.getElementById("placeOrderBtn");
+      if (placeOrderBtn) {
+        placeOrderBtn.disabled = (!cart.length || grandTotal <= 0);
+      }
+
       if (!cart.length) {
-        cartEl.innerHTML = '<div class="empty">Cart khali hai.</div>';
+        cartEl.innerHTML = '<div class="empty">Your cart is empty.</div>';
         return;
       }
 
@@ -1257,7 +1262,15 @@
     /* Fixed Smooth Order Submit Handling */
     document.getElementById("orderForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!cart.length) return alert("Pehle cart mein items add karein.");
+      
+      if (!cart || !cart.length) {
+        return alert("Your cart is empty. Please add items before placing an order.");
+      }
+
+      const subtotal = cart.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+      if (subtotal <= 0) {
+        return alert("Order cannot be placed for ₹0.00. Please select products with valid prices.");
+      }
 
       const customerName = document.getElementById("customerName").value.trim();
       const rawMobile = document.getElementById("mobile").value.trim();
@@ -1280,12 +1293,9 @@
       } catch(e) { console.log("Address autosave skipped"); }
 
       placeOrderBtn.disabled = true;
-      placeOrderBtn.textContent = "Order Ho Raha Hai...";
+      placeOrderBtn.textContent = "Processing Order...";
 
       const orderCode = "ORD-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-
-      // Calculations
-      const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
       const currentDeliveryFee = (subtotal >= freeDeliveryAbove || subtotal === 0) ? 0 : deliveryFee;
       const finalTotalAmount = Math.max(0, subtotal - appliedDiscount + currentDeliveryFee);
 
@@ -1351,7 +1361,7 @@
 
     async function submitUpiUtrNumber() {
       const utr = document.getElementById("upiUtrInput").value.trim();
-      if (!utr) return alert("Kripya 12-digit UTR Number enter karein.");
+      if (!utr) return alert("Please enter your 12-digit UPI UTR / Reference Number.");
       if (!currentCreatedOrderId) return alert("Order reference missing.");
 
       try {
@@ -1360,19 +1370,12 @@
 
         await db.from("orders").update({ address: updatedAddress }).eq("id", currentCreatedOrderId);
 
-        alert(`✅ Payment UTR '${utr}' Submit Ho Gaya! Admin panel par verify hone ke baad order dispatch ho jayega.`);
+        alert(`✅ Payment UTR '${utr}' submitted successfully!\nYour order will be verified and dispatched soon.`);
         upiModalEl.classList.remove("open");
         document.getElementById("upiUtrInput").value = "";
       } catch (err) {
         alert("UTR Save Error: " + err.message);
       }
-    }
-
-    function handleDirectUpiPayment() {
-      setTimeout(() => {
-        upiModalEl.classList.remove("open");
-        alert("🎉 Order Placed Successfully! (Database me save ho gaya hai)");
-      }, 1200);
     }
 
     /* Customer Order Cancellation */
