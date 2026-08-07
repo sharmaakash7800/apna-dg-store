@@ -27,6 +27,29 @@
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
       --shadow-lg: 0 10px 25px rgba(15,23,42,0.08);
+
+      --calc-bg: #eef2ff;
+      --calc-border: #c7d2fe;
+      --calc-text: #3730a3;
+    }
+
+    [data-theme="dark"] {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text-dark: #f8fafc;
+      --text-muted: #94a3b8;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
+
+      --calc-bg: #1e1b4b;
+      --calc-border: #4338ca;
+      --calc-text: #c7d2fe;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -37,11 +60,12 @@
       color: var(--text-dark);
       background: var(--bg);
       padding-bottom: 90px;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     /* MODERN MINIMAL HEADER */
     header {
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--surface);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       color: var(--text-dark);
@@ -54,6 +78,7 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: var(--shadow-sm);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .header-title {
@@ -313,6 +338,28 @@
     .search-results-item { padding: 8px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text-dark); }
     .search-results-item:hover { background: var(--bg); color: var(--primary); }
 
+    .price-edit-input {
+      width: 75px;
+      padding: 4px 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--surface);
+      color: var(--text-dark);
+      text-align: right;
+    }
+    .price-edit-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    @media (max-width: 900px) {
+      .products-layout-grid, .reinvest-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
     .modal-overlay {
       position: fixed;
       top:0; left:0; right:0; bottom:0;
@@ -349,6 +396,9 @@
   <!-- HEADER -->
   <header>
     <div class="header-title">⚙️ Apna DG Store Admin</div>
+    <button id="themeToggleBtn" class="btn-outline" style="padding:6px 14px; font-size:12px; border-radius:20px; cursor:pointer;" onclick="toggleTheme()">
+      🌙 Dark Mode
+    </button>
   </header>
 
   <!-- FLOATING BOTTOM NAVIGATION BAR -->
@@ -388,17 +438,28 @@
 
     <!-- TAB 2: SUPPLIER REORDERS -->
     <section id="supplierTab" class="tab-content">
-      <div class="card">
-        <h3>➕ Master Supplier Add Karein</h3>
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <button class="btn-outline" onclick="toggleMasterSupplierAddCard('')">➕ Master Supplier Add Karein</button>
+        <button class="btn-outline" onclick="toggleMasterSupplierListCard('')">👥 Master Suppliers List</button>
+      </div>
+
+      <div class="card" id="masterSupplierAddCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
+          <button onclick="toggleMasterSupplierAddCard('')" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕ Close</button>
+        </div>
         <div class="form-grid">
           <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
           <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
-          <button class="btn-primary" onclick="addNewSupplierMaster()">Save Supplier</button>
+          <button class="btn-primary" onclick="addNewSupplierMaster('')">Save Supplier</button>
         </div>
       </div>
 
-      <div class="card">
-        <h3>👥 Master Suppliers List</h3>
+      <div class="card" id="masterSupplierListCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">👥 Master Suppliers List</h3>
+          <button onclick="toggleMasterSupplierListCard('')" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕ Close</button>
+        </div>
         <div id="suppliersMasterList">
           <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
         </div>
@@ -406,6 +467,58 @@
 
       <div class="card">
         <h2>➕ Naya Supplier Reorder Banayein</h2>
+        
+        <!-- SUPPLIER RATE & PACKET CALCULATOR -->
+        <div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:12px; margin-bottom:14px;">
+          <div style="font-size:12px; font-weight:800; color:var(--calc-text); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <span>🧮 Supplier Rate & Packet Calculator</span>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-outline active-filter" id="calcTabPacketBtn" style="padding:4px 10px; font-size:11px; border-radius:12px;" onclick="switchCalcMode('packet', '')">📦 Packet / Box Calculator</button>
+              <button type="button" class="btn-outline" id="calcTabBillBtn" style="padding:4px 10px; font-size:11px; border-radius:12px;" onclick="switchCalcMode('bill', '')">💵 Total Bill Calculator</button>
+            </div>
+          </div>
+
+          <!-- PACKET / BOX CALCULATOR MODE -->
+          <div id="calcModePacket" style="display:block;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Packet / Box Cost (₹):</label>
+                <input type="number" id="calcPacketCost" placeholder="e.g. 215" step="0.01" oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">1 Packet me Pouches:</label>
+                <input type="number" id="calcPouchCount" placeholder="e.g. 50" min="1" oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Kitne Packets Liye:</label>
+                <input type="number" id="calcPacketQty" value="1" min="1" oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Calculated Pouch Price:</label>
+                <input type="text" id="calcPacketResultRate" readonly style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);" placeholder="₹0.00 / pouch" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TOTAL BILL CALCULATOR MODE -->
+          <div id="calcModeBill" style="display:none;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Qty (Count):</label>
+                <input type="number" id="calcTotalQty" placeholder="e.g. 50" min="1" oninput="calculateUnitRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Bill (₹):</label>
+                <input type="number" id="calcTotalBill" placeholder="e.g. 2500" step="0.01" oninput="calculateUnitRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Each Item Rate:</label>
+                <input type="text" id="calcResultRate" readonly style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);" placeholder="₹0.00 / item" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-grid">
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
@@ -464,68 +577,121 @@
 
     <!-- TAB 3: PRODUCTS LIST -->
     <section id="productsTab" class="tab-content">
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div>
-            <h3 style="margin:0; color:var(--primary);">🛒 Ticked Items (<span id="tickedCount">0</span> Selected)</h3>
-          </div>
-          <button class="btn-danger" onclick="clearAllSelection()">Clear</button>
-        </div>
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <button class="btn-outline" onclick="toggleMasterSupplierAddCard('prod_')">➕ Master Supplier Add Karein</button>
+        <button class="btn-outline" onclick="toggleMasterSupplierListCard('prod_')">👥 Master Suppliers List</button>
+      </div>
 
-        <div id="selectedTickedList" style="margin-top:10px; max-height:200px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px;">
-          <div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>
+      <div class="card" id="prod_masterSupplierAddCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
+          <button onclick="toggleMasterSupplierAddCard('prod_')" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕ Close</button>
         </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
-          <div>
-            <small style="display:block; color:var(--text-muted); font-size:10px;">TOTAL BILL</small>
-            <strong style="font-size:16px; color:var(--text-dark);">₹<span id="tickedTotalBill">0.00</span></strong>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <select id="tickedSupplierSelect" style="min-width:160px;">
-              <option value="">-- Select Supplier --</option>
-            </select>
-            <button class="btn-green" onclick="submitTickedReorder()">🚀 Place Order</button>
-          </div>
+        <div class="form-grid">
+          <input id="prod_newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
+          <input id="prod_newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
+          <button class="btn-primary" onclick="addNewSupplierMaster('prod_')">Save Supplier</button>
         </div>
       </div>
 
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
-          <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+      <div class="card" id="prod_masterSupplierListCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">👥 Master Suppliers List</h3>
+          <button onclick="toggleMasterSupplierListCard('prod_')" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕ Close</button>
+        </div>
+        <div id="prod_suppliersMasterList">
+          <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS TAB MAIN LAYOUT (GRID: TABLE LEFT, CART RIGHT) -->
+      <div class="products-layout-grid" style="display:grid; grid-template-columns: 1fr 320px; gap:14px; align-items:start;">
+        
+        <!-- LEFT COLUMN: PRODUCTS LIST TABLE -->
+        <div class="card" style="margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <h2 style="margin:0;">📦 Products List (<span id="totalProductsCount">0</span>)</h2>
+            <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          </div>
+
+          <!-- SEARCH & BULK CATEGORY CONTROL BAR -->
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--border);">
+            <div style="flex:2; min-width:180px;">
+              <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product name, category..." oninput="renderProductsTable()" />
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex:3; min-width:260px; flex-wrap:wrap;">
+              <select id="bulkCategorySelect" style="flex:1; min-width:130px; padding:8px; font-size:12px;" onchange="renderProductsTable()"></select>
+              
+              <select id="bulkCategoryActionSelect" style="flex:1; min-width:160px; padding:8px; font-size:12px; font-weight:700; color:var(--primary);" onchange="executeCategoryBulkAction(this.value)">
+                <option value="">⚙️ Category Action --</option>
+                <option value="show">👁️ Show Category on Customer Panel</option>
+                <option value="hide">🙈 Hide Category from Customer Panel</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width:30px; text-align:center;">Select</th>
+                  <th>ID</th>
+                  <th>Item Name</th>
+                  <th>Category</th>
+                  <th>Unit</th>
+                  <th>Stock Qty</th>
+                  <th>Cost (₹)</th>
+                  <th>Selling (₹)</th>
+                  <th style="text-align:center;">Customer Panel Status</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div style="margin-bottom: 10px;">
-          <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product..." oninput="renderProductsTable()" />
+        <!-- RIGHT COLUMN: STICKY TICKED ITEMS CART -->
+        <div class="card" id="tickedCartCard" style="margin:0; position:sticky; top:80px; z-index:40;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px;">
+            <h3 style="margin:0; color:var(--primary); font-size:14px;">🛒 Ticked Items (<span id="tickedCount">0</span>)</h3>
+            <button class="btn-danger" style="padding:3px 8px; font-size:11px;" onclick="clearAllSelection()">Clear</button>
+          </div>
+
+          <div id="selectedTickedList" style="max-height:360px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px; margin-bottom:10px;">
+            <div style="text-align:center; color:var(--text-muted); padding:12px; font-size:12px;">Left list me se items par ☑️ Tick mark karein.</div>
+          </div>
+
+          <div style="border-top:1px solid var(--border); padding-top:8px;">
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL REORDER BILL:</small>
+              <strong style="font-size:16px; color:var(--success);">₹<span id="tickedTotalBill">0.00</span></strong>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
+              <select id="tickedSupplierSelect" style="width:100%; margin-top:4px; font-size:12px;"></select>
+            </div>
+
+            <button class="btn-green" style="width:100%; padding:10px; font-size:13px; font-weight:bold;" onclick="submitTickedReorder()">🚀 Place Order</button>
+          </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th style="width:30px; text-align:center;">Select</th>
-                <th>ID</th>
-                <th>Item Name</th>
-                <th>Category</th>
-                <th>Unit</th>
-                <th>Stock Qty</th>
-                <th>Cost (₹)</th>
-                <th>Selling (₹)</th>
-              </tr>
-            </thead>
-            <tbody id="productsTableBody">
-              <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </section>
 
     <!-- TAB 4: REPORTS & ANALYTICS -->
     <section id="reportsTab" class="tab-content">
-      <div class="card">
-        <h3>💵 Counter Collection Entry</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <button class="btn-outline active-filter" style="font-weight:700;" onclick="toggleCounterCollectionCard()">💵 ➕ Counter Collection Entry Karein</button>
+      </div>
+
+      <div class="card" id="counterCollectionCard" style="display:none; transition:all 0.3s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">💵 Counter Collection Entry (Offline / Manual Cash)</h3>
+          <button onclick="toggleCounterCollectionCard()" style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕ Close</button>
+        </div>
         <div class="form-grid">
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
@@ -554,6 +720,36 @@
             <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
             <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
           </div>
+        </div>
+      </div>
+
+      <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
+          <button class="btn-primary" style="padding:4px 10px; font-size:11px;" onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn-outline" onclick="setReinvestmentDateFilter('today')">Today</button>
+          <button class="btn-outline active-filter" onclick="setReinvestmentDateFilter('week')">This Week</button>
+          <button class="btn-outline" onclick="setReinvestmentDateFilter('month')">This Month</button>
+          <button class="btn-outline" onclick="setReinvestmentDateFilter('year')">This Year</button>
+        </div>
+
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <input type="date" id="reinvestmentFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <input type="date" id="reinvestmentToDate" />
+          </div>
+        </div>
+
+        <div id="reinvestmentComparisonContainer">
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
         </div>
       </div>
 
@@ -618,6 +814,92 @@
           </div>
         </div>
       </div>
+
+      <!-- SUPPLIER PURCHASE REPORT CARD -->
+      <div class="card">
+        <h2>🏬 Supplier-Wise Purchase Report (Kab sy Kab Tak)</h2>
+        
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('today')">Today</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('week')">This Week</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('month')">This Month</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('year')">This Year</button>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <input type="date" id="supplierReportFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <input type="date" id="supplierReportToDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Filter:</label>
+            <select id="supplierReportSupplierSelect">
+              <option value="">-- All Suppliers --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Order Status:</label>
+            <select id="supplierReportStatusSelect">
+              <option value="">All Statuses</option>
+              <option value="received">✅ Stock Received</option>
+              <option value="pending">⏳ Pending</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <button class="btn-primary" style="width:100%;" onclick="calculateSupplierPurchaseReport()">📈 Calculate Supplier Purchase Report</button>
+          </div>
+        </div>
+
+        <div class="summary-grid" style="margin-top:16px;">
+          <div class="summary-card">
+            <small>🏬 TOTAL SUPPLIER PURCHASES</small>
+            <strong style="color:var(--primary);" id="summarySupplierTotal">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>📦 TOTAL REORDERS COUNT</small>
+            <strong style="color:var(--blue);" id="summarySupplierOrderCount">0 Orders</strong>
+          </div>
+          <div class="summary-card">
+            <small>✅ RECEIVED PURCHASES</small>
+            <strong style="color:var(--success);" id="summarySupplierReceived">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>⏳ PENDING REORDERS</small>
+            <strong style="color:var(--danger);" id="summarySupplierPending">₹0.00</strong>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">👥 Supplier-Wise Purchase Summary</h3>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Supplier Name</th>
+                  <th>Total Orders</th>
+                  <th>Received Bill (₹)</th>
+                  <th>Pending Bill (₹)</th>
+                  <th>Grand Total Purchase (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="supplierSummaryTableBody">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Dates select karke 'Calculate Supplier Purchase Report' par click karein.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Detailed Supplier Reorders List</h3>
+          <div id="supplierDetailedOrdersList">
+            <div style="text-align:center; padding:10px; color:var(--text-muted); font-size:12px;">Detailed purchase history yahan dikhegi.</div>
+          </div>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -639,6 +921,36 @@
 
       <div style="background:var(--bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:10px;">
         <strong style="font-size:11px; display:block; margin-bottom:6px;">➕ Item Add Karein:</strong>
+        
+        <!-- EDIT SUPPLIER RATE & PACKET CALCULATOR -->
+        <div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:10px; border-radius:10px; margin-bottom:10px;">
+          <div style="font-size:11px; font-weight:800; color:var(--calc-text); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+            <span>🧮 Supplier Rate Calculator</span>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn-outline active-filter" id="EditcalcTabPacketBtn" style="padding:2px 6px; font-size:9px; border-radius:10px;" onclick="switchCalcMode('packet', 'Edit')">📦 Packet</button>
+              <button type="button" class="btn-outline" id="EditcalcTabBillBtn" style="padding:2px 6px; font-size:9px; border-radius:10px;" onclick="switchCalcMode('bill', 'Edit')">💵 Bill</button>
+            </div>
+          </div>
+
+          <!-- PACKET MODE -->
+          <div id="EditcalcModePacket" style="display:block;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; align-items:center;">
+              <input type="number" id="EditcalcPacketCost" placeholder="Packet Cost ₹" step="0.01" oninput="calculatePacketRate('Edit')" style="padding:6px; font-size:11px;" />
+              <input type="number" id="EditcalcPouchCount" placeholder="Pouches in Packet" min="1" oninput="calculatePacketRate('Edit')" style="padding:6px; font-size:11px;" />
+              <input type="text" id="EditcalcPacketResultRate" readonly style="padding:6px; font-size:11px; font-weight:bold; color:var(--success); background:var(--surface);" placeholder="Pouch Price" />
+            </div>
+          </div>
+
+          <!-- BILL MODE -->
+          <div id="EditcalcModeBill" style="display:none;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; align-items:center;">
+              <input type="number" id="EditcalcTotalQty" placeholder="Total Qty" min="1" oninput="calculateUnitRate('Edit')" style="padding:6px; font-size:11px;" />
+              <input type="number" id="EditcalcTotalBill" placeholder="Total Bill ₹" step="0.01" oninput="calculateUnitRate('Edit')" style="padding:6px; font-size:11px;" />
+              <input type="text" id="EditcalcResultRate" readonly style="padding:6px; font-size:11px; font-weight:bold; color:var(--success); background:var(--surface);" placeholder="Rate / item" />
+            </div>
+          </div>
+        </div>
+
         <div class="form-grid">
           <div class="search-select-wrapper">
             <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product..." oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
@@ -707,13 +1019,25 @@
       localStorage.setItem("activeAdminTab", tabId);
 
       if (tabId === 'customerTab') loadCustomerOrders();
-      if (tabId === 'supplierTab') { loadSuppliers(); loadProductsForReorder(); loadPurchaseOrders(); }
+      if (tabId === 'supplierTab') { loadSuppliers(); loadPurchaseOrders(); }
       if (tabId === 'productsTab') { loadAllProductsView(); loadSuppliers(); }
       if (tabId === 'reportsTab') { 
         const todayStr = new Date().toISOString().split('T')[0];
         document.getElementById("manualCashFromDate").value = todayStr;
         document.getElementById("manualCashToDate").value = todayStr;
         if(!document.getElementById("reportFromDate").value) setDateFilter('week'); 
+        calculateWeeklyReinvestmentComparison();
+      }
+    }
+
+    function toggleCounterCollectionCard() {
+      const card = document.getElementById("counterCollectionCard");
+      if (card) {
+        const isHidden = card.style.display === "none" || !card.style.display;
+        card.style.display = isHidden ? "block" : "none";
+        if (isHidden) {
+          document.getElementById("manualCashAmount").focus();
+        }
       }
     }
 
@@ -750,11 +1074,10 @@
       if(!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
 
       const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
-      const generatedOrderId = "ORD-CNT-" + Date.now();
 
-      // Insert directly as an Order record to guarantee compatibility
+      // Insert directly as an Order record to guarantee compatibility without schema issues
       const { error: ordErr } = await db.from("orders").insert([{
-        order_id: generatedOrderId,
+        order_id: "ORD-CNT-" + Date.now(),
         customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
         mobile: "0000000000",
         status: "completed",
@@ -831,7 +1154,7 @@
             if (match && match[1]) itemsTotal = Number(match[1]);
           }
 
-          // Determine payment mode
+          // Determine payment mode (defaulting to offline if explicitly counter cash)
           const pMode = (String(ord.customer_name || '') + ' ' + addressTxt).toLowerCase();
           
           if (pMode.includes('[mode:online]') || pMode.includes('online')) {
@@ -861,40 +1184,355 @@
       `;
     }
 
+    /* MASTER SUPPLIER CARD TOGGLING & CALCULATOR FUNCTIONS */
+    function toggleMasterSupplierAddCard(prefix = '') {
+      const card = document.getElementById(prefix + "masterSupplierAddCard");
+      if (card) {
+        const isHidden = card.style.display === "none" || !card.style.display;
+        card.style.display = isHidden ? "block" : "none";
+        if (isHidden) {
+          const input = document.getElementById(prefix + "newSupplierInput") || document.getElementById("newSupplierInput");
+          if (input) input.focus();
+        }
+      }
+    }
+
+    function toggleMasterSupplierListCard(prefix = '') {
+      const card = document.getElementById(prefix + "masterSupplierListCard");
+      if (card) {
+        const isHidden = card.style.display === "none" || !card.style.display;
+        card.style.display = isHidden ? "block" : "none";
+      }
+    }
+
+    function calculateUnitRate(prefix = '') {
+      const qtyEl = document.getElementById(prefix + "calcTotalQty");
+      const billEl = document.getElementById(prefix + "calcTotalBill");
+      const resEl = document.getElementById(prefix + "calcResultRate");
+
+      const targetQty = document.getElementById(prefix ? prefix.toLowerCase() + "PoQty" : "poQty");
+      const targetRate = document.getElementById(prefix ? prefix.toLowerCase() + "PoPrice" : "poPrice");
+
+      const qty = Number(qtyEl ? qtyEl.value : 0);
+      const bill = Number(billEl ? billEl.value : 0);
+
+      if (qty > 0 && bill > 0) {
+        const unitRate = bill / qty;
+        if (resEl) resEl.value = "₹" + unitRate.toFixed(2) + " / item";
+        if (targetQty) targetQty.value = qty;
+        if (targetRate) targetRate.value = unitRate.toFixed(2);
+      } else if (resEl) {
+        resEl.value = "";
+      }
+    }
+
+    async function toggleProductActiveStatus(prodId, newStatus) {
+      const prod = productsList.find(p => String(p.id) === String(prodId));
+      if (prod) prod.active = newStatus;
+      renderProductsTable();
+
+      const { error } = await db.from("products").update({ active: newStatus }).eq("id", prodId);
+      if (error) {
+        console.error("Status update error:", error);
+        if (prod) prod.active = !newStatus;
+        renderProductsTable();
+        alert("Status update fail: " + error.message);
+      }
+    }
+
+    /* SUPPLIER PURCHASE REPORT LOGIC */
+    function setSupplierReportDateFilter(type) {
+      const today = new Date();
+      let from = new Date();
+
+      if (type === 'today') {
+        from = new Date(today.setHours(0,0,0,0));
+      } else if (type === 'week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        from = new Date(today.setDate(diff));
+      } else if (type === 'month') {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+      } else if (type === 'year') {
+        from = new Date(today.getFullYear(), 0, 1);
+      }
+
+      document.getElementById("supplierReportFromDate").value = from.toISOString().split('T')[0];
+      document.getElementById("supplierReportToDate").value = new Date().toISOString().split('T')[0];
+      calculateSupplierPurchaseReport();
+    }
+
+    async function calculateSupplierPurchaseReport() {
+      const fromVal = document.getElementById("supplierReportFromDate").value;
+      const toVal = document.getElementById("supplierReportToDate").value;
+      const supplierVal = document.getElementById("supplierReportSupplierSelect").value;
+      const statusVal = document.getElementById("supplierReportStatusSelect").value;
+
+      if (!fromVal || !toVal) return alert("Sahi From aur To dates select karein.");
+
+      const fromDate = new Date(fromVal);
+      fromDate.setHours(0,0,0,0);
+      const toDate = new Date(toVal);
+      toDate.setHours(23,59,59,999);
+
+      let query = db.from("purchase_orders")
+        .select("*, purchase_order_items(*)")
+        .gte("created_at", fromDate.toISOString())
+        .lte("created_at", toDate.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (supplierVal) {
+        query = query.eq("supplier_name", supplierVal);
+      }
+      if (statusVal) {
+        query = query.eq("status", statusVal);
+      }
+
+      const { data: pos, error } = await query;
+      if (error) {
+        console.error("Supplier report error:", error);
+        alert("Error fetching supplier report: " + error.message);
+        return;
+      }
+
+      const records = pos || [];
+      let grandTotalAmount = 0;
+      let receivedAmount = 0;
+      let pendingAmount = 0;
+
+      const supplierMap = {};
+
+      records.forEach(po => {
+        const amt = Number(po.total_amount || 0);
+        grandTotalAmount += amt;
+        if (po.status === 'received') receivedAmount += amt;
+        else pendingAmount += amt;
+
+        const sName = po.supplier_name || 'Unknown';
+        if (!supplierMap[sName]) {
+          supplierMap[sName] = { ordersCount: 0, receivedBill: 0, pendingBill: 0, totalBill: 0 };
+        }
+        supplierMap[sName].ordersCount++;
+        supplierMap[sName].totalBill += amt;
+        if (po.status === 'received') supplierMap[sName].receivedBill += amt;
+        else supplierMap[sName].pendingBill += amt;
+      });
+
+      document.getElementById("summarySupplierTotal").textContent = "₹" + grandTotalAmount.toFixed(2);
+      document.getElementById("summarySupplierOrderCount").textContent = records.length + " Orders";
+      document.getElementById("summarySupplierReceived").textContent = "₹" + receivedAmount.toFixed(2);
+      document.getElementById("summarySupplierPending").textContent = "₹" + pendingAmount.toFixed(2);
+
+      const tbody = document.getElementById("supplierSummaryTableBody");
+      const sKeys = Object.keys(supplierMap);
+      if (sKeys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Selected dates me koi purchase order nahi mila.</td></tr>';
+      } else {
+        tbody.innerHTML = sKeys.map(s => {
+          const data = supplierMap[s];
+          return `
+            <tr>
+              <td><strong>${s}</strong></td>
+              <td>${data.ordersCount} Orders</td>
+              <td style="color:var(--success); font-weight:bold;">₹${data.receivedBill.toFixed(2)}</td>
+              <td style="color:var(--danger); font-weight:bold;">₹${data.pendingBill.toFixed(2)}</td>
+              <td style="color:var(--primary); font-weight:bold;">₹${data.totalBill.toFixed(2)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const detailContainer = document.getElementById("supplierDetailedOrdersList");
+      if (records.length === 0) {
+        detailContainer.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted);">Koi orders record nahi hai.</div>';
+      } else {
+        detailContainer.innerHTML = records.map(po => `
+          <div class="order-card" style="margin-bottom:8px; padding:10px;">
+            <div class="order-header" style="margin-bottom:4px; padding-bottom:4px;">
+              <span><strong>${po.supplier_name}</strong> (${po.po_number || '#' + po.id})</span>
+              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+              📅 Date: ${formatTime(po.created_at)} ${po.received_at ? ` | Received: ${formatTime(po.received_at)}` : ''}
+            </div>
+            <div>
+              ${(po.purchase_order_items || []).map(it => `
+                <div class="item-row" style="font-size:11px; padding:2px 0;">
+                  <span>• ${it.product_name} (Qty: ${it.quantity})</span>
+                  <span>₹${Number(it.purchase_price).toFixed(2)}/unit = ₹${(Number(it.quantity) * Number(it.purchase_price)).toFixed(2)}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div style="text-align:right; margin-top:6px; font-weight:bold; font-size:12px; color:var(--text-dark);">
+              Total Order Amount: ₹${Number(po.total_amount).toFixed(2)}
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    /* DARK / LIGHT THEME TOGGLE LOGIC */
+    function initTheme() {
+      const savedTheme = localStorage.getItem("adminTheme") || "light";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      updateThemeButtonText(savedTheme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("adminTheme", next);
+      updateThemeButtonText(next);
+    }
+
+    function updateThemeButtonText(theme) {
+      const btn = document.getElementById("themeToggleBtn");
+      if (btn) {
+        btn.innerHTML = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
+      }
+    }
+
+    /* SWITCH CALCULATOR MODES & PACKET CALCULATOR */
+    function switchCalcMode(mode, prefix = '') {
+      const packetMode = document.getElementById(prefix + "calcModePacket");
+      const billMode = document.getElementById(prefix + "calcModeBill");
+      const packetBtn = document.getElementById(prefix + "calcTabPacketBtn");
+      const billBtn = document.getElementById(prefix + "calcTabBillBtn");
+
+      if (mode === 'packet') {
+        if (packetMode) packetMode.style.display = "block";
+        if (billMode) billMode.style.display = "none";
+        if (packetBtn) packetBtn.classList.add("active-filter");
+        if (billBtn) billBtn.classList.remove("active-filter");
+      } else {
+        if (packetMode) packetMode.style.display = "none";
+        if (billMode) billMode.style.display = "block";
+        if (packetBtn) packetBtn.classList.remove("active-filter");
+        if (billBtn) billBtn.classList.add("active-filter");
+      }
+    }
+
+    function calculatePacketRate(prefix = '') {
+      const costVal = Number(document.getElementById(prefix + "calcPacketCost").value);
+      const pouchVal = Number(document.getElementById(prefix + "calcPouchCount").value);
+      const qtyVal = Number(document.getElementById(prefix + "calcPacketQty").value || 1);
+
+      const resEl = document.getElementById(prefix + "calcPacketResultRate");
+      const targetQty = document.getElementById(prefix ? prefix.toLowerCase() + "PoQty" : "poQty");
+      const targetRate = document.getElementById(prefix ? prefix.toLowerCase() + "PoPrice" : "poPrice");
+
+      if (costVal > 0 && pouchVal > 0) {
+        const pouchRate = costVal / pouchVal;
+        const totalPouches = qtyVal * pouchVal;
+
+        if (resEl) resEl.value = `₹${pouchRate.toFixed(2)} / pouch (${totalPouches} pouches)`;
+        if (targetQty) targetQty.value = totalPouches;
+        if (targetRate) targetRate.value = pouchRate.toFixed(2);
+      } else if (resEl) {
+        resEl.value = "";
+      }
+    }
+
     /* PRODUCTS TAB VIEW */
     async function loadAllProductsView() {
       const tbody = document.getElementById("productsTableBody");
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
       
       const { data, error } = await db.from("products").select("*").order("name");
       if (error) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
         return;
       }
 
       productsList = data || [];
       document.getElementById("totalProductsCount").textContent = productsList.length;
+      updateCategoryDropdown();
       renderProductsTable();
+    }
+
+    function updateCategoryDropdown() {
+      const select = document.getElementById("bulkCategorySelect");
+      if (!select) return;
+
+      const currentVal = select.value;
+      const categories = [...new Set(productsList.map(p => p.category).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">-- All Categories --</option>' + 
+        categories.map(c => `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`).join('');
+    }
+
+    async function bulkToggleCategoryStatus(newStatus) {
+      const category = document.getElementById("bulkCategorySelect").value;
+      if (!category) return alert("Kripya pehle dropdown se ek Category select karein.");
+
+      const statusTxt = newStatus ? "Customer Panel par SHOW (True)" : "Customer Panel se HIDE (False)";
+      if (!confirm(`Kya aap Category '${category}' ke SABHI products ko Customer Panel se ${statusTxt} karna chahte hain?`)) return;
+
+      const { error } = await db.from("products").update({ active: newStatus }).eq("category", category);
+      if (error) {
+        alert("Category update error: " + error.message);
+      } else {
+        productsList.forEach(p => {
+          if (p.category === category) p.active = newStatus;
+        });
+        renderProductsTable();
+        alert(`Category '${category}' ke sabhi products ${statusTxt} ho gaye!`);
+      }
+    }
+
+    async function updateProductField(prodId, field, newValue) {
+      const numVal = Number(newValue);
+      if (isNaN(numVal) || numVal < 0) return alert("Sahi number bhrein.");
+
+      const prod = productsList.find(p => String(p.id) === String(prodId));
+      if (prod) prod[field] = numVal;
+
+      const updateData = {};
+      updateData[field] = numVal;
+
+      if (field === 'selling_price') {
+        updateData['price'] = numVal;
+        if (prod) prod['price'] = numVal;
+      }
+
+      const { error } = await db.from("products").update(updateData).eq("id", prodId);
+      if (error) {
+        alert("Update error: " + error.message);
+        loadAllProductsView();
+      }
     }
 
     function renderProductsTable() {
       const tbody = document.getElementById("productsTableBody");
       const searchVal = document.getElementById("adminProductSearchInput").value.toLowerCase().trim();
+      const selectedCategory = document.getElementById("bulkCategorySelect") ? document.getElementById("bulkCategorySelect").value : "";
 
-      const filtered = productsList.filter(p => 
-        String(p.id).toLowerCase().includes(searchVal) ||
-        String(p.name || '').toLowerCase().includes(searchVal) ||
-        String(p.category || '').toLowerCase().includes(searchVal)
-      );
+      const filtered = productsList.filter(p => {
+        const matchesSearch = String(p.id).toLowerCase().includes(searchVal) ||
+          String(p.name || '').toLowerCase().includes(searchVal) ||
+          String(p.category || '').toLowerCase().includes(searchVal);
+
+        const matchesCat = !selectedCategory || p.category === selectedCategory;
+
+        return matchesSearch && matchesCat;
+      });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
         return;
       }
 
       tbody.innerHTML = filtered.map(p => {
         const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
         const qtyVal = p.stock_qty !== null && p.stock_qty !== undefined ? p.stock_qty : 0;
+        const isActive = p.active !== false;
+        const statusBtn = isActive 
+          ? `<button class="btn-green" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" title="Click to hide on Customer panel" onclick="toggleProductActiveStatus('${p.id}', false)">👁️ Show</button>`
+          : `<button class="btn-danger" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" title="Click to show on Customer panel" onclick="toggleProductActiveStatus('${p.id}', true)">🙈 Hide</button>`;
+
+        const costPriceVal = p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00';
+        const sellingPriceVal = p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00');
+
         return `
           <tr>
             <td style="text-align:center;">
@@ -904,9 +1542,22 @@
             <td>${p.name || 'N/A'}</td>
             <td>${p.category || 'N/A'}</td>
             <td>${p.unit || '-'}</td>
-            <td style="font-weight:bold; color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${qtyVal}</td>
-            <td style="color:var(--blue); font-weight:bold;">₹${p.cost_price !== null && p.cost_price !== undefined ? Number(p.cost_price).toFixed(2) : '0.00'}</td>
-            <td style="color:var(--success); font-weight:bold;">₹${p.selling_price !== null && p.selling_price !== undefined ? Number(p.selling_price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : '0.00')}</td>
+            <td>
+              <input type="number" min="0" class="price-edit-input" style="width:60px; text-align:center; font-weight:bold; color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};" value="${qtyVal}" onchange="updateProductField('${p.id}', 'stock_qty', this.value)" title="Stock Qty edit karein" />
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:2px;">
+                <span style="font-size:11px; color:var(--text-muted);">₹</span>
+                <input type="number" step="0.01" class="price-edit-input" style="color:var(--blue);" value="${costPriceVal}" onchange="updateProductField('${p.id}', 'cost_price', this.value)" title="Cost Price edit karein" />
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:2px;">
+                <span style="font-size:11px; color:var(--text-muted);">₹</span>
+                <input type="number" step="0.01" class="price-edit-input" style="color:var(--success);" value="${sellingPriceVal}" onchange="updateProductField('${p.id}', 'selling_price', this.value)" title="Selling Price edit karein" />
+              </div>
+            </td>
+            <td style="text-align:center;">${statusBtn}</td>
           </tr>
         `;
       }).join('');
@@ -1022,6 +1673,7 @@
       const select = document.getElementById("poSupplierSelect");
       const editSelect = document.getElementById("editPoSupplierSelect");
       const tickedSelect = document.getElementById("tickedSupplierSelect");
+      const reportSelect = document.getElementById("supplierReportSupplierSelect");
 
       const options = '<option value="">-- Select Supplier --</option>' +
         suppliersList.map(s => {
@@ -1032,36 +1684,47 @@
       if(select) select.innerHTML = options;
       if(editSelect) editSelect.innerHTML = options;
       if(tickedSelect) tickedSelect.innerHTML = options;
-
-      const masterContainer = document.getElementById("suppliersMasterList");
-      if (suppliersList.length === 0) {
-        masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
-        return;
+      if(reportSelect) {
+        reportSelect.innerHTML = '<option value="">-- All Suppliers --</option>' +
+          suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
       }
 
-      masterContainer.innerHTML = suppliersList.map(s => {
-        const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
-        return `
-          <div class="item-row">
-            <div>
-              <strong>${s.name}</strong>
-              ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
-            </div>
-            
-            <div class="dropdown-wrapper">
-              <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-              <div class="dropdown-menu">
-                ${s.phone ? `
-                  <a href="tel:${s.phone}" class="dropdown-item">📞 Call</a>
-                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
-                ` : ''}
-                <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
-                <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+      const masterContainers = [
+        document.getElementById("suppliersMasterList"),
+        document.getElementById("prod_suppliersMasterList")
+      ];
+
+      masterContainers.forEach(masterContainer => {
+        if (!masterContainer) return;
+        if (suppliersList.length === 0) {
+          masterContainer.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
+          return;
+        }
+
+        masterContainer.innerHTML = suppliersList.map(s => {
+          const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
+          return `
+            <div class="item-row">
+              <div>
+                <strong>${s.name}</strong>
+                ${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}
+              </div>
+              
+              <div class="dropdown-wrapper">
+                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                <div class="dropdown-menu">
+                  ${s.phone ? `
+                    <a href="tel:${s.phone}" class="dropdown-item">📞 Call</a>
+                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
+                  ` : ''}
+                  <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
+                  <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-      }).join("");
+          `;
+        }).join("");
+      });
     }
 
     function onSupplierChange() {
@@ -1084,9 +1747,11 @@
       }
     }
 
-    async function addNewSupplierMaster() {
-      const name = document.getElementById("newSupplierInput").value.trim();
-      const phone = document.getElementById("newSupplierPhone").value.trim();
+    async function addNewSupplierMaster(prefix = '') {
+      const nameInput = document.getElementById(prefix + "newSupplierInput") || document.getElementById("newSupplierInput");
+      const phoneInput = document.getElementById(prefix + "newSupplierPhone") || document.getElementById("newSupplierPhone");
+      const name = nameInput ? nameInput.value.trim() : '';
+      const phone = phoneInput ? phoneInput.value.trim() : '';
 
       if (!name) return alert("Supplier ka naam likhein.");
 
@@ -1094,8 +1759,12 @@
       if (error) alert("Error: " + error.message);
       else {
         alert("Supplier Successfully Add Ho Gaya!");
-        document.getElementById("newSupplierInput").value = "";
-        document.getElementById("newSupplierPhone").value = "";
+        if (nameInput) nameInput.value = "";
+        if (phoneInput) phoneInput.value = "";
+        const mainName = document.getElementById("newSupplierInput");
+        const mainPhone = document.getElementById("newSupplierPhone");
+        if (mainName) mainName.value = "";
+        if (mainPhone) mainPhone.value = "";
         loadSuppliers();
       }
     }
@@ -1133,6 +1802,211 @@
       }
     }
 
+    function setReinvestmentDateFilter(type) {
+      const today = new Date();
+      let from = new Date();
+
+      if (type === 'today') {
+        from = new Date(today.setHours(0,0,0,0));
+      } else if (type === 'week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        from = new Date(today.setDate(diff));
+      } else if (type === 'month') {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+      } else if (type === 'year') {
+        from = new Date(today.getFullYear(), 0, 1);
+      }
+
+      document.getElementById("reinvestmentFromDate").value = from.toISOString().split('T')[0];
+      document.getElementById("reinvestmentToDate").value = new Date().toISOString().split('T')[0];
+      calculateWeeklyReinvestmentComparison();
+    }
+
+    async function executeCategoryBulkAction(action) {
+      if (!action) return;
+      const category = document.getElementById("bulkCategorySelect").value;
+      const actionSelect = document.getElementById("bulkCategoryActionSelect");
+
+      if (!category) {
+        alert("Kripya pehle Category dropdown se ek category select karein.");
+        actionSelect.value = "";
+        return;
+      }
+
+      const newStatus = action === 'show';
+      const statusTxt = newStatus ? "Customer Panel par SHOW (True)" : "Customer Panel se HIDE (False)";
+      if (!confirm(`Kya aap Category '${category}' ke SABHI products ko ${statusTxt} karna chahte hain?`)) {
+        actionSelect.value = "";
+        return;
+      }
+
+      const { error } = await db.from("products").update({ active: newStatus }).eq("category", category);
+      if (error) {
+        alert("Category update error: " + error.message);
+      } else {
+        productsList.forEach(p => {
+          if (p.category === category) p.active = newStatus;
+        });
+        renderProductsTable();
+        alert(`Category '${category}' ke sabhi products ${statusTxt} ho gaye!`);
+      }
+      actionSelect.value = "";
+    }
+
+    /* COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART */
+    async function calculateWeeklyReinvestmentComparison() {
+      const container = document.getElementById("reinvestmentComparisonContainer");
+      if (!container) return;
+
+      container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Calculating Comparison...</div>";
+
+      try {
+        let fromVal = document.getElementById("reinvestmentFromDate").value;
+        let toVal = document.getElementById("reinvestmentToDate").value;
+
+        if (!fromVal || !toVal) {
+          const today = new Date();
+          const day = today.getDay();
+          const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+          const monday = new Date(today.setDate(diff));
+          fromVal = monday.toISOString().split('T')[0];
+          toVal = new Date().toISOString().split('T')[0];
+          document.getElementById("reinvestmentFromDate").value = fromVal;
+          document.getElementById("reinvestmentToDate").value = toVal;
+        }
+
+        const fromDate = new Date(fromVal);
+        fromDate.setHours(0,0,0,0);
+        const toDate = new Date(toVal);
+        toDate.setHours(23,59,59,999);
+
+        // Fetch sales and purchase orders in date range
+        const { data: sales } = await db
+          .from("orders")
+          .select("*, order_items(*)")
+          .gte("created_at", fromDate.toISOString())
+          .lte("created_at", toDate.toISOString());
+
+        const { data: purchases } = await db
+          .from("purchase_orders")
+          .select("*")
+          .gte("created_at", fromDate.toISOString())
+          .lte("created_at", toDate.toISOString());
+
+        let totalCollection = 0;
+        (sales || []).forEach(ord => {
+          if (ord.status !== 'cancelled') {
+            let amt = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+            if (amt === 0 && String(ord.address || '').includes("Amt: ₹")) {
+              const match = String(ord.address).match(/Amt:\s*₹\s*([\d.]+)/);
+              if (match && match[1]) amt = Number(match[1]);
+            }
+            totalCollection += amt;
+          }
+        });
+
+        let totalPurchase = 0;
+        (purchases || []).forEach(po => {
+          if (po.status !== 'cancelled') {
+            totalPurchase += Number(po.total_amount || 0);
+          }
+        });
+
+        const diff = totalCollection - totalPurchase;
+        let recommendationHTML = '';
+
+        if (diff > 0) {
+          recommendationHTML = `
+            <div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:10px; margin-bottom:12px;">
+              <div style="font-weight:bold; color:var(--success); font-size:13px; margin-bottom:4px;">🟢 Cash Surplus: ₹${diff.toFixed(2)}</div>
+              <div style="font-size:12px; color:var(--text-dark);">
+                Is period (${fromVal} to ${toVal}) me Total Collection ₹${totalCollection.toFixed(2)} me se Reinvestment ₹${totalPurchase.toFixed(2)} hui hai.<br>
+                💡 <strong>Recommendation:</strong> Aapne ₹${diff.toFixed(2)} kam invest kiya hai. Stock maintain rakhne ke liye <strong>next week me ₹${diff.toFixed(2)} extra invest karna recommended hai!</strong>
+              </div>
+            </div>
+          `;
+        } else if (diff < 0) {
+          recommendationHTML = `
+            <div style="background:#fff1f2; border:1px solid #fecdd3; padding:12px; border-radius:10px; margin-bottom:12px;">
+              <div style="font-weight:bold; color:var(--danger); font-size:13px; margin-bottom:4px;">⚠️ Over-Investment: ₹${Math.abs(diff).toFixed(2)}</div>
+              <div style="font-size:12px; color:#881337;">
+                Is period (${fromVal} to ${toVal}) me Reinvestment (₹${totalPurchase.toFixed(2)}) Total Collection (₹${totalCollection.toFixed(2)}) se ₹${Math.abs(diff).toFixed(2)} zyada hui hai.
+              </div>
+            </div>
+          `;
+        } else {
+          recommendationHTML = `
+            <div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:10px; margin-bottom:12px;">
+              <div style="font-weight:bold; color:var(--blue); font-size:13px; margin-bottom:4px;">⚖️ Balanced Reinvestment</div>
+              <div style="font-size:12px; color:var(--text-dark);">Collection aur Reinvestment 100% matched hai.</div>
+            </div>
+          `;
+        }
+
+        // Heights for Vertical Column Bars
+        const maxVal = Math.max(100, totalCollection, totalPurchase);
+        const collHeightPct = Math.min(100, Math.max(8, Math.round((totalCollection / maxVal) * 100)));
+        const purHeightPct = Math.min(100, Math.max(8, Math.round((totalPurchase / maxVal) * 100)));
+
+        const layoutHTML = `
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:start;" class="reinvest-grid">
+            <!-- LEFT COLUMN: SUMMARY & RECOMMENDATION -->
+            <div>
+              ${recommendationHTML}
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;">
+                  <small style="color:var(--text-muted); font-size:10px; display:block; font-weight:700;">TOTAL COLLECTION</small>
+                  <strong style="color:var(--success); font-size:16px;">₹${totalCollection.toFixed(2)}</strong>
+                </div>
+                <div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;">
+                  <small style="color:var(--text-muted); font-size:10px; display:block; font-weight:700;">TOTAL REINVESTMENT</small>
+                  <strong style="color:var(--blue); font-size:16px;">₹${totalPurchase.toFixed(2)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: VERTICAL BAR CHART -->
+            <div style="background:var(--surface); border:1px solid var(--border); padding:14px; border-radius:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 style="margin:0; font-size:12px; color:var(--text-dark);">📊 Vertical Comparison Chart</h4>
+                <div style="font-size:10px; display:flex; gap:8px;">
+                  <span style="color:var(--success); font-weight:bold;">🟢 Collection</span>
+                  <span style="color:var(--blue); font-weight:bold;">🔵 Purchase</span>
+                </div>
+              </div>
+
+              <!-- VERTICAL BARS CONTAINER -->
+              <div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; padding:10px 0 0 0; border-bottom:2px solid var(--border); gap:16px;">
+                <!-- Collection Vertical Column -->
+                <div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;">
+                  <span style="font-size:10px; font-weight:bold; color:var(--success); margin-bottom:4px;">₹${totalCollection.toFixed(0)}</span>
+                  <div style="width:100%; max-width:55px; background:var(--success); height:${collHeightPct}%; border-radius:6px 6px 0 0; transition:height 0.5s ease; min-height:8px;"></div>
+                </div>
+
+                <!-- Purchase Vertical Column -->
+                <div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;">
+                  <span style="font-size:10px; font-weight:bold; color:var(--blue); margin-bottom:4px;">₹${totalPurchase.toFixed(0)}</span>
+                  <div style="width:100%; max-width:55px; background:var(--blue); height:${purHeightPct}%; border-radius:6px 6px 0 0; transition:height 0.5s ease; min-height:8px;"></div>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:space-around; text-align:center; font-size:10px; font-weight:bold; color:var(--text-muted); margin-top:6px;">
+                <span style="width:45%;">Collection</span>
+                <span style="width:45%;">Purchase</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.innerHTML = layoutHTML;
+
+      } catch (err) {
+        console.error("Reinvestment comparison error:", err);
+        container.innerHTML = `<div style='color:var(--danger); padding:10px;'>Error: ${err.message}</div>`;
+      }
+    }
+
     /* CUSTOMER ORDERS */
     async function loadCustomerOrders() {
       const container = document.getElementById("customerOrdersContainer");
@@ -1146,12 +2020,21 @@
 
         if (orderErr) throw orderErr;
 
-        if (!orders || orders.length === 0) {
-          container.innerHTML = "<div style='text-align:center; padding:20px;'>Koi customer order nahi mila.</div>";
+        // Exclude manual counter cash collection entries from Customer Orders view
+        const filteredOrders = (orders || []).filter(ord => {
+          const cName = String(ord.customer_name || '').toLowerCase();
+          const mob = String(ord.mobile || '');
+          const addr = String(ord.address || '').toLowerCase();
+          const isCounterEntry = cName.includes('counter') || mob === '0000000000' || addr.includes('[mode:');
+          return !isCounterEntry;
+        });
+
+        if (!filteredOrders || filteredOrders.length === 0) {
+          container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Koi customer order nahi mila.</div>";
           return;
         }
 
-        const orderIds = orders.map(o => o.id);
+        const orderIds = filteredOrders.map(o => o.id);
         const { data: allItems } = await db
           .from("order_items")
           .select("*")
@@ -1164,7 +2047,7 @@
           itemsMap[k].push(it);
         });
 
-        container.innerHTML = orders.map(ord => {
+        container.innerHTML = filteredOrders.map(ord => {
           const items = itemsMap[String(ord.id)] || [];
           let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
           
@@ -1433,6 +2316,29 @@
       loadPurchaseOrders();
     }
 
+    async function cancelPurchaseOrder(poId) {
+      const { error } = await db.from("purchase_orders").update({ 
+        status: "cancelled"
+      }).eq("id", poId);
+
+      if (error) {
+        alert("Order cancel error: " + error.message);
+      } else {
+        loadPurchaseOrders();
+      }
+    }
+
+    async function deletePurchaseOrder(poId) {
+      await db.from("purchase_order_items").delete().eq("po_id", poId);
+      const { error } = await db.from("purchase_orders").delete().eq("id", poId);
+
+      if (error) {
+        alert("Delete error: " + error.message);
+      } else {
+        loadPurchaseOrders();
+      }
+    }
+
     async function loadPurchaseOrders() {
       const container = document.getElementById("purchaseOrdersList");
       const { data: pos, error } = await db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false });
@@ -1446,12 +2352,17 @@
         const supObj = suppliersList.find(s => s.name === po.supplier_name);
         const phone = supObj ? supObj.phone : null;
         const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+        const statusLower = String(po.status || 'pending').toLowerCase();
+
+        let badgeClass = 'badge-pending';
+        if (statusLower === 'received') badgeClass = 'badge-received';
+        else if (statusLower === 'cancelled') badgeClass = 'badge-cancelled';
 
         return `
           <div class="order-card">
             <div class="order-header">
-              <span>Supplier: ${po.supplier_name}</span>
-              <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
+              <span>Supplier: ${po.supplier_name} (${po.po_number || '#' + po.id})</span>
+              <span class="badge ${badgeClass}">${po.status}</span>
             </div>
 
             <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
@@ -1463,7 +2374,9 @@
                     <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>
                   ` : ''}
                   <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
-                  ${po.status === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                  ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal(${po.id})">✏️ Edit Order</button>` : ''}
+                  ${statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder(${po.id})">❌ Cancel Reorder</button>` : ''}
+                  <button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder(${po.id})">🗑 Delete Order</button>
                 </div>
               </div>
             </div>
@@ -1472,14 +2385,19 @@
               ${(po.purchase_order_items || []).map(it => `
                 <div class="item-row">
                   <span>• ${it.product_name} (Qty: ${it.quantity})</span>
-                  <span>₹${it.purchase_price} / unit</span>
+                  <span>₹${Number(it.purchase_price).toFixed(2)} / unit</span>
                 </div>
               `).join("")}
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:6px; flex-wrap:wrap; gap:6px;">
               <strong>Bill: ₹${Number(po.total_amount).toFixed(2)}</strong>
-              ${po.status === 'pending' ? `<button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`}
+              ${statusLower === 'pending' ? `
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <button class="btn-danger" style="padding:5px 10px; font-size:11px;" onclick="cancelPurchaseOrder(${po.id})">❌ Cancel</button>
+                  <button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock(${po.id})">✅ Receive Stock</button>
+                </div>
+              ` : (statusLower === 'cancelled' ? `<small style="color:var(--danger); font-weight:bold;">Order Cancelled (${formatTime(po.cancelled_at || po.updated_at)})</small>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`)}
             </div>
           </div>
         `;
@@ -1760,7 +2678,8 @@
       }
     }
 
-    // INITIALIZE APP WITH LAST ACTIVE TAB
+    // INITIALIZE APP WITH LAST ACTIVE TAB & THEME
+    initTheme();
     initActiveTab();
   </script>
 </body>
