@@ -21,17 +21,19 @@ function saveGoogleSheetUrl(url) {
 }
 
 async function syncOrderToGoogleSheet(payload) {
-  const url = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
-  if (!url) {
+  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  if (!baseUrl) {
     console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
     return;
   }
   try {
-    await fetch(url, {
+    const payloadStr = JSON.stringify(payload);
+    const targetUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "payload=" + encodeURIComponent(payloadStr);
+    await fetch(targetUrl, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(payload)
+      body: payloadStr
     });
     console.log("Successfully sent payload to Google Sheet:", payload);
   } catch (err) {

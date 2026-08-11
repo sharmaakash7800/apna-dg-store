@@ -1326,20 +1326,23 @@
         if (itemsErr) throw itemsErr;
 
         try {
-          fetch("https://script.google.com/macros/s/AKfycbw4huYadFAW0j-GsGWkEt-MJhZkCjf2v4KG88gMnwNrwu9lUfJoLugGS4GaRKWB_LpAsQ/exec", {
+          const payloadObj = {
+            orderId: orderCode,
+            orderType: "New Customer Order",
+            partyName: customerName,
+            items: cart.map(i => `${i.name} (×${i.quantity})`).join(", "),
+            quantity: cart.reduce((s, i) => s + (i.quantity || 1), 0),
+            totalAmount: finalTotalAmount,
+            status: "pending",
+            notes: `Mobile: ${mobile} | Address: ${address}`
+          };
+          const payloadStr = JSON.stringify(payloadObj);
+          const targetUrl = "https://script.google.com/macros/s/AKfycbw4huYadFAW0j-GsGWkEt-MJhZkCjf2v4KG88gMnwNrwu9lUfJoLugGS4GaRKWB_LpAsQ/exec?payload=" + encodeURIComponent(payloadStr);
+          fetch(targetUrl, {
             method: "POST",
             mode: "no-cors",
             headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({
-              orderId: orderCode,
-              orderType: "New Customer Order",
-              partyName: customerName,
-              items: cart.map(i => `${i.name} (×${i.quantity})`).join(", "),
-              quantity: cart.reduce((s, i) => s + (i.quantity || 1), 0),
-              totalAmount: finalTotalAmount,
-              status: "pending",
-              notes: `Mobile: ${mobile} | Address: ${address}`
-            })
+            body: payloadStr
           });
         } catch(e) { console.error("Sheet sync error:", e); }
 
