@@ -94,8 +94,8 @@ header {
 
 /* SIDEBAR & DRAWER */
 .admin-container-wrapper {
-  display: flex;
-  min-height: calc(100vh - 60px);
+  display: block;
+  width: 100%;
 }
 
 .sidebar-drawer {
@@ -230,10 +230,9 @@ header {
 
 /* LAYOUT & CARDS */
 .container {
-  width: min(100%, 1150px);
-  padding: 20px 16px;
+  width: min(100%, 1380px);
+  padding: 16px 20px;
   margin: 0 auto;
-  align-self: flex-start;
 }
 
 .tab-content { display: none; }
