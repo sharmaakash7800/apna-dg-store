@@ -658,7 +658,7 @@ async function submitTickedReorder(sourceModal = false) {
         quantity: i.quantity,
         sku: i.product_id || '',
         price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: supplier
+        location: "Raghav Agency"
       })),
       totalAmount: totalAmount,
       status: "pending",
@@ -990,7 +990,7 @@ async function submitPurchaseOrder() {
         quantity: i.quantity,
         sku: i.product_id || '',
         price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: supplier
+        location: "Raghav Agency"
       })),
       totalAmount: totalAmount,
       status: "pending",
@@ -1189,7 +1189,7 @@ async function syncPoToSheet(poId) {
       quantity: i.quantity,
       sku: i.product_id || '',
       price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-      location: po.supplier_name
+      location: "Raghav Agency"
     })),
     totalAmount: po.total_amount,
     status: po.status || "pending",
@@ -1230,7 +1230,7 @@ async function receiveStock(poId) {
         quantity: i.quantity,
         sku: i.product_id || '',
         price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: po.supplier_name
+        location: "Raghav Agency"
       })),
       totalAmount: po.total_amount,
       status: "received",
