@@ -911,6 +911,24 @@ function selectSearchProduct(id, name, price, inputId, resultsId, hiddenId, pric
   document.getElementById(hiddenId) && (document.getElementById(hiddenId).value = id);
   document.getElementById(priceInputId) && (document.getElementById(priceInputId).value = Number(price).toFixed(2));
   document.getElementById(resultsId) && (document.getElementById(resultsId).style.display = "none");
+function togglePoRateCalc(p = '') {
+  const box = document.getElementById(p + "poRateCalcBox");
+  if (box) box.style.display = box.style.display === "none" || !box.style.display ? "block" : "none";
+}
+
+function updatePoPacketRateCalc(p = '') {
+  const qty = Number(document.getElementById(p + "poQty")?.value || 1);
+  const price = Number(document.getElementById(p + "poPrice")?.value || 0);
+  const badge = document.getElementById(p + "poPacketRateHelperBadge");
+  if (!badge) return;
+
+  if (qty > 0 && price > 0) {
+    const eachPrice = (price / qty).toFixed(2);
+    badge.innerHTML = `<span style="font-size:12px; font-weight:bold; color:var(--primary);">💡 1 Unit / Piece Rate: ₹${eachPrice}</span> <small style="color:var(--text-muted);">(Total Bill ₹${price} ÷ ${qty} Qty)</small>`;
+    badge.style.display = "block";
+  } else {
+    badge.style.display = "none";
+  }
 }
 
 function addPoItem() {
@@ -937,10 +955,13 @@ function addPoItem() {
   document.getElementById("selectedProductId") && (document.getElementById("selectedProductId").value = "");
   document.getElementById("poPrice") && (document.getElementById("poPrice").value = "");
   document.getElementById("poQty") && (document.getElementById("poQty").value = "1");
+  document.getElementById("poPacketRateHelperBadge") && (document.getElementById("poPacketRateHelperBadge").style.display = "none");
   renderPoCart();
 }
 
-const addItemToPoCart = addPoItem;
+function addItemToPoCart() {
+  addPoItem();
+}
 
 function renderPoCart() {
   const container = document.getElementById("poCartItems");
