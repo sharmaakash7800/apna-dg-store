@@ -232,7 +232,8 @@ header {
 .container {
   width: min(100%, 1150px);
   padding: 20px 16px;
-  margin: auto;
+  margin: 0 auto;
+  align-self: flex-start;
 }
 
 .tab-content { display: none; }
