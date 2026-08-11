@@ -1172,6 +1172,7 @@ async function saveUpdatedPurchaseOrder() {
 
 async function receiveStock(poId) {
   if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Stock Qty aur Cost Price update ho jayegi.")) return;
+  const { data: po } = await db.from("purchase_orders").select("*").eq("id", poId).single();
   const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
 
   if (items?.length) {
@@ -1185,6 +1186,26 @@ async function receiveStock(poId) {
 
   await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
   alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
+
+  if (po && items?.length) {
+    syncOrderToGoogleSheet({
+      orderId: po.po_number || ('#' + po.id),
+      orderType: "Supplier Stock Received",
+      partyName: po.supplier_name || 'Akash Sharma',
+      itemsArray: items.map((i, idx) => ({
+        indentNo: 100 + idx + 1,
+        name: i.product_name,
+        quantity: i.quantity,
+        sku: i.product_id || '',
+        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
+        location: po.supplier_name
+      })),
+      totalAmount: po.total_amount,
+      status: "received",
+      notes: "Stock Received Entry"
+    });
+  }
+
   loadPurchaseOrders(); loadProductsForReorder();
 }
 
