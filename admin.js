@@ -21,18 +21,17 @@ function saveGoogleSheetUrl(url) {
 }
 
 async function syncOrderToGoogleSheet(payload) {
-  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
-  if (!baseUrl) {
+  const url = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  if (!url) {
     console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
     return;
   }
   try {
     const payloadStr = JSON.stringify(payload);
-    const targetUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "payload=" + encodeURIComponent(payloadStr);
-    await fetch(targetUrl, {
+    await fetch(url, {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: payloadStr
     });
     console.log("Successfully sent payload to Google Sheet:", payload);
@@ -649,7 +648,6 @@ async function submitTickedReorder(sourceModal = false) {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
-    alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
     syncOrderToGoogleSheet({
       orderId: poNumber,
       orderType: "Supplier Reorder",
@@ -666,6 +664,7 @@ async function submitTickedReorder(sourceModal = false) {
       status: "pending",
       notes: "Ticked Reorder from Admin Dashboard"
     });
+    alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
   }
 
   clearAllSelection();
@@ -981,7 +980,6 @@ async function submitPurchaseOrder() {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
-    alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
     syncOrderToGoogleSheet({
       orderId: poNumber,
       orderType: "Supplier Reorder",
@@ -998,6 +996,7 @@ async function submitPurchaseOrder() {
       status: "pending",
       notes: "Direct Reorder from Admin Dashboard"
     });
+    alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
   }
 
   poCart = [];
