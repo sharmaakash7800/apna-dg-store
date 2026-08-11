@@ -74,6 +74,12 @@
               🌙 Dark Mode
             </button>
           </div>
+
+          <div style="margin-top:10px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📊 Google Sheet Web App URL:</label>
+            <input type="text" id="googleSheetUrlInput" placeholder="Paste Apps Script Exec URL..." style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);" onchange="saveGoogleSheetUrl(this.value)" />
+            <div id="sheetSyncStatus" style="font-size:10px; font-weight:700; margin-top:4px; color:var(--text-muted);">⚠️ Sheet URL Not Set</div>
+          </div>
         </div>
       </div>
     </aside>

@@ -5,6 +5,40 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedProductsMap = {};
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
+/* GOOGLE SHEETS AUTOMATIC SYNC LOGIC */
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbw4huYadFAW0j-GsGWkEt-MJhZkCjf2v4KG88gMnwNrwu9lUfJoLugGS4GaRKWB_LpAsQ/exec";
+let googleSheetScriptUrl = DEFAULT_SHEET_URL;
+localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
+
+function saveGoogleSheetUrl(url) {
+  googleSheetScriptUrl = (url || "").trim();
+  localStorage.setItem("googleSheetScriptUrl", googleSheetScriptUrl);
+  const statusEl = document.getElementById("sheetSyncStatus");
+  if (statusEl) {
+    statusEl.textContent = googleSheetScriptUrl ? "✅ Sheet Sync Active" : "⚠️ Sheet URL Not Set";
+    statusEl.style.color = googleSheetScriptUrl ? "var(--success)" : "var(--danger)";
+  }
+}
+
+async function syncOrderToGoogleSheet(payload) {
+  const url = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  if (!url) {
+    console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
+    return;
+  }
+  try {
+    await fetch(url, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload)
+    });
+    console.log("Successfully sent payload to Google Sheet:", payload);
+  } catch (err) {
+    console.error("Google Sheet Sync Error:", err);
+  }
+}
+
 /* SIDEBAR NAVIGATION & PERSIST ACTIVE VIEW */
 const toggleSidebar = () => ["sidebarDrawer", "sidebarOverlay"].forEach(id => document.getElementById(id)?.classList.toggle("open"));
 const closeSidebar = () => ["sidebarDrawer", "sidebarOverlay"].forEach(id => document.getElementById(id)?.classList.remove("open"));
@@ -164,6 +198,16 @@ async function saveOfflineCashEntry() {
   if (ordErr && collErr) alert("Error saving entry: " + (ordErr.message || collErr.message));
   else {
     alert("Collection Entry Successfully Saved into Collections table!");
+    syncOrderToGoogleSheet({
+      orderId: "ORD-CNT-" + Date.now(),
+      orderType: "Counter Sale / Collection",
+      partyName: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
+      items: noteVal,
+      quantity: 1,
+      totalAmount: amountVal,
+      status: "completed",
+      notes: `Period: ${fromDateVal} to ${toDateVal}`
+    });
     document.getElementById("manualCashAmount").value = "";
     document.getElementById("manualCashNote").value = "";
     calculateReports();
@@ -602,7 +646,25 @@ async function submitTickedReorder(sourceModal = false) {
 
   const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
-  else alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
+  else {
+    alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
+    syncOrderToGoogleSheet({
+      orderId: poNumber,
+      orderType: "Supplier Reorder",
+      partyName: supplier,
+      itemsArray: dbItems.map((i, idx) => ({
+        indentNo: 100 + idx + 1,
+        name: i.product_name,
+        quantity: i.quantity,
+        sku: i.product_id || '',
+        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
+        location: supplier
+      })),
+      totalAmount: totalAmount,
+      status: "pending",
+      notes: "Ticked Reorder from Admin Dashboard"
+    });
+  }
 
   clearAllSelection();
   ['tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
@@ -916,7 +978,25 @@ async function submitPurchaseOrder() {
   const items = poCart.map(i => ({ po_id: po.id, product_id: i.product_id ? String(i.product_id) : null, product_name: i.product_name, quantity: Number(i.quantity) || 1, purchase_price: Number(i.purchase_price) || 0 }));
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
-  else alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+  else {
+    alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+    syncOrderToGoogleSheet({
+      orderId: poNumber,
+      orderType: "Supplier Reorder",
+      partyName: supplier,
+      itemsArray: items.map((i, idx) => ({
+        indentNo: 100 + idx + 1,
+        name: i.product_name,
+        quantity: i.quantity,
+        sku: i.product_id || '',
+        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
+        location: supplier
+      })),
+      totalAmount: totalAmount,
+      status: "pending",
+      notes: "Direct Reorder from Admin Dashboard"
+    });
+  }
 
   poCart = [];
   if (select) select.value = "";
@@ -1205,7 +1285,28 @@ async function updateOrderStatus(id, newStatus) {
 
   const { error } = await db.from("orders").update(updateData).eq("id", id);
   if (error) alert("Error: " + error.message);
-  else { alert("Order Status update ho gaya!"); loadCustomerOrders(); }
+  else { 
+    alert("Order Status update ho gaya!"); 
+    loadCustomerOrders(); 
+    try {
+      const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
+      const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
+      if (ord) {
+        const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
+        const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        syncOrderToGoogleSheet({
+          orderId: ord.order_id || ('#' + ord.id),
+          orderType: "Customer Order",
+          partyName: ord.customer_name || 'Customer',
+          items: itemNames,
+          quantity: (items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
+          totalAmount: totalAmount,
+          status: newStatus,
+          notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
+        });
+      }
+    } catch(e) { console.error("Sheet sync error:", e); }
+  }
 }
 
 /* PDF GENERATION */
@@ -1271,6 +1372,13 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
+
+  const urlInput = document.getElementById("googleSheetUrlInput");
+  if (urlInput) {
+    urlInput.value = googleSheetScriptUrl;
+    saveGoogleSheetUrl(googleSheetScriptUrl);
+  }
+
   const ts = document.getElementById("tickedSupplierSelect");
   const mts = document.getElementById("modalTickedSupplierSelect");
   if (ts && mts) {
