@@ -940,6 +940,8 @@ function addPoItem() {
   renderPoCart();
 }
 
+const addItemToPoCart = addPoItem;
+
 function renderPoCart() {
   const container = document.getElementById("poCartItems");
   if (!container) return;
