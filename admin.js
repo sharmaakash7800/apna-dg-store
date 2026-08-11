@@ -6,7 +6,7 @@ let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedP
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
 /* GOOGLE SHEETS AUTOMATIC SYNC LOGIC */
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbw4huYadFAW0j-GsGWkEt-MJhZkCjf2v4KG88gMnwNrwu9lUfJoLugGS4GaRKWB_LpAsQ/exec";
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbxnNntFWBkP1qq3FJnf8vkq8U5Ki7ASLZj26yx4xrKkmwqqTW21e1jjiFdu_7B41bU3/exec";
 let googleSheetScriptUrl = DEFAULT_SHEET_URL;
 localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
 
