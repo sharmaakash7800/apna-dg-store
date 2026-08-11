@@ -911,6 +911,8 @@ function selectSearchProduct(id, name, price, inputId, resultsId, hiddenId, pric
   document.getElementById(hiddenId) && (document.getElementById(hiddenId).value = id);
   document.getElementById(priceInputId) && (document.getElementById(priceInputId).value = Number(price).toFixed(2));
   document.getElementById(resultsId) && (document.getElementById(resultsId).style.display = "none");
+}
+
 function togglePoRateCalc(p = '') {
   const box = document.getElementById(p + "poRateCalcBox");
   if (box) box.style.display = box.style.display === "none" || !box.style.display ? "block" : "none";
