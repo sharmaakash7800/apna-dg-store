@@ -1051,6 +1051,7 @@ async function loadPurchaseOrders() {
               <div class="dropdown-menu">
                 ${phone ? `<a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a><a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>` : ''}
                 <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
+                <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
                 ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order</button><button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
                 <button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>
               </div>
@@ -1172,21 +1173,51 @@ async function saveUpdatedPurchaseOrder() {
   closeEditPoModal(); loadPurchaseOrders();
 }
 
+async function syncPoToSheet(poId) {
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
+
+  if (!po || !items?.length) return alert("Order details loading failed.");
+
+  await syncOrderToGoogleSheet({
+    orderId: po.po_number || ('#' + po.id),
+    orderType: "Supplier Reorder",
+    partyName: po.supplier_name || 'Akash Sharma',
+    itemsArray: items.map((i, idx) => ({
+      indentNo: 100 + idx + 1,
+      name: i.product_name,
+      quantity: i.quantity,
+      sku: i.product_id || '',
+      price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
+      location: po.supplier_name
+    })),
+    totalAmount: po.total_amount,
+    status: po.status || "pending",
+    notes: "Manual Sync from Admin Dashboard"
+  });
+
+  alert(`Order ${po.po_number || po.id} ka data Google Sheet me sync ho gaya!`);
+}
+
 async function receiveStock(poId) {
   if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Stock Qty aur Cost Price update ho jayegi.")) return;
-  const { data: po } = await db.from("purchase_orders").select("*").eq("id", poId).single();
-  const { data: items } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
+  
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
 
   if (items?.length) {
     for (let item of items) {
       if (!item.product_id) continue;
-      const { data: prod } = await db.from("products").select("stock_qty").eq("id", item.product_id).single();
+      const pIdCond = !isNaN(Number(item.product_id)) ? Number(item.product_id) : item.product_id;
+      const { data: prod } = await db.from("products").select("stock_qty").or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`).single();
       const currentQty = Number(prod?.stock_qty || 0);
-      await db.from("products").update({ cost_price: item.purchase_price, stock_qty: currentQty + Number(item.quantity || 0) }).eq("id", item.product_id);
+      await db.from("products").update({ cost_price: item.purchase_price, stock_qty: currentQty + Number(item.quantity || 0) }).or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`);
     }
   }
 
-  await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).eq("id", poId);
+  await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
   alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
 
   if (po && items?.length) {
