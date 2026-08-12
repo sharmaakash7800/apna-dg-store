@@ -1055,7 +1055,7 @@ async function submitTickedReorder(sourceModal = false) {
   if (!supplier) return alert("Supplier select karein.");
   if (keys.length === 0) return alert("Kam se kam 1 product par tick karein.");
 
-  const poNumber = "PO-" + Date.now();
+  const poNumber = await generateNextPoNumber();
   const itemsList = keys.map(k => tickedProductsMap[k]);
   const totalAmount = itemsList.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
 
@@ -1544,7 +1544,7 @@ async function submitPurchaseOrder() {
   if (!poCart.length) return alert("Order me kam se kam 1 item add karein.");
 
   const totalAmount = poCart.reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.purchase_price) || 0)), 0);
-  const poNumber = "PO-" + Date.now();
+  const poNumber = await generateNextPoNumber();
 
   const { data: po, error } = await db.from("purchase_orders").insert([{ po_number: poNumber, supplier_name: supplier, total_amount: totalAmount, status: "pending" }]).select("id").single();
   if (error) return alert("Order Header save error: " + error.message);
@@ -1594,6 +1594,67 @@ async function cancelPurchaseOrder(poId) {
   if (error) alert("Order cancel karne me error: " + error.message);
   else {
     alert("Reorder successfully Cancel ho gaya!");
+    loadPurchaseOrders();
+  }
+}
+
+async function generateNextPoNumber() {
+  try {
+    const { data: pos } = await db.from("purchase_orders").select("po_number, id").order("id", { ascending: false }).limit(100);
+    let maxSeq = 1000;
+    if (pos && pos.length) {
+      pos.forEach(p => {
+        if (p.po_number && p.po_number.startsWith("PO-")) {
+          const numStr = p.po_number.replace(/^PO-/, "").trim();
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num < 1000000 && num > maxSeq) {
+            maxSeq = num;
+          }
+        }
+      });
+    }
+    return "PO-" + (maxSeq + 1);
+  } catch (e) {
+    return "PO-" + (1000 + Math.floor(Math.random() * 900));
+  }
+}
+
+async function changePoSupplier(poId) {
+  await loadSuppliers();
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("supplier_name").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  if (!po) return alert("Order nahi mila.");
+
+  const currentSupplier = po.supplier_name || '';
+  const supplierNames = suppliersList.map(s => s.name);
+  if (!supplierNames.length) return alert("Koi supplier available nahi hai.");
+
+  const chosen = prompt(`Naya Supplier Name chunein:\n\nAvailable Suppliers:\n${supplierNames.join("\n")}`, currentSupplier);
+  if (!chosen || chosen.trim() === "" || chosen.trim() === currentSupplier) return;
+
+  const newSupplierName = chosen.trim();
+  const { error } = await db.from("purchase_orders").update({ supplier_name: newSupplierName }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+  if (error) alert("Supplier change error: " + error.message);
+  else {
+    alert(`Supplier Name badal kar "${newSupplierName}" kar diya gaya hai!`);
+    loadPurchaseOrders();
+  }
+}
+
+async function changePoNumber(poId) {
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  if (!po) return alert("Order nahi mila.");
+
+  const defaultNext = await generateNextPoNumber();
+  const newPoNum = prompt(`PO Number change / update karein:`, po.po_number || defaultNext);
+  if (!newPoNum || newPoNum.trim() === "" || newPoNum.trim() === po.po_number) return;
+
+  const cleanNum = newPoNum.trim();
+  const { error } = await db.from("purchase_orders").update({ po_number: cleanNum }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+  if (error) alert("PO Number update error: " + error.message);
+  else {
+    alert(`PO Number badal kar "${cleanNum}" kar diya gaya hai!`);
     loadPurchaseOrders();
   }
 }
@@ -1653,6 +1714,8 @@ async function loadPurchaseOrders() {
                 ${phone ? `<a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a><a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>` : ''}
                 <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
                 <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
+                <button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>
+                <button class="dropdown-item" onclick="changePoNumber('${po.id}')">🔢 Change PO Number</button>
                 ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order</button><button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
                 ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
                 ${statusLower !== 'received' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
