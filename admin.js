@@ -198,30 +198,32 @@ function copyAppsScriptCode() {
     "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
     "        for (var i = 0; i < data.itemsArray.length; i++) {",
     "          var item = data.itemsArray[i];",
+    "          var cleanSku = String(item.sku || '0').replace(/^SKU-/i, '').trim();",
     "          poSheet.appendRow([",
     "            timestampStr,",
     "            orderIdStr,",
     "            item.indentNo || (101 + i),",
-    "            item.sku || '0',",
+    "            cleanSku,",
     "            item.name || '',",
     "            item.quantity || 1,",
     "            item.costPack || item.cost_pack || 0,",
     "            item.supplier || partyStr || 'N/A',",
-    "            partyStr || item.person || 'Admin',",
+    "            data.buyer || partyStr || item.person || 'Admin',",
     "            item.price || item.totalPrice || 0",
     "          ]);",
     "        }",
     "      } else {",
+    "        var cleanSkuSingle = String(data.sku || '0').replace(/^SKU-/i, '').trim();",
     "        poSheet.appendRow([",
     "          timestampStr,",
     "          orderIdStr,",
     "          101,",
-    "          data.sku || '0',",
+    "          cleanSkuSingle,",
     "          itemsStr || 'Purchase Order Item',",
     "          data.quantity || 1,",
     "          data.costPack || data.cost_pack || 0,",
     "          partyStr || 'N/A',",
-    "          partyStr || 'Admin',",
+    "          data.buyer || partyStr || 'Admin',",
     "          data.totalAmount || data.price || 0",
     "        ]);",
     "      }",
@@ -1441,7 +1443,7 @@ function getProductSku(productId, productName) {
   if (prod) {
     const sku = prod.sku || prod.sku_code || prod.skucode || prod.barcode || prod.code || prod.product_code || prod.sku_id;
     if (sku && String(sku).trim() !== "" && String(sku).trim() !== "null" && String(sku).trim() !== "undefined") {
-      return String(sku).trim();
+      return String(sku).trim().replace(/^SKU-/i, '');
     }
   }
 
