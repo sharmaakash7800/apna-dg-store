@@ -598,122 +598,125 @@
           </div>
         </div>
 
-        <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART -->
-        <div class="card">
-          <div
-            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
-            <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
-              onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
-          </div>
+        <!-- SALES REPORT FULL CONTAINER (TOGGLED VIA BUTTON) -->
+        <div id="salesReportFullContainer" style="display:none; transition:all 0.3s ease;">
+          <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART -->
+          <div class="card">
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+              <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
+              <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
+                onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
+            </div>
 
-          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-            <div style="flex:1; max-width:200px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
-                Date Preset:</label>
-              <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                onchange="setReinvestmentDateFilter(this.value)">
-                <option value="today">Today</option>
-                <option value="week" selected>📅 This Week (Default)</option>
-                <option value="last_week">Last Week</option>
-                <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-              </select>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+              <div style="flex:1; max-width:200px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+                  Date Preset:</label>
+                <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+                  onchange="setReinvestmentDateFilter(this.value)">
+                  <option value="today">Today</option>
+                  <option value="week" selected>📅 This Week (Default)</option>
+                  <option value="last_week">Last Week</option>
+                  <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+              <div style="flex:1; max-width:200px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                  Date (Start):</label>
+                <input type="date" id="reinvestmentFromDate" />
+              </div>
+              <div style="flex:1; max-width:220px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                  Date (End):</label>
+                <input type="date" id="reinvestmentToDate" />
+              </div>
             </div>
-            <div style="flex:1; max-width:200px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                Date (Start):</label>
-              <input type="date" id="reinvestmentFromDate" />
-            </div>
-            <div style="flex:1; max-width:220px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                Date (End):</label>
-              <input type="date" id="reinvestmentToDate" />
-            </div>
-          </div>
 
-          <div id="reinvestmentComparisonContainer">
-            <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
-          </div>
-        </div>
-
-        <div class="card" id="salesReportSectionCard">
-          <h2>📊 Sales Report</h2>
-
-          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-            <div style="flex:1; max-width:210px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
-                Date Preset:</label>
-              <select id="salesReportDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                onchange="setDateFilter(this.value)">
-                <option value="today">Today</option>
-                <option value="week" selected>This Week</option>
-                <option value="last_week">Last week</option>
-                <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-              </select>
-            </div>
-            <div style="flex:1; max-width:200px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                Date:</label>
-              <input type="date" id="reportFromDate" />
-            </div>
-            <div style="flex:1; max-width:200px; min-width:140px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                Date:</label>
-              <input type="date" id="reportToDate" />
-            </div>
-            <div>
-              <button class="btn-primary" onclick="calculateReports()" style="padding:10px 14px;">📈 Calculate
-                Report</button>
+            <div id="reinvestmentComparisonContainer">
+              <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
             </div>
           </div>
 
-          <div class="summary-grid">
-            <div class="summary-card">
-              <small>💵 OFFLINE COLLECTION</small>
-              <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
-            </div>
-            <div class="summary-card">
-              <small>💳 ONLINE COLLECTION</small>
-              <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
-            </div>
-            <div class="summary-card">
-              <small>💰 TOTAL COLLECTION (SALES)</small>
-              <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
-            </div>
-          </div>
+          <div class="card" id="salesReportSectionCard">
+            <h2>📊 Sales Report</h2>
 
-          <!-- DETAILED BREAKDOWN TABLE -->
-          <div style="margin-top:20px;">
-            <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown
-            </h3>
-            <div class="table-responsive">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>Period / Date Range</th>
-                    <th>Offline (Cash)</th>
-                    <th>Online (UPI/Cards)</th>
-                    <th>Total Sales</th>
-                    <th>Total Orders</th>
-                  </tr>
-                </thead>
-                <tbody id="collectionBreakdownBody">
-                  <tr>
-                    <td colspan="5" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate
-                      Report' par click karein.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+              <div style="flex:1; max-width:210px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+                  Date Preset:</label>
+                <select id="salesReportDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+                  onchange="setDateFilter(this.value)">
+                  <option value="today">Today</option>
+                  <option value="week" selected>This Week</option>
+                  <option value="last_week">Last week</option>
+                  <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+              <div style="flex:1; max-width:200px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                  Date:</label>
+                <input type="date" id="reportFromDate" />
+              </div>
+              <div style="flex:1; max-width:200px; min-width:140px;">
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                  Date:</label>
+                <input type="date" id="reportToDate" />
+              </div>
+              <div>
+                <button class="btn-primary" onclick="calculateReports()" style="padding:10px 14px;">📈 Calculate
+                  Report</button>
+              </div>
+            </div>
+
+            <div class="summary-grid">
+              <div class="summary-card">
+                <small>💵 OFFLINE COLLECTION</small>
+                <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
+              </div>
+              <div class="summary-card">
+                <small>💳 ONLINE COLLECTION</small>
+                <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
+              </div>
+              <div class="summary-card">
+                <small>💰 TOTAL COLLECTION (SALES)</small>
+                <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
+              </div>
+            </div>
+
+            <!-- DETAILED BREAKDOWN TABLE -->
+            <div style="margin-top:20px;">
+              <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown
+              </h3>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Period / Date Range</th>
+                      <th>Offline (Cash)</th>
+                      <th>Online (UPI/Cards)</th>
+                      <th>Total Sales</th>
+                      <th>Total Orders</th>
+                    </tr>
+                  </thead>
+                  <tbody id="collectionBreakdownBody">
+                    <tr>
+                      <td colspan="5" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate
+                        Report' par click karein.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -973,7 +976,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=2.2"></script>
+  <script src="admin.js?v=2.3"></script>
 </body>
 
 </html>

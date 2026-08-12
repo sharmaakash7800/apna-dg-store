@@ -476,13 +476,20 @@ function toggleCounterCollectionCard() {
 }
 
 function toggleSalesReportSection() {
-  const card = document.getElementById("salesReportSectionCard");
-  if (!card) return;
-  const isHidden = card.style.display === "none" || !card.style.display;
-  card.style.display = isHidden ? "block" : "none";
+  const container = document.getElementById("salesReportFullContainer");
+  if (!container) return;
+  const isHidden = container.style.display === "none" || !container.style.display;
+  container.style.display = isHidden ? "block" : "none";
+  
+  const btn = document.getElementById("btnToggleSalesReport");
+  if (btn) {
+    btn.textContent = isHidden ? "📊 Hide Sales Report" : "📊 Sales Report";
+  }
+
   if (isHidden) {
     calculateReports();
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    calculateWeeklyReinvestmentComparison();
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
@@ -556,15 +563,25 @@ async function loadCounterCollectionHistory() {
 }
 
 async function deleteCollectionEntry(id) {
+  if (!id) return alert("Invalid ID");
   if (!confirm("Kya aap is Collection Entry ko delete karna chahte hain?")) return;
-  const { error } = await db.from("Collections").delete().eq("id", id);
+
+  const numId = Number(id);
+  const searchId = !isNaN(numId) ? numId : id;
+
+  let { error } = await db.from("Collections").delete().eq("id", searchId);
+
   if (error) {
-    alert("Delete Error: " + error.message);
-  } else {
-    alert("Collection Entry delete ho gayi!");
-    loadCounterCollectionHistory();
-    calculateReports();
+    const { error: err2 } = await db.from("Collections").delete().eq("id", String(id));
+    if (err2) {
+      alert("Delete Error: " + (err2.message || error.message));
+      return;
+    }
   }
+
+  alert("Collection Entry successfully delete ho gayi!");
+  loadCounterCollectionHistory();
+  calculateReports();
 }
 
 function getDateRange(type) {
