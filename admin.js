@@ -1131,9 +1131,17 @@ async function loadSuppliers() {
           <div class="dropdown-wrapper">
             <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
             <div class="dropdown-menu">
-              ${s.phone ? `<a href="tel:${s.phone}" class="dropdown-item">📞 Call</a><a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>` : ''}
+              ${s.phone ? `
+                <div class="dropdown-header">📞 Quick Contact</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
+                  <a href="tel:${s.phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
+                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item" style="background:#f0fdf4; color:#16a34a; justify-content:center; padding:6px 8px !important; border-radius:6px;">💬 WhatsApp</a>
+                </div>
+                <div class="dropdown-divider"></div>
+              ` : ''}
+              <div class="dropdown-header">⚡ Manage Supplier</div>
               <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
-              <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete</button>
+              <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete Supplier</button>
             </div>
           </div>
         </div>`;
@@ -1711,11 +1719,22 @@ async function loadPurchaseOrders() {
             <div class="dropdown-wrapper">
               <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
               <div class="dropdown-menu">
-                ${phone ? `<a href="tel:${phone}" class="dropdown-item">📞 Call Supplier</a><a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item">💬 WhatsApp Query</a>` : ''}
-                <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
+                ${phone ? `
+                  <div class="dropdown-header">📞 Contact Supplier</div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
+                    <a href="tel:${phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
+                    <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(po.supplier_name)},%20Order%20${po.po_number}%20ke%20rate%20confirm%20karne%20hain." target="_blank" class="dropdown-item" style="background:#f0fdf4; color:#16a34a; justify-content:center; padding:6px 8px !important; border-radius:6px;">💬 WhatsApp</a>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                ` : ''}
+                <div class="dropdown-header">📄 Document & Actions</div>
+                <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF Report</button>
                 <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
                 <button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>
-                ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order</button><button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
+                ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order Items</button>` : ''}
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-header">⚡ Manage Status</div>
+                ${statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
                 ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
                 ${statusLower !== 'received' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
               </div>
