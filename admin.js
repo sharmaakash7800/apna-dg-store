@@ -184,7 +184,7 @@ function copyAppsScriptCode() {
     "          'Quantity',",
     "          'Cost/Pack',",
     "          'Supplier',",
-    "          'Buyer(Purchase Person)',",
+    "          'Buyer(Perchase Person',",
     "          'Price (₹)'",
     "        ]);",
     "        var poHeaderRange = poSheet.getRange(1, 1, 1, 10);",
