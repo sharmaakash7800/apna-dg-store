@@ -1060,9 +1060,9 @@ async function submitTickedReorder(sourceModal = false) {
 
   const dbItems = itemsList.map(i => ({
     po_id: po.id,
-    product_id: i.product_id ? String(i.product_id) : null,
+    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
     product_name: i.product_name || 'Item',
-    quantity: Number(i.quantity) || 1,
+    quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
   }));
 
@@ -1442,7 +1442,13 @@ async function submitPurchaseOrder() {
   const { data: po, error } = await db.from("purchase_orders").insert([{ po_number: poNumber, supplier_name: supplier, total_amount: totalAmount, status: "pending" }]).select("id").single();
   if (error) return alert("Order Header save error: " + error.message);
 
-  const items = poCart.map(i => ({ po_id: po.id, product_id: i.product_id ? String(i.product_id) : null, product_name: i.product_name, quantity: Number(i.quantity) || 1, purchase_price: Number(i.purchase_price) || 0 }));
+  const items = poCart.map(i => ({
+    po_id: po.id,
+    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
+    product_name: i.product_name,
+    quantity: Math.round(Number(i.quantity) || 1),
+    purchase_price: Number(i.purchase_price) || 0
+  }));
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
@@ -1653,7 +1659,13 @@ async function saveUpdatedPurchaseOrder() {
   const { error: poErr } = await db.from("purchase_orders").update({ supplier_name: supplierName, total_amount: totalAmount }).or(`id.eq.${targetPoId},po_number.eq.${targetPoNum}`);
   if (poErr) return alert("Order update error: " + poErr.message);
 
-  const itemsToInsert = editPoCart.map(i => ({ po_id: targetPoId, product_id: i.product_id ? String(i.product_id) : null, product_name: i.product_name, quantity: Number(i.quantity) || 1, purchase_price: Number(i.purchase_price) || 0 }));
+  const itemsToInsert = editPoCart.map(i => ({
+    po_id: targetPoId,
+    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
+    product_name: i.product_name,
+    quantity: Math.round(Number(i.quantity) || 1),
+    purchase_price: Number(i.purchase_price) || 0
+  }));
 
   await db.from("purchase_order_items").delete().or(`po_id.eq.${targetPoId},po_id.eq.${targetPoNum}`);
   const { error: insErr } = await db.from("purchase_order_items").insert(itemsToInsert);
