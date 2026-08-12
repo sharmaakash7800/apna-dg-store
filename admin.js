@@ -45,223 +45,231 @@ async function syncOrderToGoogleSheet(payload) {
 }
 
 function copyAppsScriptCode() {
-  const code = `function doPost(e) { return handleRequest(e); }
-function doGet(e) { return handleRequest(e); }
-
-function handleRequest(e) {
-  try {
-    var data = null;
-    if (e && e.postData && e.postData.contents) {
-      try { data = JSON.parse(e.postData.contents); } catch (err1) {}
-    }
-    if (!data && e && e.parameter && e.parameter.payload) {
-      try { data = JSON.parse(e.parameter.payload); } catch (err2) {}
-    }
-    if (!data && e && e.parameter) {
-      data = e.parameter;
-    }
-    if (!data) {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "No data received" })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    if (data.record && typeof data.record === 'object') {
-      data = data.record;
-    }
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    var orderIdStr = String(data.orderId || data.order_id || "");
-    var partyStr = String(data.partyName || data.customer_name || "");
-    var addressStr = String(data.address || data.notes || "");
-    var typeStr = String(data.orderType || "");
-    var itemsStr = String(data.items || data.note || "");
-
-    // 1. COLLECTION ENTRY -> Save into "Collection" tab ONLY
-    var isCollection = data.isCollection || 
-                       data.targetSheet === "Collection" ||
-                       typeStr === "Counter Sale / Collection" || 
-                       orderIdStr.indexOf("ORD-CNT") === 0 ||
-                       orderIdStr.indexOf("COLL") === 0 ||
-                       partyStr.indexOf("Counter Cash Sale") !== -1 ||
-                       partyStr.indexOf("Counter Online Sale") !== -1 ||
-                       addressStr.indexOf("[MODE:") !== -1;
-
-    if (isCollection) {
-      var collSheet = ss.getSheetByName("Collection");
-      if (!collSheet) {
-        collSheet = ss.insertSheet("Collection");
-      }
-      
-      if (collSheet.getLastRow() === 0) {
-        collSheet.appendRow([
-          "Timestamp", 
-          "Unique Id", 
-          "Mode", 
-          "Person / Party", 
-          "Item / Note", 
-          "Amount (₹)", 
-          "From Date", 
-          "To Date", 
-          "Status", 
-          "Notes"
-        ]);
-        var headerRange = collSheet.getRange(1, 1, 1, 10);
-        headerRange.setFontWeight("bold");
-        headerRange.setBackground("#0d9488");
-        headerRange.setFontColor("#ffffff");
-      }
-      
-      var timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-      var collId = orderIdStr || ("COLL-" + Date.now());
-      var mode = data.mode || (partyStr.indexOf("Online") !== -1 || addressStr.indexOf("ONLINE") !== -1 ? "Online" : "Cash");
-      var party = partyStr || "Counter Sale";
-
-      var itemNote = itemsStr;
-      if (!itemNote && addressStr) {
-        var matchNote = addressStr.match(/\[MODE:[^\]]+\]\s*([^|\(]+)/);
-        itemNote = matchNote ? matchNote[1].trim() : addressStr;
-      }
-      if (!itemNote) itemNote = "Counter Collection";
-
-      var amount = Number(data.totalAmount || data.amount || 0);
-      if (amount === 0 && addressStr) {
-        var matchAmt = addressStr.match(/Amt:\s*₹?\s*([\d.]+)/);
-        if (matchAmt) amount = Number(matchAmt[1]);
-      }
-
-      var fromDate = data.fromDate || "";
-      var toDate = data.toDate || "";
-      var status = data.status || "completed";
-      var notes = addressStr || data.notes || "";
-
-      collSheet.appendRow([
-        timestamp,
-        collId,
-        mode,
-        party,
-        itemNote,
-        amount,
-        fromDate,
-        toDate,
-        status,
-        notes
-      ]);
-
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Collection" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 2. PURCHASE ORDER (PO) ENTRY -> Save into "Admin Orders Indent" tab ONLY
-    var isPO = !isCollection && (
-      data.isPO || 
-      data.targetSheet === "Admin Orders Indent" ||
-      typeStr === "Supplier Reorder" || 
-      typeStr === "Supplier Stock Received" ||
-      orderIdStr.indexOf("PO-") === 0
-    );
-
-    if (isPO) {
-      var poSheet = ss.getSheetByName("Admin Orders Indent");
-      if (!poSheet) {
-        poSheet = ss.insertSheet("Admin Orders Indent");
-      }
-
-      if (poSheet.getLastRow() === 0) {
-        poSheet.appendRow([
-          "Timestamp",
-          "Unique Id",
-          "Indent Number",
-          "Item Name",
-          "Quantity",
-          "Location",
-          "SKU Code",
-          "Person",
-          "Price (₹)"
-        ]);
-        var poHeaderRange = poSheet.getRange(1, 1, 1, 9);
-        poHeaderRange.setFontWeight("bold");
-        poHeaderRange.setBackground("#006666");
-        poHeaderRange.setFontColor("#ffffff");
-      }
-
-      var timestampStr = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-
-      if (data.itemsArray && Array.isArray(data.itemsArray)) {
-        for (var i = 0; i < data.itemsArray.length; i++) {
-          var item = data.itemsArray[i];
-          poSheet.appendRow([
-            timestampStr,
-            orderIdStr,
-            item.indentNo || (101 + i),
-            item.name || "",
-            item.quantity || 1,
-            item.location || "Raghav Agency",
-            item.sku || "",
-            partyStr || item.person || "Raghav agency",
-            item.price || 0
-          ]);
-        }
-      } else {
-        poSheet.appendRow([
-          timestampStr,
-          orderIdStr,
-          101,
-          itemsStr || "Purchase Order Item",
-          data.quantity || 1,
-          "Raghav Agency",
-          "",
-          partyStr || "Raghav agency",
-          data.totalAmount || data.price || 0
-        ]);
-      }
-
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Admin Orders Indent" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 3. CUSTOMER ORDERS -> Save into "Admin Orders Log" tab
-    var logSheet = ss.getSheetByName("Admin Orders Log");
-    if (!logSheet) {
-      logSheet = ss.insertSheet("Admin Orders Log");
-    }
-
-    if (logSheet.getLastRow() === 0) {
-      logSheet.appendRow([
-        "Timestamp",
-        "Order Code",
-        "Customer Name",
-        "Items",
-        "Quantity",
-        "Total Amount (₹)",
-        "Status",
-        "Notes / Contact"
-      ]);
-      var logHeader = logSheet.getRange(1, 1, 1, 8);
-      logHeader.setFontWeight("bold");
-      logHeader.setBackground("#1e293b");
-      logHeader.setFontColor("#ffffff");
-    }
-
-    var logTimestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-    logSheet.appendRow([
-      logTimestamp,
-      orderIdStr,
-      partyStr,
-      itemsStr,
-      data.quantity || 1,
-      data.totalAmount || 0,
-      data.status || "pending",
-      addressStr || data.notes || ""
-    ]);
-
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Admin Orders Log" }))
-      .setMimeType(ContentService.MimeType.JSON);
-
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-};
+  const code = [
+    "function doPost(e) { return handleRequest(e); }",
+    "function doGet(e) { return handleRequest(e); }",
+    "",
+    "function handleRequest(e) {",
+    "  try {",
+    "    var data = null;",
+    "    if (e && e.postData && e.postData.contents) {",
+    "      try { data = JSON.parse(e.postData.contents); } catch (err1) {}",
+    "    }",
+    "    if (!data && e && e.parameter && e.parameter.payload) {",
+    "      try { data = JSON.parse(e.parameter.payload); } catch (err2) {}",
+    "    }",
+    "    if (!data && e && e.parameter) {",
+    "      data = e.parameter;",
+    "    }",
+    "    if (!data) {",
+    "      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'No data received' })).setMimeType(ContentService.MimeType.JSON);",
+    "    }",
+    "",
+    "    if (data.record && typeof data.record === 'object') {",
+    "      data = data.record;",
+    "    }",
+    "",
+    "    var ss = SpreadsheetApp.getActiveSpreadsheet();",
+    "",
+    "    var orderIdStr = String(data.orderId || data.order_id || '');",
+    "    var partyStr = String(data.partyName || data.customer_name || '');",
+    "    var addressStr = String(data.address || data.notes || '');",
+    "    var typeStr = String(data.orderType || '');",
+    "    var itemsStr = String(data.items || data.note || '');",
+    "",
+    "    var isCollection = data.isCollection || ",
+    "                       data.targetSheet === 'Collection' ||",
+    "                       typeStr === 'Counter Sale / Collection' || ",
+    "                       orderIdStr.indexOf('ORD-CNT') !== -1 ||",
+    "                       orderIdStr.indexOf('COLL') !== -1 ||",
+    "                       partyStr.indexOf('Counter Cash Sale') !== -1 ||",
+    "                       partyStr.indexOf('Counter Online Sale') !== -1 ||",
+    "                       addressStr.indexOf('[MODE:') !== -1;",
+    "",
+    "    if (isCollection) {",
+    "      var collSheet = ss.getSheetByName('Collection');",
+    "      if (!collSheet) {",
+    "        collSheet = ss.insertSheet('Collection');",
+    "      }",
+    "      ",
+    "      if (collSheet.getLastRow() === 0) {",
+    "        collSheet.appendRow([",
+    "          'Timestamp', ",
+    "          'Unique Id', ",
+    "          'Mode (Cash/Online)', ",
+    "          'Person / Party', ",
+    "          'Item / Note', ",
+    "          'Amount (₹)', ",
+    "          'From Date', ",
+    "          'To Date', ",
+    "          'Status', ",
+    "          'Notes'",
+    "        ]);",
+    "        var headerRange = collSheet.getRange(1, 1, 1, 10);",
+    "        headerRange.setFontWeight('bold');",
+    "        headerRange.setBackground('#0d9488');",
+    "        headerRange.setFontColor('#ffffff');",
+    "      }",
+    "      ",
+    "      var timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
+    "      var collId = orderIdStr || ('COLL-' + Date.now());",
+    "      ",
+    "      var mode = data.mode || '';",
+    "      if (!mode) {",
+    "        if (partyStr.indexOf('Online') !== -1 || addressStr.indexOf('ONLINE') !== -1 || addressStr.indexOf('online') !== -1) {",
+    "          mode = 'Online';",
+    "        } else {",
+    "          mode = 'Cash (Offline)';",
+    "        }",
+    "      }",
+    "      ",
+    "      var party = partyStr || (mode === 'Online' ? 'Counter Online Sale' : 'Counter Cash Sale');",
+    "",
+    "      var itemNote = itemsStr;",
+    "      if (!itemNote && addressStr) {",
+    "        var matchNote = addressStr.match(/\\[MODE:[^\\]]+\\]\\s*([^|\\(]+)/);",
+    "        itemNote = matchNote ? matchNote[1].trim() : addressStr;",
+    "      }",
+    "      if (!itemNote) itemNote = 'Counter Collection';",
+    "",
+    "      var amount = Number(data.totalAmount || data.amount || 0);",
+    "      if (amount === 0 && addressStr) {",
+    "        var matchAmt = addressStr.match(/Amt:\\s*₹?\\s*([\\d.]+)/);",
+    "        if (matchAmt) amount = Number(matchAmt[1]);",
+    "      }",
+    "",
+    "      var fromDate = data.fromDate || '';",
+    "      var toDate = data.toDate || '';",
+    "      var status = data.status || 'completed';",
+    "      var notes = addressStr || data.notes || '';",
+    "",
+    "      collSheet.appendRow([",
+    "        timestamp,",
+    "        collId,",
+    "        mode,",
+    "        party,",
+    "        itemNote,",
+    "        amount,",
+    "        fromDate,",
+    "        toDate,",
+    "        status,",
+    "        notes",
+    "      ]);",
+    "",
+    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Collection' }))",
+    "        .setMimeType(ContentService.MimeType.JSON);",
+    "    }",
+    "",
+    "    var isPO = !isCollection && (",
+    "      data.isPO || ",
+    "      data.targetSheet === 'Admin Orders Indent' ||",
+    "      typeStr === 'Supplier Reorder' || ",
+    "      typeStr === 'Supplier Stock Received' ||",
+    "      orderIdStr.indexOf('PO-') === 0",
+    "    );",
+    "",
+    "    if (isPO) {",
+    "      var poSheet = ss.getSheetByName('Admin Orders Indent');",
+    "      if (!poSheet) {",
+    "        poSheet = ss.insertSheet('Admin Orders Indent');",
+    "      }",
+    "",
+    "      if (poSheet.getLastRow() === 0) {",
+    "        poSheet.appendRow([",
+    "          'Timestamp',",
+    "          'Unique Id',",
+    "          'Indent Number',",
+    "          'Item Name',",
+    "          'Quantity',",
+    "          'Location',",
+    "          'SKU Code',",
+    "          'Person',",
+    "          'Price (₹)'",
+    "        ]);",
+    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 9);",
+    "        poHeaderRange.setFontWeight('bold');",
+    "        poHeaderRange.setBackground('#006666');",
+    "        poHeaderRange.setFontColor('#ffffff');",
+    "      }",
+    "",
+    "      var timestampStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
+    "",
+    "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
+    "        for (var i = 0; i < data.itemsArray.length; i++) {",
+    "          var item = data.itemsArray[i];",
+    "          poSheet.appendRow([",
+    "            timestampStr,",
+    "            orderIdStr,",
+    "            item.indentNo || (101 + i),",
+    "            item.name || '',",
+    "            item.quantity || 1,",
+    "            item.location || 'Raghav Agency',",
+    "            item.sku || '',",
+    "            partyStr || item.person || 'Raghav agency',",
+    "            item.price || 0",
+    "          ]);",
+    "        }",
+    "      } else {",
+    "        poSheet.appendRow([",
+    "          timestampStr,",
+    "          orderIdStr,",
+    "          101,",
+    "          itemsStr || 'Purchase Order Item',",
+    "          data.quantity || 1,",
+    "          data.location || 'Raghav Agency',",
+    "          '',",
+    "          partyStr || 'Raghav agency',",
+    "          data.totalAmount || data.price || 0",
+    "        ]);",
+    "      }",
+    "",
+    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Indent' }))",
+    "        .setMimeType(ContentService.MimeType.JSON);",
+    "    }",
+    "",
+    "    var logSheet = ss.getSheetByName('Admin Orders Log');",
+    "    if (!logSheet) {",
+    "      logSheet = ss.insertSheet('Admin Orders Log');",
+    "    }",
+    "",
+    "    if (logSheet.getLastRow() === 0) {",
+    "      logSheet.appendRow([",
+    "        'Timestamp',",
+    "        'Order Code',",
+    "        'Customer Name',",
+    "        'Items',",
+    "        'Quantity',",
+    "        'Total Amount (₹)',",
+    "        'Status',",
+    "        'Notes / Contact'",
+    "      ]);",
+    "      var logHeader = logSheet.getRange(1, 1, 1, 8);",
+    "      logHeader.setFontWeight('bold');",
+    "      logHeader.setBackground('#1e293b');",
+    "      logHeader.setFontColor('#ffffff');",
+    "    }",
+    "",
+    "    var logTimestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
+    "    logSheet.appendRow([",
+    "      logTimestamp,",
+    "      orderIdStr,",
+    "      partyStr,",
+    "      itemsStr,",
+    "      data.quantity || 1,",
+    "      data.totalAmount || 0,",
+    "      data.status || 'pending',",
+    "      addressStr || data.notes || ''",
+    "    ]);",
+    "",
+    "    return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Log' }))",
+    "      .setMimeType(ContentService.MimeType.JSON);",
+    "",
+    "  } catch (err) {",
+    "    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))",
+    "      .setMimeType(ContentService.MimeType.JSON);",
+    "  }",
+    "}"
+  ].join("\n");
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(code).then(() => {
