@@ -624,19 +624,21 @@ select option {
   overflow-x: auto;
   overflow-y: auto;
   resize: vertical;
-  min-height: 280px;
-  max-height: 80vh;
+  min-height: auto;
+  max-height: 320px;
   -webkit-overflow-scrolling: touch;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   margin-top: 8px;
 }
 
 .order-card .table-responsive {
-  max-height: none !important;
-  height: auto !important;
-  overflow-y: visible !important;
+  min-height: auto !important;
+  max-height: 320px !important;
+  height: auto;
+  resize: vertical !important;
+  overflow-y: auto !important;
 }
 
 .table-responsive::-webkit-scrollbar { height: 10px !important; width: 8px !important; }
