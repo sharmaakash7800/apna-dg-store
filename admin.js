@@ -1642,11 +1642,10 @@ async function saveUpdatedPurchaseOrder() {
   const supplierName = document.getElementById("editPoSupplierSelect")?.value;
   if (!poId || !supplierName || !editPoCart.length) return alert("Sahi details dalein aur kam se kam 1 item add karein.");
 
-  const totalAmount = editPoCart.reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.purchase_price) || 0)), 0);
-  const { error: poErr } = await db.from("purchase_orders").update({ supplier_name: supplierName, total_amount: totalAmount }).eq("id", poId);
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { error: poErr } = await db.from("purchase_orders").update({ supplier_name: supplierName, total_amount: totalAmount }).or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`);
   if (poErr) return alert("Order update error: " + poErr.message);
 
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const itemsToInsert = editPoCart.map(i => ({ po_id: idCond, product_id: i.product_id ? String(i.product_id) : null, product_name: i.product_name, quantity: Number(i.quantity) || 1, purchase_price: Number(i.purchase_price) || 0 }));
 
   await db.from("purchase_order_items").delete().or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
