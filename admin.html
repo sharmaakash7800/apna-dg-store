@@ -497,14 +497,7 @@
                   <option value="">⚙️ Category Action --</option>
                   <option value="show">👁️ Show Category on Customer Panel</option>
                   <option value="hide">🙈 Hide Category from Customer Panel</option>
-                  <option value="delete_category" style="color:var(--danger); font-weight:bold;">🗑️ Delete All Products
-                    in Category</option>
                 </select>
-
-                <button class="btn-danger"
-                  style="padding:8px 12px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap;"
-                  onclick="deleteSelectedProducts()" title="Tick kiye gaye products ko delete karein">🗑️ Delete
-                  Selected</button>
               </div>
             </div>
 
@@ -598,51 +591,51 @@
           </div>
         </div>
 
-        <!-- SALES REPORT FULL CONTAINER (TOGGLED VIA BUTTON) -->
-        <div id="salesReportFullContainer" style="display:none; transition:all 0.3s ease;">
-          <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART -->
-          <div class="card">
-            <div
-              style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-              <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
-              <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
-                onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
-            </div>
+        <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART (ALWAYS VISIBLE BY DEFAULT) -->
+        <div class="card" id="reinvestmentComparisonCard">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
+            <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
+              onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
+          </div>
 
-            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-              <div style="flex:1; max-width:200px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
-                  Date Preset:</label>
-                <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                  onchange="setReinvestmentDateFilter(this.value)">
-                  <option value="today">Today</option>
-                  <option value="week" selected>📅 This Week (Default)</option>
-                  <option value="last_week">Last Week</option>
-                  <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </select>
-              </div>
-              <div style="flex:1; max-width:200px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                  Date (Start):</label>
-                <input type="date" id="reinvestmentFromDate" />
-              </div>
-              <div style="flex:1; max-width:220px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                  Date (End):</label>
-                <input type="date" id="reinvestmentToDate" />
-              </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+                Date Preset:</label>
+              <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+                onchange="setReinvestmentDateFilter(this.value)">
+                <option value="today">Today</option>
+                <option value="week" selected>📅 This Week (Default)</option>
+                <option value="last_week">Last Week</option>
+                <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </select>
             </div>
-
-            <div id="reinvestmentComparisonContainer">
-              <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
+            <div style="flex:1; max-width:200px; min-width:140px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                Date (Start):</label>
+              <input type="date" id="reinvestmentFromDate" />
+            </div>
+            <div style="flex:1; max-width:220px; min-width:140px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                Date (End):</label>
+              <input type="date" id="reinvestmentToDate" />
             </div>
           </div>
 
+          <div id="reinvestmentComparisonContainer">
+            <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
+          </div>
+        </div>
+
+        <!-- SALES REPORT FULL CONTAINER (TOGGLED VIA BUTTON) -->
+        <div id="salesReportFullContainer" style="display:none; transition:all 0.3s ease;">
           <div class="card" id="salesReportSectionCard">
             <h2>📊 Sales Report</h2>
 
@@ -976,7 +969,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=2.3"></script>
+  <script src="admin.js?v=2.4"></script>
 </body>
 
 </html>

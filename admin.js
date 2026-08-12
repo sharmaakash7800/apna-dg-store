@@ -867,7 +867,7 @@ function renderProductsTable() {
         <td><span style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:3px 8px; border-radius:8px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
         <td><strong style="color:var(--success);">₹${sellingPriceVal}</strong></td>
         <td style="text-align:center;">${statusBtn}</td>
-        <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="enableRowEditing('${p.id}')">✏️ Edit</button><button class="btn-danger" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="deleteSingleProduct('${p.id}')">🗑️</button></div></td>
+        <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="enableRowEditing('${p.id}')">✏️ Edit</button></div></td>
       </tr>`;
   }).join('');
 }
