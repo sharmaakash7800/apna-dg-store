@@ -1327,6 +1327,8 @@
 
         try {
           const payloadObj = {
+            targetSheet: "Admin Orders Log",
+            isCustomerOrder: true,
             orderId: orderCode,
             orderType: "New Customer Order",
             partyName: customerName,
@@ -1337,7 +1339,7 @@
             notes: `Mobile: ${mobile} | Address: ${address}`
           };
           const payloadStr = JSON.stringify(payloadObj);
-          const targetUrl = "https://script.google.com/macros/s/AKfycbyxyJ0cNFEN-AMlssxyqMdr_mU2N5Jyb7vKQjaefo8cOY_DxzXkh3bL3EVmgiYWeUThLw/exec?payload=" + encodeURIComponent(payloadStr);
+          const targetUrl = "https://script.google.com/macros/s/AKfycbyXLZkJDnDnOkAOEP_lDNjTbW-0HJipJUSfxpbAGA2rvK0hARH9ANDqMgVe3xPG8TLePg/exec?payload=" + encodeURIComponent(payloadStr);
           fetch(targetUrl, {
             method: "POST",
             mode: "no-cors",

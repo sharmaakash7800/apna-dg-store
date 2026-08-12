@@ -6,7 +6,7 @@ let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedP
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
 /* GOOGLE SHEETS AUTOMATIC SYNC LOGIC */
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyxyJ0cNFEN-AMlssxyqMdr_mU2N5Jyb7vKQjaefo8cOY_DxzXkh3bL3EVmgiYWeUThLw/exec";
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyXLZkJDnDnOkAOEP_lDNjTbW-0HJipJUSfxpbAGA2rvK0hARH9ANDqMgVe3xPG8TLePg/exec";
 let googleSheetScriptUrl = DEFAULT_SHEET_URL;
 localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
 
@@ -21,14 +21,18 @@ function saveGoogleSheetUrl(url) {
 }
 
 async function syncOrderToGoogleSheet(payload) {
-  const url = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
-  if (!url) {
+  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  if (!baseUrl) {
     console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
     return;
   }
   try {
     const payloadStr = JSON.stringify(payload);
-    await fetch(url, {
+    const targetUrl = baseUrl.includes("?") 
+      ? `${baseUrl}&payload=${encodeURIComponent(payloadStr)}` 
+      : `${baseUrl}?payload=${encodeURIComponent(payloadStr)}`;
+
+    await fetch(targetUrl, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -37,6 +41,236 @@ async function syncOrderToGoogleSheet(payload) {
     console.log("Successfully sent payload to Google Sheet:", payload);
   } catch (err) {
     console.error("Google Sheet Sync Error:", err);
+  }
+}
+
+function copyAppsScriptCode() {
+  const code = `function doPost(e) { return handleRequest(e); }
+function doGet(e) { return handleRequest(e); }
+
+function handleRequest(e) {
+  try {
+    var data = null;
+    if (e && e.postData && e.postData.contents) {
+      try { data = JSON.parse(e.postData.contents); } catch (err1) {}
+    }
+    if (!data && e && e.parameter && e.parameter.payload) {
+      try { data = JSON.parse(e.parameter.payload); } catch (err2) {}
+    }
+    if (!data && e && e.parameter) {
+      data = e.parameter;
+    }
+    if (!data) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "No data received" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (data.record && typeof data.record === 'object') {
+      data = data.record;
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    var orderIdStr = String(data.orderId || data.order_id || "");
+    var partyStr = String(data.partyName || data.customer_name || "");
+    var addressStr = String(data.address || data.notes || "");
+    var typeStr = String(data.orderType || "");
+    var itemsStr = String(data.items || data.note || "");
+
+    // 1. COLLECTION ENTRY -> Save into "Collection" tab ONLY
+    var isCollection = data.isCollection || 
+                       data.targetSheet === "Collection" ||
+                       typeStr === "Counter Sale / Collection" || 
+                       orderIdStr.indexOf("ORD-CNT") === 0 ||
+                       orderIdStr.indexOf("COLL") === 0 ||
+                       partyStr.indexOf("Counter Cash Sale") !== -1 ||
+                       partyStr.indexOf("Counter Online Sale") !== -1 ||
+                       addressStr.indexOf("[MODE:") !== -1;
+
+    if (isCollection) {
+      var collSheet = ss.getSheetByName("Collection");
+      if (!collSheet) {
+        collSheet = ss.insertSheet("Collection");
+      }
+      
+      if (collSheet.getLastRow() === 0) {
+        collSheet.appendRow([
+          "Timestamp", 
+          "Unique Id", 
+          "Mode", 
+          "Person / Party", 
+          "Item / Note", 
+          "Amount (₹)", 
+          "From Date", 
+          "To Date", 
+          "Status", 
+          "Notes"
+        ]);
+        var headerRange = collSheet.getRange(1, 1, 1, 10);
+        headerRange.setFontWeight("bold");
+        headerRange.setBackground("#0d9488");
+        headerRange.setFontColor("#ffffff");
+      }
+      
+      var timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      var collId = orderIdStr || ("COLL-" + Date.now());
+      var mode = data.mode || (partyStr.indexOf("Online") !== -1 || addressStr.indexOf("ONLINE") !== -1 ? "Online" : "Cash");
+      var party = partyStr || "Counter Sale";
+
+      var itemNote = itemsStr;
+      if (!itemNote && addressStr) {
+        var matchNote = addressStr.match(/\[MODE:[^\]]+\]\s*([^|\(]+)/);
+        itemNote = matchNote ? matchNote[1].trim() : addressStr;
+      }
+      if (!itemNote) itemNote = "Counter Collection";
+
+      var amount = Number(data.totalAmount || data.amount || 0);
+      if (amount === 0 && addressStr) {
+        var matchAmt = addressStr.match(/Amt:\s*₹?\s*([\d.]+)/);
+        if (matchAmt) amount = Number(matchAmt[1]);
+      }
+
+      var fromDate = data.fromDate || "";
+      var toDate = data.toDate || "";
+      var status = data.status || "completed";
+      var notes = addressStr || data.notes || "";
+
+      collSheet.appendRow([
+        timestamp,
+        collId,
+        mode,
+        party,
+        itemNote,
+        amount,
+        fromDate,
+        toDate,
+        status,
+        notes
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Collection" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. PURCHASE ORDER (PO) ENTRY -> Save into "Admin Orders Indent" tab ONLY
+    var isPO = !isCollection && (
+      data.isPO || 
+      data.targetSheet === "Admin Orders Indent" ||
+      typeStr === "Supplier Reorder" || 
+      typeStr === "Supplier Stock Received" ||
+      orderIdStr.indexOf("PO-") === 0
+    );
+
+    if (isPO) {
+      var poSheet = ss.getSheetByName("Admin Orders Indent");
+      if (!poSheet) {
+        poSheet = ss.insertSheet("Admin Orders Indent");
+      }
+
+      if (poSheet.getLastRow() === 0) {
+        poSheet.appendRow([
+          "Timestamp",
+          "Unique Id",
+          "Indent Number",
+          "Item Name",
+          "Quantity",
+          "Location",
+          "SKU Code",
+          "Person",
+          "Price (₹)"
+        ]);
+        var poHeaderRange = poSheet.getRange(1, 1, 1, 9);
+        poHeaderRange.setFontWeight("bold");
+        poHeaderRange.setBackground("#006666");
+        poHeaderRange.setFontColor("#ffffff");
+      }
+
+      var timestampStr = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+      if (data.itemsArray && Array.isArray(data.itemsArray)) {
+        for (var i = 0; i < data.itemsArray.length; i++) {
+          var item = data.itemsArray[i];
+          poSheet.appendRow([
+            timestampStr,
+            orderIdStr,
+            item.indentNo || (101 + i),
+            item.name || "",
+            item.quantity || 1,
+            item.location || "Raghav Agency",
+            item.sku || "",
+            partyStr || item.person || "Raghav agency",
+            item.price || 0
+          ]);
+        }
+      } else {
+        poSheet.appendRow([
+          timestampStr,
+          orderIdStr,
+          101,
+          itemsStr || "Purchase Order Item",
+          data.quantity || 1,
+          "Raghav Agency",
+          "",
+          partyStr || "Raghav agency",
+          data.totalAmount || data.price || 0
+        ]);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Admin Orders Indent" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. CUSTOMER ORDERS -> Save into "Admin Orders Log" tab
+    var logSheet = ss.getSheetByName("Admin Orders Log");
+    if (!logSheet) {
+      logSheet = ss.insertSheet("Admin Orders Log");
+    }
+
+    if (logSheet.getLastRow() === 0) {
+      logSheet.appendRow([
+        "Timestamp",
+        "Order Code",
+        "Customer Name",
+        "Items",
+        "Quantity",
+        "Total Amount (₹)",
+        "Status",
+        "Notes / Contact"
+      ]);
+      var logHeader = logSheet.getRange(1, 1, 1, 8);
+      logHeader.setFontWeight("bold");
+      logHeader.setBackground("#1e293b");
+      logHeader.setFontColor("#ffffff");
+    }
+
+    var logTimestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    logSheet.appendRow([
+      logTimestamp,
+      orderIdStr,
+      partyStr,
+      itemsStr,
+      data.quantity || 1,
+      data.totalAmount || 0,
+      data.status || "pending",
+      addressStr || data.notes || ""
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", target: "Admin Orders Log" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+};
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => {
+      alert("Google Apps Script code clipboard me copy ho gaya hai! Google Sheet me paste karke Naya Deployment karein.");
+    }).catch(() => {
+      prompt("Kripya niche se Google Apps Script code copy karein:", code);
+    });
+  } else {
+    prompt("Kripya niche se Google Apps Script code copy karein:", code);
   }
 }
 
@@ -194,21 +428,26 @@ async function saveOfflineCashEntry() {
 
   const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
   const { error: collErr } = await db.from("Collections").insert([{ collection_date: toDateVal, amount: amountVal, note: remarkText }]);
-  const { error: ordErr } = await db.from("orders").insert([{ order_id: "ORD-CNT-" + Date.now(), customer_name: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale", mobile: "0000000000", status: "completed", created_at: new Date(toDateVal).toISOString(), address: remarkText }]);
 
-  if (ordErr && collErr) alert("Error saving entry: " + (ordErr.message || collErr.message));
+  if (collErr) alert("Error saving entry: " + collErr.message);
   else {
-    alert("Collection Entry Successfully Saved into Collections table!");
     syncOrderToGoogleSheet({
-      orderId: "ORD-CNT-" + Date.now(),
+      targetSheet: "Collection",
+      isCollection: true,
+      orderId: "COLL-" + Date.now(),
       orderType: "Counter Sale / Collection",
+      mode: modeVal === 'online' ? 'Online' : 'Cash (Offline)',
       partyName: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
       items: noteVal,
       quantity: 1,
       totalAmount: amountVal,
+      amount: amountVal,
+      fromDate: fromDateVal,
+      toDate: toDateVal,
       status: "completed",
       notes: `Period: ${fromDateVal} to ${toDateVal}`
     });
+    alert("Collection Entry Successfully Saved!");
     document.getElementById("manualCashAmount").value = "";
     document.getElementById("manualCashNote").value = "";
     calculateReports();
@@ -649,6 +888,8 @@ async function submitTickedReorder(sourceModal = false) {
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
     syncOrderToGoogleSheet({
+      targetSheet: "Admin Orders Indent",
+      isPO: true,
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
@@ -1006,6 +1247,8 @@ async function submitPurchaseOrder() {
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
     syncOrderToGoogleSheet({
+      targetSheet: "Admin Orders Indent",
+      isPO: true,
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
@@ -1205,6 +1448,8 @@ async function syncPoToSheet(poId) {
   if (!po || !items?.length) return alert("Order details loading failed.");
 
   await syncOrderToGoogleSheet({
+    targetSheet: "Admin Orders Indent",
+    isPO: true,
     orderId: po.po_number || ('#' + po.id),
     orderType: "Supplier Reorder",
     partyName: po.supplier_name || 'Akash Sharma',
@@ -1246,6 +1491,8 @@ async function receiveStock(poId) {
 
   if (po && items?.length) {
     syncOrderToGoogleSheet({
+      targetSheet: "Admin Orders Indent",
+      isPO: true,
       orderId: po.po_number || ('#' + po.id),
       orderType: "Supplier Stock Received",
       partyName: po.supplier_name || 'Akash Sharma',
@@ -1373,6 +1620,8 @@ async function updateOrderStatus(id, newStatus) {
         const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
         const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
         syncOrderToGoogleSheet({
+          targetSheet: "Admin Orders Log",
+          isCustomerOrder: true,
           orderId: ord.order_id || ('#' + ord.id),
           orderType: "Customer Order",
           partyName: ord.customer_name || 'Customer',
