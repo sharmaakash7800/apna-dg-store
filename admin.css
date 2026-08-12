@@ -321,6 +321,26 @@ input[type="number"]:active {
   appearance: textfield !important;
 }
 
+/* Drag and Drop item row styling */
+.item-row[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+.item-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+.item-row.dragging {
+  opacity: 0.4 !important;
+  border: 2px dashed var(--primary) !important;
+  background: rgba(79, 70, 229, 0.08) !important;
+}
+.drag-handle {
+  user-select: none;
+}
+.drag-handle:hover {
+  color: var(--primary) !important;
+}
+
 input:focus, select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);

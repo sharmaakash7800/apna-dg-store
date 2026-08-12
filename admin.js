@@ -943,7 +943,7 @@ function renderTickedProductsList() {
   if (floatingBar) floatingBar.style.display = "flex";
   let total = 0;
 
-  const htmlList = keys.map(k => {
+  const htmlList = keys.map((k, idx) => {
     const item = tickedProductsMap[k];
     const prod = productsList.find(p => String(p.id) === String(k));
     const packCount = getPackCountFromUnit(prod?.unit);
@@ -954,9 +954,15 @@ function renderTickedProductsList() {
     return `
       <div class="item-row" style="flex-direction:column; align-items:stretch; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📦 Packet Cost: <strong style="color:var(--blue);">₹<span id="ticked_packcost_${k}">${packetCost.toFixed(2)}</span></strong> ${prod?.unit ? `(${prod.unit})` : ''} ${packCount > 1 ? ` | <strong style="color:var(--success);">⚡ Each Pcs: ₹<span id="ticked_pcsrate_${k}">${(packetCost / packCount).toFixed(2)}</span> / pcs</strong>` : ''}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; gap:2px; align-items:center;">
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveTickedItem(${idx}, -1)" title="Move Up">⬆</button>
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === Object.keys(tickedProductsMap).length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveTickedItem(${idx}, 1)" title="Move Down">⬇</button>
+            </div>
+            <div>
+              <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📦 Packet Cost: <strong style="color:var(--blue);">₹<span id="ticked_packcost_${k}">${packetCost.toFixed(2)}</span></strong> ${prod?.unit ? `(${prod.unit})` : ''} ${packCount > 1 ? ` | <strong style="color:var(--success);">⚡ Each Pcs: ₹<span id="ticked_pcsrate_${k}">${(packetCost / packCount).toFixed(2)}</span> / pcs</strong>` : ''}</div>
+            </div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;"><strong style="font-size:13px; color:var(--primary);" id="ticked_itemtotal_${k}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button></div>
         </div>
@@ -1297,6 +1303,85 @@ async function calculateWeeklyReinvestmentComparison() {
   }
 }
 
+/* DRAG & DROP AND ITEM REORDERING HELPERS */
+function reorderArrayItem(arr, fromIdx, toIdx) {
+  if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length || fromIdx === toIdx) return;
+  const item = arr.splice(fromIdx, 1)[0];
+  arr.splice(toIdx, 0, item);
+}
+
+let draggedEditIdx = null;
+function onEditCartDragStart(e, idx) {
+  draggedEditIdx = idx;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", idx);
+  e.currentTarget.classList.add("dragging");
+}
+function onEditCartDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+}
+function onEditCartDrop(e, targetIdx) {
+  e.preventDefault();
+  if (draggedEditIdx !== null && draggedEditIdx !== targetIdx) {
+    reorderArrayItem(editPoCart, draggedEditIdx, targetIdx);
+    renderEditPoCart();
+  }
+}
+function onEditCartDragEnd(e) {
+  draggedEditIdx = null;
+  document.querySelectorAll("#editPoCartItems .item-row").forEach(el => el.classList.remove("dragging"));
+}
+function moveEditCartItem(idx, dir) {
+  const target = idx + dir;
+  if (target >= 0 && target < editPoCart.length) {
+    reorderArrayItem(editPoCart, idx, target);
+    renderEditPoCart();
+  }
+}
+
+let draggedPoIdx = null;
+function onPoCartDragStart(e, idx) {
+  draggedPoIdx = idx;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", idx);
+  e.currentTarget.classList.add("dragging");
+}
+function onPoCartDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+}
+function onPoCartDrop(e, targetIdx) {
+  e.preventDefault();
+  if (draggedPoIdx !== null && draggedPoIdx !== targetIdx) {
+    reorderArrayItem(poCart, draggedPoIdx, targetIdx);
+    renderPoCart();
+  }
+}
+function onPoCartDragEnd(e) {
+  draggedPoIdx = null;
+  document.querySelectorAll("#poCartItems .item-row").forEach(el => el.classList.remove("dragging"));
+}
+function movePoCartItem(idx, dir) {
+  const target = idx + dir;
+  if (target >= 0 && target < poCart.length) {
+    reorderArrayItem(poCart, idx, target);
+    renderPoCart();
+  }
+}
+
+function moveTickedItem(idx, dir) {
+  const keys = Object.keys(tickedProductsMap);
+  const target = idx + dir;
+  if (target >= 0 && target < keys.length) {
+    const entries = Object.entries(tickedProductsMap);
+    const item = entries.splice(idx, 1)[0];
+    entries.splice(target, 0, item);
+    tickedProductsMap = Object.fromEntries(entries);
+    renderTickedProductsList();
+  }
+}
+
 /* REORDERS / PURCHASE ORDERS HANDLING */
 async function loadProductsForReorder() {
   if (!productsList.length) {
@@ -1421,9 +1506,27 @@ function renderPoCart() {
     const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
     total += itemTotal;
     return `
-      <div class="item-row" style="padding:6px; border-bottom:1px solid var(--border);">
-        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="poCart[${idx}].quantity = Number(this.value)||1; updatePoCartTotal();" /><label style="font-size:10px;">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; updatePoCartTotal();" /></div></div>
-        <div style="display:flex; align-items:center; gap:6px;"><strong id="poItemTotal_${idx}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:2px 6px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button></div>
+      <div class="item-row" draggable="true" ondragstart="onPoCartDragStart(event, ${idx})" ondragover="onPoCartDragOver(event)" ondrop="onPoCartDrop(event, ${idx})" ondragend="onPoCartDragEnd(event)" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:2px 4px; user-select:none;">⠿</span>
+            <div style="display:flex; gap:2px;">
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="movePoCartItem(${idx}, -1)" title="Move Top / Up">⬆</button>
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === poCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="movePoCartItem(${idx}, 1)" title="Move Bottom / Down">⬇</button>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+            <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].quantity = Number(this.value)||1; updatePoCartTotal();" />
+              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; updatePoCartTotal();" />
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <strong id="poItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
+          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="poCart.splice(${idx}, 1); renderPoCart();" title="Delete item">✕</button>
+        </div>
       </div>`;
   }).join("");
 
@@ -1636,9 +1739,27 @@ function renderEditPoCart() {
     const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
     total += itemTotal;
     return `
-      <div class="item-row" style="padding:6px; border-bottom:1px solid var(--border);">
-        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" /><label style="font-size:10px;">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" /></div></div>
-        <div style="display:flex; align-items:center; gap:6px;"><strong id="editItemTotal_${idx}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:2px 6px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button></div>
+      <div class="item-row" draggable="true" ondragstart="onEditCartDragStart(event, ${idx})" ondragover="onEditCartDragOver(event)" ondrop="onEditCartDrop(event, ${idx})" ondragend="onEditCartDragEnd(event)" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:2px 4px; user-select:none;">⠿</span>
+            <div style="display:flex; gap:2px;">
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, -1)" title="Move Top / Up">⬆</button>
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === editPoCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, 1)" title="Move Bottom / Down">⬇</button>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+            <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" />
+              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" />
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <strong id="editItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
+          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();" title="Delete item">✕</button>
+        </div>
       </div>`;
   }).join("");
 
