@@ -919,7 +919,11 @@ function toggleProductSelection(prodId, isChecked) {
   renderTickedProductsList();
 }
 
-const openTickedCartModal = () => { const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "flex"; };
+const openTickedCartModal = async () => {
+  await loadSuppliers();
+  const m = document.getElementById("tickedCartModal");
+  if (m) m.style.display = "flex";
+};
 const closeTickedCartModal = () => { const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "none"; };
 
 function renderTickedProductsList() {
@@ -1674,9 +1678,8 @@ async function loadPurchaseOrders() {
   }).join("");
 }
 
-/* EDIT PO MODAL */
 async function openEditPoModal(poId) {
-  await ensureProductsLoaded();
+  await Promise.all([ensureProductsLoaded(), loadSuppliers()]);
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`).single();
   if (!po) return alert("Order load nahi ho paya.");
@@ -2142,4 +2145,12 @@ document.addEventListener("DOMContentLoaded", () => {
     ts.addEventListener("change", () => mts.value = ts.value);
     mts.addEventListener("change", () => ts.value = mts.value);
   }
+
+  ['poSupplierSelect', 'editPoSupplierSelect', 'modalTickedSupplierSelect', 'tickedSupplierSelect', 'supplierReportSupplierSelect'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("focus", () => loadSuppliers());
+      el.addEventListener("click", () => loadSuppliers());
+    }
+  });
 });
