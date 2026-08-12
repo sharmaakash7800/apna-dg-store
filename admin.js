@@ -181,12 +181,13 @@ function copyAppsScriptCode() {
     "          'Indent Number',",
     "          'Item Name',",
     "          'Quantity',",
-    "          'Location',",
+    "          'Cost/Pack (₹)',",
+    "          'Supplier',",
     "          'SKU Code',",
     "          'Person',",
-    "          'Price (₹)'",
+    "          'Total Price (₹)'",
     "        ]);",
-    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 9);",
+    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 10);",
     "        poHeaderRange.setFontWeight('bold');",
     "        poHeaderRange.setBackground('#006666');",
     "        poHeaderRange.setFontColor('#ffffff');",
@@ -203,10 +204,11 @@ function copyAppsScriptCode() {
     "            item.indentNo || (101 + i),",
     "            item.name || '',",
     "            item.quantity || 1,",
-    "            item.location || 'Raghav Agency',",
+    "            item.costPack || item.cost_pack || 0,",
+    "            item.supplier || partyStr || 'N/A',",
     "            item.sku || '',",
-    "            partyStr || item.person || 'Raghav agency',",
-    "            item.price || 0",
+    "            partyStr || item.person || 'Admin',",
+    "            item.price || item.totalPrice || 0",
     "          ]);",
     "        }",
     "      } else {",
@@ -216,9 +218,10 @@ function copyAppsScriptCode() {
     "          101,",
     "          itemsStr || 'Purchase Order Item',",
     "          data.quantity || 1,",
-    "          data.location || 'Raghav Agency',",
-    "          '',",
-    "          partyStr || 'Raghav agency',",
+    "          data.costPack || data.cost_pack || 0,",
+    "          partyStr || 'N/A',",
+    "          data.sku || '',",
+    "          partyStr || 'Admin',",
     "          data.totalAmount || data.price || 0",
     "        ]);",
     "      }",
@@ -851,7 +854,7 @@ function renderProductsTable() {
           <td><span id="edit_live_unit_cost_${p.id}" style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:4px 6px; border-radius:6px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
           <td><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:11px; color:var(--text-muted);">₹</span><input type="text" inputmode="decimal" id="edit_selling_${p.id}" class="price-edit-input" style="width:70px; border-color:var(--primary); background:var(--surface); color:var(--success);" value="${sellingPriceVal}" onfocus="this.select()" /></div></td>
           <td style="text-align:center;">${statusBtn}</td>
-          <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="cancelRowEditing('${p.id}')">✕ Cancel</button><button class="btn-green" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="saveRowEditing('${p.id}')">💾 Save</button></div></td>
+          <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="cancelRowEditing('${p.id}')">✕ Cancel</button><button class="btn-green" style="padding:4px 8px; font-size:8px; border-radius:8px;" onclick="saveRowEditing('${p.id}')">💾 Save</button></div></td>
         </tr>`;
     }
 
@@ -1079,25 +1082,36 @@ async function submitTickedReorder(sourceModal = false) {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
+    const sheetItems = dbItems.map((i, idx) => {
+      let prod = productsList.find(p => Number(i.product_id) > 0 && String(p.id) === String(i.product_id)) ||
+                 productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name || '').toLowerCase());
+      let skuCode = prod?.sku || prod?.sku_code || prod?.barcode || (prod?.id ? ("SKU-" + prod.id) : (i.product_name ? i.product_name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase() : 'SKU-000'));
+      const q = Number(i.quantity || 1);
+      const cp = Number(i.purchase_price || 0);
+      return {
+        indentNo: 101 + idx,
+        name: i.product_name,
+        quantity: q,
+        costPack: cp.toFixed(2),
+        supplier: supplier,
+        sku: skuCode,
+        person: supplier,
+        price: (q * cp).toFixed(2)
+      };
+    });
+
     syncOrderToGoogleSheet({
       targetSheet: "Admin Orders Indent",
       isPO: true,
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
-      itemsArray: dbItems.map((i, idx) => ({
-        indentNo: 100 + idx + 1,
-        name: i.product_name,
-        quantity: i.quantity,
-        sku: i.product_id || '',
-        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: "Raghav Agency"
-      })),
+      itemsArray: sheetItems,
       totalAmount: totalAmount,
       status: "pending",
       notes: "Ticked Reorder from Admin Dashboard"
     });
-    alert(`Reorder successfully submit ho gaya! Bill Total: ₹${totalAmount.toFixed(2)}`);
+    alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
   }
 
   clearAllSelection();
@@ -1917,6 +1931,25 @@ async function syncPoToSheet(poId) {
   const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
 
   if (!po || !items?.length) return alert("Order details loading failed.");
+  await ensureProductsLoaded();
+
+  const sheetItems = items.map((i, idx) => {
+    let prod = productsList.find(p => Number(i.product_id) > 0 && String(p.id) === String(i.product_id)) ||
+               productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name || '').toLowerCase());
+    let skuCode = prod?.sku || prod?.sku_code || prod?.barcode || (prod?.id ? ("SKU-" + prod.id) : (i.product_name ? i.product_name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase() : 'SKU-000'));
+    const q = Number(i.quantity || 1);
+    const cp = Number(i.purchase_price || 0);
+    return {
+      indentNo: 101 + idx,
+      name: i.product_name,
+      quantity: q,
+      costPack: cp.toFixed(2),
+      supplier: po.supplier_name || 'N/A',
+      sku: skuCode,
+      person: po.supplier_name || 'Admin',
+      price: (q * cp).toFixed(2)
+    };
+  });
 
   await syncOrderToGoogleSheet({
     targetSheet: "Admin Orders Indent",
@@ -1924,14 +1957,7 @@ async function syncPoToSheet(poId) {
     orderId: po.po_number || ('#' + po.id),
     orderType: "Supplier Reorder",
     partyName: po.supplier_name || 'Akash Sharma',
-    itemsArray: items.map((i, idx) => ({
-      indentNo: 100 + idx + 1,
-      name: i.product_name,
-      quantity: i.quantity,
-      sku: i.product_id || '',
-      price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-      location: "Raghav Agency"
-    })),
+    itemsArray: sheetItems,
     totalAmount: po.total_amount,
     status: po.status || "pending",
     notes: "Manual Sync from Admin Dashboard"
