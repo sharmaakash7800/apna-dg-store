@@ -956,14 +956,15 @@ function renderTickedProductsList() {
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
             <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📦 Packet Cost: <strong style="color:var(--blue);">₹${packetCost.toFixed(2)}</strong> ${prod?.unit ? `(${prod.unit})` : ''} ${packCount > 1 ? ` | <strong style="color:var(--success);">⚡ Each Pcs: ₹${(packetCost / packCount).toFixed(2)} / pcs</strong>` : ''}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📦 Packet Cost: <strong style="color:var(--blue);">₹<span id="ticked_packcost_${k}">${packetCost.toFixed(2)}</span></strong> ${prod?.unit ? `(${prod.unit})` : ''} ${packCount > 1 ? ` | <strong style="color:var(--success);">⚡ Each Pcs: ₹<span id="ticked_pcsrate_${k}">${(packetCost / packCount).toFixed(2)}</span> / pcs</strong>` : ''}</div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;"><strong style="font-size:13px; color:var(--primary);">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button></div>
+          <div style="display:flex; align-items:center; gap:8px;"><strong style="font-size:13px; color:var(--primary);" id="ticked_itemtotal_${k}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button></div>
         </div>
-        <div style="display:flex; gap:10px; align-items:center; background:var(--bg); padding:6px 10px; border-radius:8px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="number" min="1" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" oninput="updateTickedQtyAndTotal('${k}', 'qty', this.value)" /></div>
-          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label><input type="number" step="0.01" value="${itemTotal.toFixed(2)}" style="width:85px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" oninput="updateTickedQtyAndTotal('${k}', 'total', this.value)" /></div>
-          <div style="font-size:10px; color:var(--text-muted);">⚡ Per Unit Rate: <strong style="color:var(--success);">₹${packetCost.toFixed(2)}</strong></div>
+        <div style="display:flex; gap:8px; align-items:center; background:var(--bg); padding:6px 10px; border-radius:8px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="number" inputmode="numeric" min="1" id="ticked_qty_${k}" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'qty', this.value)" /></div>
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate (₹):</label><input type="number" inputmode="decimal" step="0.01" min="0" id="ticked_rate_${k}" value="${packetCost.toFixed(2)}" style="width:65px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'rate', this.value)" /></div>
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label><input type="number" inputmode="decimal" step="0.01" min="0" id="ticked_total_${k}" value="${itemTotal.toFixed(2)}" style="width:85px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'total', this.value)" /></div>
+          <div style="font-size:10px; color:var(--text-muted);">⚡ Per Unit Rate: <strong style="color:var(--success);">₹<span id="ticked_unitrate_${k}">${packetCost.toFixed(2)}</span></strong></div>
         </div>
       </div>`;
   }).join('');
@@ -975,10 +976,61 @@ function renderTickedProductsList() {
 
 function updateTickedQtyAndTotal(id, type, value) {
   if (!tickedProductsMap[id]) return;
-  const numVal = Number(value) || 0;
-  if (type === 'qty') tickedProductsMap[id].quantity = numVal > 0 ? numVal : 1;
-  else if (type === 'total') { const qty = tickedProductsMap[id].quantity || 1; tickedProductsMap[id].purchase_price = qty > 0 ? (numVal / qty) : numVal; }
-  renderTickedProductsList();
+  const prod = productsList.find(p => String(p.id) === String(id));
+  const packCount = getPackCountFromUnit(prod?.unit);
+  const numVal = parseFloat(value);
+  const item = tickedProductsMap[id];
+
+  if (type === 'qty') {
+    const qty = (!isNaN(numVal) && numVal > 0) ? numVal : 1;
+    item.quantity = qty;
+    const rate = Number(item.purchase_price || 0);
+    const total = qty * rate;
+
+    document.querySelectorAll(`#ticked_total_${id}`).forEach(input => {
+      if (document.activeElement !== input) input.value = total.toFixed(2);
+    });
+  } else if (type === 'rate') {
+    const rate = (!isNaN(numVal) && numVal >= 0) ? numVal : 0;
+    item.purchase_price = rate;
+    const qty = Number(item.quantity || 1);
+    const total = qty * rate;
+
+    document.querySelectorAll(`#ticked_total_${id}`).forEach(input => {
+      if (document.activeElement !== input) input.value = total.toFixed(2);
+    });
+  } else if (type === 'total') {
+    const totalVal = (!isNaN(numVal) && numVal >= 0) ? numVal : 0;
+    const qty = Number(item.quantity || 1);
+    const rate = qty > 0 ? (totalVal / qty) : totalVal;
+    item.purchase_price = rate;
+
+    document.querySelectorAll(`#ticked_rate_${id}`).forEach(input => {
+      if (document.activeElement !== input) input.value = rate.toFixed(2);
+    });
+  }
+
+  const rate = Number(item.purchase_price || 0);
+  const qty = Number(item.quantity || 1);
+  const itemTotal = qty * rate;
+
+  document.querySelectorAll(`#ticked_packcost_${id}`).forEach(el => el.textContent = rate.toFixed(2));
+  document.querySelectorAll(`#ticked_unitrate_${id}`).forEach(el => el.textContent = rate.toFixed(2));
+  document.querySelectorAll(`#ticked_itemtotal_${id}`).forEach(el => el.textContent = `₹${itemTotal.toFixed(2)}`);
+  if (packCount > 1) {
+    document.querySelectorAll(`#ticked_pcsrate_${id}`).forEach(el => el.textContent = (rate / packCount).toFixed(2));
+  }
+
+  let totalBill = 0;
+  Object.keys(tickedProductsMap).forEach(k => {
+    const it = tickedProductsMap[k];
+    totalBill += (Number(it.quantity || 1) * Number(it.purchase_price || 0));
+  });
+
+  ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = totalBill.toFixed(2);
+  });
 }
 
 function togglePoRateCalc() { const box = document.getElementById("poRateCalcBox"); if (box) box.style.display = (box.style.display === "none" || !box.style.display) ? "block" : "none"; }
@@ -1255,26 +1307,32 @@ async function loadProductsForReorder() {
   setupProductSearch("editPoProductSearch", "editPoSearchResults", "editSelectedProductId", "editPoPrice");
 }
 
-const ensureProductsLoaded = () => !productsList.length && loadProductsForReorder();
+async function ensureProductsLoaded() {
+  if (!productsList.length) {
+    await loadProductsForReorder();
+  }
+}
 
 function setupProductSearch(inputId, resultsId, hiddenId, priceInputId) {
   const input = document.getElementById(inputId);
   const results = document.getElementById(resultsId);
   if (!input || !results) return;
 
-  input.addEventListener("input", () => {
+  const renderDropdown = async () => {
+    await ensureProductsLoaded();
     const val = input.value.toLowerCase().trim();
-    if (!val) { results.style.display = "none"; return; }
-
-    const matches = productsList.filter(p => [p.name, p.category, p.id].some(f => String(f || '').toLowerCase().includes(val))).slice(0, 10);
+    const matches = productsList.filter(p => !val || [p.name, p.category, p.id].some(f => String(f || '').toLowerCase().includes(val))).slice(0, 15);
     if (!matches.length) { results.style.display = "none"; return; }
 
     results.innerHTML = matches.map(p => `
-      <div class="search-results-item" onclick="selectSearchProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.cost_price || p.price || 0}', '${inputId}', '${resultsId}', '${hiddenId}', '${priceInputId}')">
+      <div class="search-results-item" style="padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);" onclick="selectSearchProduct('${p.id}', '${(p.name || '').replace(/'/g, "\\'")}', '${p.cost_price || p.price || 0}', '${inputId}', '${resultsId}', '${hiddenId}', '${priceInputId}')">
         <strong>${p.name}</strong> <small style="color:var(--text-muted);">(${p.category || 'Item'}) - Rate: ₹${Number(p.cost_price || p.price || 0).toFixed(2)}</small>
       </div>`).join('');
     results.style.display = "block";
-  });
+  };
+
+  input.addEventListener("input", renderDropdown);
+  input.addEventListener("focus", renderDropdown);
 }
 
 function selectSearchProduct(id, name, price, inputId, resultsId, hiddenId, priceInputId) {
@@ -1336,6 +1394,18 @@ function addItemToPoCart() {
   addPoItem();
 }
 
+function updatePoCartTotal() {
+  let total = 0;
+  poCart.forEach((item, idx) => {
+    const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
+    total += itemTotal;
+    const el = document.getElementById(`poItemTotal_${idx}`);
+    if (el) el.textContent = `₹${itemTotal.toFixed(2)}`;
+  });
+  const totalEl = document.getElementById("poTotalBill");
+  if (totalEl) totalEl.textContent = total.toFixed(2);
+}
+
 function renderPoCart() {
   const container = document.getElementById("poCartItems");
   if (!container) return;
@@ -1352,8 +1422,8 @@ function renderPoCart() {
     total += itemTotal;
     return `
       <div class="item-row" style="padding:6px; border-bottom:1px solid var(--border);">
-        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="number" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" oninput="poCart[${idx}].quantity = Number(this.value)||1; renderPoCart();" /><label style="font-size:10px;">Rate:</label><input type="number" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; renderPoCart();" /></div></div>
-        <div style="display:flex; align-items:center; gap:6px;"><strong>₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:2px 6px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button></div>
+        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="number" inputmode="numeric" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="poCart[${idx}].quantity = Number(this.value)||1; updatePoCartTotal();" /><label style="font-size:10px;">Rate:</label><input type="number" inputmode="decimal" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; updatePoCartTotal();" /></div></div>
+        <div style="display:flex; align-items:center; gap:6px;"><strong id="poItemTotal_${idx}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:2px 6px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button></div>
       </div>`;
   }).join("");
 
@@ -1421,16 +1491,31 @@ async function loadPurchaseOrders() {
   const container = document.getElementById("purchaseOrdersList");
   if (!container) return;
 
-  const { data: pos, error } = await db.from("purchase_orders").select("*").order("created_at", { ascending: false });
+  const [{ data: pos, error }, { data: fetchedItems }] = await Promise.all([
+    db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false }),
+    db.from("purchase_order_items").select("*")
+  ]);
+
   if (error || !pos?.length) return container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
 
-  const allIds = [...new Set(pos.map(p => p.id).filter(Boolean))];
-  const { data: fetchedItems } = await db.from("purchase_order_items").select("*").in("po_id", allIds);
-  const itemsMap = {};
-  (fetchedItems || []).forEach(it => { (itemsMap[String(it.po_id)] ||= []).push(it); });
-
   container.innerHTML = pos.map(po => {
-    const items = itemsMap[String(po.id)] || [];
+    let items = [];
+    if (Array.isArray(po.purchase_order_items) && po.purchase_order_items.length > 0) {
+      items = po.purchase_order_items;
+    } else if (fetchedItems && fetchedItems.length > 0) {
+      const poIdStr = String(po.id || '');
+      const poNumStr = String(po.po_number || '');
+      items = fetchedItems.filter(it => {
+        const itPoId = String(it.po_id || '');
+        const itPoNum = String(it.po_number || it.purchase_order_id || it.order_id || '');
+        return (
+          (poIdStr && itPoId === poIdStr) ||
+          (poNumStr && itPoId === poNumStr) ||
+          (poIdStr && itPoNum === poIdStr) ||
+          (poNumStr && itPoNum === poNumStr)
+        );
+      });
+    }
     const supObj = suppliersList.find(s => s.name === po.supplier_name);
     const phone = supObj ? supObj.phone : null;
     const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
@@ -1450,7 +1535,8 @@ async function loadPurchaseOrders() {
                 <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
                 <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
                 ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order</button><button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
-                <button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>
+                ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
+                ${statusLower !== 'received' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
               </div>
             </div>
           </div>
@@ -1476,10 +1562,11 @@ async function loadPurchaseOrders() {
 /* EDIT PO MODAL */
 async function openEditPoModal(poId) {
   ensureProductsLoaded();
-  const { data: po } = await db.from("purchase_orders").select("*").eq("id", poId).single();
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`).single();
   if (!po) return alert("Order load nahi ho paya.");
 
-  const { data: poItems } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
+  const { data: poItems } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${String(po.id)},po_id.eq.${String(po.po_number || '')}`);
   document.getElementById("editPoId") && (document.getElementById("editPoId").value = po.id);
   document.getElementById("editPoNumberText") && (document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id);
   document.getElementById("editPoSupplierSelect") && (document.getElementById("editPoSupplierSelect").value = po.supplier_name);
@@ -1542,7 +1629,7 @@ function renderEditPoCart() {
     total += itemTotal;
     return `
       <div class="item-row" style="padding:6px; border-bottom:1px solid var(--border);">
-        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="number" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" /><label style="font-size:10px;">Rate:</label><input type="number" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" /></div></div>
+        <div><strong>${item.product_name}</strong><div style="display:flex; gap:6px; margin-top:4px;"><label style="font-size:10px;">Qty:</label><input type="number" inputmode="numeric" min="1" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" /><label style="font-size:10px;">Rate:</label><input type="number" inputmode="decimal" step="0.01" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" /></div></div>
         <div style="display:flex; align-items:center; gap:6px;"><strong id="editItemTotal_${idx}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:2px 6px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button></div>
       </div>`;
   }).join("");
@@ -1599,12 +1686,54 @@ async function syncPoToSheet(poId) {
   alert(`Order ${po.po_number || po.id} ka data Google Sheet me sync ho gaya!`);
 }
 
+async function changePoReceivedDate(poId, currentDateStr) {
+  let defaultDate = new Date().toISOString().split('T')[0];
+  if (currentDateStr) {
+    try {
+      const d = new Date(currentDateStr);
+      if (!isNaN(d.getTime())) {
+        defaultDate = d.toISOString().split('T')[0];
+      }
+    } catch(e) {}
+  }
+
+  const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\nJaise pichli entry ke liye: 2026-08-07", defaultDate);
+  if (newDateInput === null) return;
+
+  const cleanDate = newDateInput.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+    return alert("Galat date format! Kripya YYYY-MM-DD format me dalein (Jaise: 2026-08-07).");
+  }
+
+  const selectedIso = new Date(`${cleanDate}T12:00:00`).toISOString();
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { error } = await db.from("purchase_orders").update({ received_at: selectedIso }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+
+  if (error) alert("Date update error: " + error.message);
+  else {
+    alert("Stock Received Date update ho gayi: " + cleanDate);
+    loadPurchaseOrders();
+  }
+}
+
 async function receiveStock(poId) {
-  if (!confirm("Kya aapko samaan receive ho gaya hai? Isse Stock Qty aur Cost Price update ho jayegi.")) return;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const inputDate = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\n(Aaj ki date ke liye OK karein ya pichli date jaise 2026-08-07 enter karein)", todayStr);
+  if (inputDate === null) return;
+
+  let cleanDate = inputDate.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+    cleanDate = todayStr;
+  }
+
+  const receivedTimestamp = new Date(`${cleanDate}T12:00:00`).toISOString();
+
+  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty aur Cost Price update ho jayegi.`)) return;
   
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
+  const { data: allItems } = await db.from("purchase_order_items").select("*");
+  const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
 
   if (items?.length) {
     for (let item of items) {
@@ -1616,7 +1745,7 @@ async function receiveStock(poId) {
     }
   }
 
-  await db.from("purchase_orders").update({ status: "received", received_at: new Date().toISOString() }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+  await db.from("purchase_orders").update({ status: "received", received_at: receivedTimestamp }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
   alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
 
   if (po && items?.length) {
@@ -1636,7 +1765,7 @@ async function receiveStock(poId) {
       })),
       totalAmount: po.total_amount,
       status: "received",
-      notes: "Stock Received Entry"
+      notes: "Stock Received Entry (" + cleanDate + ")"
     });
   }
 
@@ -1829,6 +1958,7 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
+  loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
   if (urlInput) {

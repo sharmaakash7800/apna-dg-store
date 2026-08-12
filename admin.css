@@ -285,6 +285,42 @@ input, select {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* Hide browser default number input spinner arrows across ALL states */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button,
+input:hover::-webkit-outer-spin-button,
+input:hover::-webkit-inner-spin-button,
+input:focus::-webkit-outer-spin-button,
+input:focus::-webkit-inner-spin-button,
+input:active::-webkit-outer-spin-button,
+input:active::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]:hover::-webkit-outer-spin-button,
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-outer-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button,
+input[type="number"]:active::-webkit-outer-spin-button,
+input[type="number"]:active::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  pointer-events: none !important;
+}
+
+input[type="number"],
+input[type="number"]:hover,
+input[type="number"]:focus,
+input[type="number"]:active {
+  -moz-appearance: textfield !important;
+  -webkit-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
 input:focus, select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);

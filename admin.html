@@ -881,10 +881,9 @@
 
         <div class="form-grid">
           <div class="search-select-wrapper">
-            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product..."
-              oninput="filterProducts('Edit')" onfocus="filterProducts('Edit')" autocomplete="off" />
+            <input type="text" id="editPoProductSearch" placeholder="🔍 Search Product..." autocomplete="off" />
             <input type="hidden" id="editSelectedProductId" />
-            <div id="editSearchResultsList" class="search-results-list"></div>
+            <div id="editPoSearchResults" class="search-results-list"></div>
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
             <input id="editPoQty" type="number" min="1" value="1" placeholder="Qty" />
