@@ -1682,12 +1682,19 @@ async function openEditPoModal(poId) {
   document.getElementById("editPoNumberText") && (document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id);
   document.getElementById("editPoSupplierSelect") && (document.getElementById("editPoSupplierSelect").value = po.supplier_name);
 
-  editPoCart = (poItems || []).map(i => ({
-    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
-    product_name: i.product_name || 'Product',
-    quantity: Math.round(Number(i.quantity) || 1),
-    purchase_price: Number(i.purchase_price) || 0
-  }));
+  editPoCart = (poItems || []).map(i => {
+    let pId = (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0;
+    if (pId === 0 && i.product_name) {
+      const match = productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name).toLowerCase());
+      if (match) pId = Number(match.id);
+    }
+    return {
+      product_id: pId,
+      product_name: i.product_name || 'Product',
+      quantity: Math.round(Number(i.quantity) || 1),
+      purchase_price: Number(i.purchase_price) || 0
+    };
+  });
   renderEditPoCart();
   const modal = document.getElementById("editPoModal");
   if (modal) modal.style.display = "flex";
@@ -1713,7 +1720,13 @@ function addItemToEditPoCart() {
   if (qty <= 0 || isNaN(qty)) return alert("Sahi Quantity dalein.");
   if (isNaN(price) || price < 0) return alert("Sahi Rate dalein.");
 
-  editPoCart.push({ product_id: prodId ? String(prodId) : null, product_name: prodName, quantity: qty, purchase_price: price });
+  let numericPId = (prodId && !isNaN(Number(prodId)) && Number(prodId) > 0) ? Number(prodId) : 0;
+  if (numericPId === 0 && prodName) {
+    const match = productsList.find(p => (p.name || '').toLowerCase() === String(prodName).toLowerCase());
+    if (match) numericPId = Number(match.id);
+  }
+
+  editPoCart.push({ product_id: numericPId, product_name: prodName, quantity: qty, purchase_price: price });
   ['editPoProductSearch', 'editSelectedProductId', 'editPoPrice'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
   document.getElementById("editPoQty") && (document.getElementById("editPoQty").value = "1");
   renderEditPoCart();
@@ -1785,13 +1798,20 @@ async function saveUpdatedPurchaseOrder() {
   const { error: poErr } = await db.from("purchase_orders").update({ supplier_name: supplierName, total_amount: totalAmount }).or(`id.eq.${targetPoId},po_number.eq.${targetPoNum}`);
   if (poErr) return alert("Order update error: " + poErr.message);
 
-  const itemsToInsert = editPoCart.map(i => ({
-    po_id: targetPoId,
-    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
-    product_name: i.product_name,
-    quantity: Math.round(Number(i.quantity) || 1),
-    purchase_price: Number(i.purchase_price) || 0
-  }));
+  const itemsToInsert = editPoCart.map(i => {
+    let pId = (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0;
+    if (pId === 0 && i.product_name) {
+      const match = productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name).toLowerCase());
+      if (match) pId = Number(match.id);
+    }
+    return {
+      po_id: targetPoId,
+      product_id: pId,
+      product_name: i.product_name,
+      quantity: Math.round(Number(i.quantity) || 1),
+      purchase_price: Number(i.purchase_price) || 0
+    };
+  });
 
   await db.from("purchase_order_items").delete().or(`po_id.eq.${targetPoId},po_id.eq.${targetPoNum}`);
   const { error: insErr } = await db.from("purchase_order_items").insert(itemsToInsert);
