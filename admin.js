@@ -309,6 +309,7 @@ function switchAdminView(viewId) {
       ['manualCashFromDate', 'manualCashToDate'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = todayStr));
       if (!document.getElementById("reportFromDate")?.value) setDateFilter('week');
       calculateWeeklyReinvestmentComparison();
+      loadCounterCollectionHistory();
     },
     supplierReport: () => {
       loadSuppliers();
@@ -458,6 +459,110 @@ async function saveOfflineCashEntry() {
     alert("Collection Entry Successfully Saved!");
     document.getElementById("manualCashAmount").value = "";
     document.getElementById("manualCashNote").value = "";
+    loadCounterCollectionHistory();
+    calculateReports();
+  }
+}
+
+function toggleCounterCollectionCard() {
+  const card = document.getElementById("counterCollectionCard");
+  if (!card) return;
+  const isHidden = card.style.display === "none" || !card.style.display;
+  card.style.display = isHidden ? "block" : "none";
+  if (isHidden) {
+    document.getElementById("manualCashAmount")?.focus();
+    loadCounterCollectionHistory();
+  }
+}
+
+function toggleSalesReportSection() {
+  const card = document.getElementById("salesReportSectionCard");
+  if (!card) return;
+  const isHidden = card.style.display === "none" || !card.style.display;
+  card.style.display = isHidden ? "block" : "none";
+  if (isHidden) {
+    calculateReports();
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function loadCounterCollectionHistory() {
+  const container = document.getElementById("counterCollectionHistoryContainer");
+  if (!container) return;
+
+  container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Collection History load ho rahi hai...</div>`;
+
+  try {
+    const { data, error } = await db
+      .from("Collections")
+      .select("*")
+      .order("id", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:10px; font-size:12px;">Error loading history: ${error.message}</div>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Abhi tak koi Collection Entry save nahi hui hai.</div>`;
+      return;
+    }
+
+    const rowsHTML = data.map(item => {
+      const note = item.note || "";
+      const isOnline = note.toLowerCase().includes("mode:online") || note.toLowerCase().includes("online");
+      const cleanNote = note.replace(/\[MODE:[^\]]+\]\s*/i, "").replace(/\| Period:[^|]+/i, "").trim();
+      const dateStr = item.collection_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN') : '-');
+
+      return `
+        <tr>
+          <td style="font-weight:600; white-space:nowrap;">${dateStr}</td>
+          <td>
+            <span class="badge ${isOnline ? 'badge-info' : 'badge-success'}" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;">
+              ${isOnline ? '💳 Online' : '💵 Cash (Offline)'}
+            </span>
+          </td>
+          <td style="font-weight:700; color:var(--success);">₹${Number(item.amount || 0).toFixed(2)}</td>
+          <td style="font-size:11px; color:var(--text-dark); max-width:200px; word-wrap:break-word;">${cleanNote || 'Counter Collection'}</td>
+          <td style="text-align:center;">
+            <button class="btn-danger" style="padding:3px 8px; font-size:11px; border-radius:6px; cursor:pointer;" onclick="deleteCollectionEntry('${item.id}')">🗑️ Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="table-responsive" style="max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
+        <table class="custom-table" style="font-size:12px; margin:0;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Payment Mode</th>
+              <th>Amount</th>
+              <th>Note / Remark</th>
+              <th style="text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:10px; font-size:12px;">Load error: ${e.message}</div>`;
+  }
+}
+
+async function deleteCollectionEntry(id) {
+  if (!confirm("Kya aap is Collection Entry ko delete karna chahte hain?")) return;
+  const { error } = await db.from("Collections").delete().eq("id", id);
+  if (error) {
+    alert("Delete Error: " + error.message);
+  } else {
+    alert("Collection Entry delete ho gayi!");
+    loadCounterCollectionHistory();
     calculateReports();
   }
 }

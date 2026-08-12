@@ -542,9 +542,11 @@
       <section id="view-salesReport" class="admin-view" style="display:none;">
         <div
           style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-          <h2 style="margin:0;" id="headingSalesReport">📊 Sales Report</h2>
-          <button class="btn-primary" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter
-            Counter Collection</button>
+          <h2 style="margin:0;" id="headingSalesReport">📊 Sales & Collection Center</h2>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-primary" id="btnToggleSalesReport" onclick="toggleSalesReportSection()">📊 Sales Report</button>
+            <button class="btn-green" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter Counter Collection</button>
+          </div>
         </div>
 
         <div class="card" id="counterCollectionCard" style="display:none; transition:all 0.3s ease;">
@@ -581,6 +583,17 @@
             <div>
               <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
               <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
+            </div>
+          </div>
+
+          <!-- COUNTER COLLECTION HISTORY SECTION -->
+          <div style="margin-top:20px; border-top:1px dashed var(--border); padding-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h4 style="margin:0; font-size:13px; color:var(--text-dark);">📜 Recent Counter Collection History</h4>
+              <button class="btn-outline" style="padding:3px 8px; font-size:11px;" onclick="loadCounterCollectionHistory()">🔄 Refresh History</button>
+            </div>
+            <div id="counterCollectionHistoryContainer">
+              <div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Collection History load ho rahi hai...</div>
             </div>
           </div>
         </div>
@@ -628,7 +641,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="salesReportSectionCard">
           <h2>📊 Sales Report</h2>
 
           <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
@@ -960,7 +973,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=2.1"></script>
+  <script src="admin.js?v=2.2"></script>
 </body>
 
 </html>
