@@ -2207,12 +2207,4 @@ document.addEventListener("DOMContentLoaded", () => {
     ts.addEventListener("change", () => mts.value = ts.value);
     mts.addEventListener("change", () => ts.value = mts.value);
   }
-
-  ['poSupplierSelect', 'editPoSupplierSelect', 'modalTickedSupplierSelect', 'tickedSupplierSelect', 'supplierReportSupplierSelect'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("focus", () => loadSuppliers());
-      el.addEventListener("click", () => loadSuppliers());
-    }
-  });
 });
