@@ -1715,7 +1715,6 @@ async function loadPurchaseOrders() {
                 <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF</button>
                 <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
                 <button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>
-                <button class="dropdown-item" onclick="changePoNumber('${po.id}')">🔢 Change PO Number</button>
                 ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order</button><button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
                 ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
                 ${statusLower !== 'received' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
