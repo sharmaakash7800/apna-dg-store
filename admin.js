@@ -1584,8 +1584,14 @@ async function submitPurchaseOrder() {
 }
 
 async function cancelPurchaseOrder(poId) {
-  if (!confirm("Kya aap is Supplier Reorder ko Delete karna chahte hain?")) return;
-  await deletePurchaseOrder(poId);
+  if (!confirm("Kya aap is Supplier Reorder ko Cancel karna chahte hain?\nOrder Status 'CANCELLED' ho jayega.")) return;
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { error } = await db.from("purchase_orders").update({ status: "cancelled" }).or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`);
+  if (error) alert("Order cancel karne me error: " + error.message);
+  else {
+    alert("Reorder successfully Cancel ho gaya!");
+    loadPurchaseOrders();
+  }
 }
 
 async function deletePurchaseOrder(poId) {
