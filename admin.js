@@ -1658,7 +1658,7 @@ async function loadPurchaseOrders() {
         </div>
         <div style="margin-top:8px;">
           ${items.length > 0 ? `
-            <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:hidden; margin-bottom:8px;">
+            <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:auto; resize:vertical; min-height:auto !important; max-height:320px; height:auto !important; margin-bottom:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead><tr style="background:var(--bg); color:var(--text-muted); text-align:left;"><th style="padding:6px 10px;">Product Name</th><th style="padding:6px 10px; text-align:center;">Qty</th><th style="padding:6px 10px; text-align:right;">Purchase Price (₹)</th><th style="padding:6px 10px; text-align:right;">Total Amount (₹)</th></tr></thead>
                 <tbody>${items.map(it => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td></tr>`).join("")}</tbody>
