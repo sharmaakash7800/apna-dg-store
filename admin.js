@@ -1613,25 +1613,38 @@ async function submitPurchaseOrder() {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
+    await ensureProductsLoaded();
+    const sheetItems = items.map((i, idx) => {
+      const skuCode = getProductSku(i.product_id, i.product_name);
+      const q = Number(i.quantity || 1);
+      const cp = Number(i.purchase_price || 0);
+      return {
+        indentNo: 101 + idx,
+        sku: skuCode,
+        name: i.product_name,
+        quantity: q,
+        costPack: cp > 0 ? cp.toFixed(2) : "0",
+        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
+        supplier: supplier,
+        location: supplier,
+        person: supplier,
+        buyer: supplier,
+        price: (q * cp).toFixed(2)
+      };
+    });
+
     syncOrderToGoogleSheet({
       targetSheet: "Admin Orders Indent",
       isPO: true,
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
-      itemsArray: items.map((i, idx) => ({
-        indentNo: 100 + idx + 1,
-        name: i.product_name,
-        quantity: i.quantity,
-        sku: i.product_id || '',
-        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: "Raghav Agency"
-      })),
+      itemsArray: sheetItems,
       totalAmount: totalAmount,
       status: "pending",
       notes: "Direct Reorder from Admin Dashboard"
     });
-    alert(`Reorder submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+    alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
   }
 
   poCart = [];
@@ -1975,8 +1988,11 @@ async function syncPoToSheet(poId) {
       name: i.product_name,
       quantity: q,
       costPack: cp > 0 ? cp.toFixed(2) : "0",
+      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
       supplier: po.supplier_name || 'N/A',
+      location: po.supplier_name || 'N/A',
       person: po.supplier_name || 'Admin',
+      buyer: po.supplier_name || 'Admin',
       price: (q * cp).toFixed(2)
     };
   });
