@@ -179,13 +179,13 @@ function copyAppsScriptCode() {
     "          'Timestamp',",
     "          'Unique Id',",
     "          'Indent Number',",
+    "          'SKU Code',",
     "          'Item Name',",
     "          'Quantity',",
-    "          'Cost/Pack (₹)',",
+    "          'Cost/Pack',",
     "          'Supplier',",
-    "          'SKU Code',",
-    "          'Person',",
-    "          'Total Price (₹)'",
+    "          'Buyer(Purchase Person)',",
+    "          'Price (₹)'",
     "        ]);",
     "        var poHeaderRange = poSheet.getRange(1, 1, 1, 10);",
     "        poHeaderRange.setFontWeight('bold');",
@@ -202,11 +202,11 @@ function copyAppsScriptCode() {
     "            timestampStr,",
     "            orderIdStr,",
     "            item.indentNo || (101 + i),",
+    "            item.sku || '0',",
     "            item.name || '',",
     "            item.quantity || 1,",
     "            item.costPack || item.cost_pack || 0,",
     "            item.supplier || partyStr || 'N/A',",
-    "            item.sku || '',",
     "            partyStr || item.person || 'Admin',",
     "            item.price || item.totalPrice || 0",
     "          ]);",
@@ -216,11 +216,11 @@ function copyAppsScriptCode() {
     "          timestampStr,",
     "          orderIdStr,",
     "          101,",
+    "          data.sku || '0',",
     "          itemsStr || 'Purchase Order Item',",
     "          data.quantity || 1,",
     "          data.costPack || data.cost_pack || 0,",
     "          partyStr || 'N/A',",
-    "          data.sku || '',",
     "          partyStr || 'Admin',",
     "          data.totalAmount || data.price || 0",
     "        ]);",
@@ -804,6 +804,12 @@ function getPackCountFromUnit(unitStr) {
   return match && match[1] && parseInt(match[1], 10) > 0 ? parseInt(match[1], 10) : 1;
 }
 
+function getProductSku(id, name) {
+  const prod = productsList.find(p => String(p.id) === String(id));
+  if (prod && prod.sku) return prod.sku;
+  return name ? name.substring(0, 3).toUpperCase() + "-" + (String(id).slice(-3)) : "000";
+}
+
 function updateLiveUnitCost(prodId) {
   const pIdStr = String(prodId);
   const cost = Number(document.getElementById(`edit_cost_${pIdStr}`)?.value) || 0;
@@ -1082,19 +1088,18 @@ async function submitTickedReorder(sourceModal = false) {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
+    await ensureProductsLoaded();
     const sheetItems = dbItems.map((i, idx) => {
-      let prod = productsList.find(p => Number(i.product_id) > 0 && String(p.id) === String(i.product_id)) ||
-                 productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name || '').toLowerCase());
-      let skuCode = prod?.sku || prod?.sku_code || prod?.barcode || (prod?.id ? ("SKU-" + prod.id) : (i.product_name ? i.product_name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase() : 'SKU-000'));
+      const skuCode = getProductSku(i.product_id, i.product_name);
       const q = Number(i.quantity || 1);
       const cp = Number(i.purchase_price || 0);
       return {
         indentNo: 101 + idx,
+        sku: skuCode,
         name: i.product_name,
         quantity: q,
-        costPack: cp.toFixed(2),
+        costPack: cp > 0 ? cp.toFixed(2) : "0",
         supplier: supplier,
-        sku: skuCode,
         person: supplier,
         price: (q * cp).toFixed(2)
       };
@@ -1416,6 +1421,31 @@ async function loadProductsForReorder() {
   }
   setupProductSearch("poProductSearch", "poSearchResults", "selectedProductId", "poPrice");
   setupProductSearch("editPoProductSearch", "editPoSearchResults", "editSelectedProductId", "editPoPrice");
+}
+
+function getProductSku(productId, productName) {
+  const pIdNum = Number(productId || 0);
+  const pName = String(productName || '').trim();
+
+  let prod = null;
+  if (pIdNum > 0) {
+    prod = productsList.find(p => String(p.id) === String(pIdNum));
+  }
+  if (!prod && pName) {
+    const lowerName = pName.toLowerCase();
+    prod = productsList.find(p => (p.name || '').toLowerCase() === lowerName) ||
+           productsList.find(p => (p.name || '').toLowerCase().includes(lowerName)) ||
+           productsList.find(p => lowerName.includes((p.name || '').toLowerCase()));
+  }
+
+  if (prod) {
+    const sku = prod.sku || prod.sku_code || prod.skucode || prod.barcode || prod.code || prod.product_code || prod.sku_id;
+    if (sku && String(sku).trim() !== "" && String(sku).trim() !== "null" && String(sku).trim() !== "undefined") {
+      return String(sku).trim();
+    }
+  }
+
+  return "0";
 }
 
 async function ensureProductsLoaded() {
@@ -1934,18 +1964,16 @@ async function syncPoToSheet(poId) {
   await ensureProductsLoaded();
 
   const sheetItems = items.map((i, idx) => {
-    let prod = productsList.find(p => Number(i.product_id) > 0 && String(p.id) === String(i.product_id)) ||
-               productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name || '').toLowerCase());
-    let skuCode = prod?.sku || prod?.sku_code || prod?.barcode || (prod?.id ? ("SKU-" + prod.id) : (i.product_name ? i.product_name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase() : 'SKU-000'));
+    const skuCode = getProductSku(i.product_id, i.product_name);
     const q = Number(i.quantity || 1);
     const cp = Number(i.purchase_price || 0);
     return {
       indentNo: 101 + idx,
+      sku: skuCode,
       name: i.product_name,
       quantity: q,
-      costPack: cp.toFixed(2),
+      costPack: cp > 0 ? cp.toFixed(2) : "0",
       supplier: po.supplier_name || 'N/A',
-      sku: skuCode,
       person: po.supplier_name || 'Admin',
       price: (q * cp).toFixed(2)
     };
