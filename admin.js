@@ -1066,7 +1066,7 @@ async function submitTickedReorder(sourceModal = false) {
 
   const dbItems = itemsList.map(i => ({
     po_id: po.id,
-    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
+    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
     product_name: i.product_name || 'Item',
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
@@ -1547,7 +1547,7 @@ async function submitPurchaseOrder() {
 
   const items = poCart.map(i => ({
     po_id: po.id,
-    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
+    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
     product_name: i.product_name,
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
@@ -1782,7 +1782,7 @@ async function saveUpdatedPurchaseOrder() {
 
   const itemsToInsert = editPoCart.map(i => ({
     po_id: targetPoId,
-    product_id: (i.product_id && !isNaN(Number(i.product_id))) ? Number(i.product_id) : null,
+    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
     product_name: i.product_name,
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
