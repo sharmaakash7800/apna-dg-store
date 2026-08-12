@@ -1682,7 +1682,12 @@ async function openEditPoModal(poId) {
   document.getElementById("editPoNumberText") && (document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id);
   document.getElementById("editPoSupplierSelect") && (document.getElementById("editPoSupplierSelect").value = po.supplier_name);
 
-  editPoCart = (poItems || []).map(i => ({ product_id: i.product_id ? String(i.product_id) : null, product_name: i.product_name || 'Product', quantity: Number(i.quantity) || 1, purchase_price: Number(i.purchase_price) || 0 }));
+  editPoCart = (poItems || []).map(i => ({
+    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
+    product_name: i.product_name || 'Product',
+    quantity: Math.round(Number(i.quantity) || 1),
+    purchase_price: Number(i.purchase_price) || 0
+  }));
   renderEditPoCart();
   const modal = document.getElementById("editPoModal");
   if (modal) modal.style.display = "flex";
