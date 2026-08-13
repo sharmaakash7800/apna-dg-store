@@ -1864,9 +1864,11 @@ async function loadPurchaseOrders() {
 
     return `
       <div class="order-card">
-        <div class="order-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div><strong style="font-size:13px;">Supplier: ${po.supplier_name} (${po.po_number || '#' + po.id})</strong></div>
-          <div style="display:flex; align-items:center; gap:8px;">
+        <div class="order-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="flex:1; min-width:0; padding-right:4px;">
+            <strong style="font-size:13px; display:block; word-break:break-word;">Supplier: ${po.supplier_name} (${po.po_number || '#' + po.id})</strong>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
             <span class="badge ${badgeClass}">${po.status}</span>
             <div class="dropdown-wrapper">
               <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
@@ -2227,22 +2229,26 @@ async function loadCustomerOrders() {
 
       return `
         <div class="order-card">
-          <div class="order-header">
-            <span>ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</span>
-            <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${formatTime(ord.created_at)}<br>📍 ${ord.address || 'N/A'}</div>
-          <div style="margin-top:6px;">${items.length ? items.map(it => `<div class="item-row"><span>• ${it.product_name} (×${it.quantity || 1})</span><strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong></div>`).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}</div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px; flex-wrap:wrap; gap:6px;">
-            <div class="dropdown-wrapper">
-              <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-              <div class="dropdown-menu">
-                ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'processing')">🔄 Process Order</button>` : ''}<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'completed')">✅ Complete</button><button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus('${ord.id}', 'cancelled')">❌ Cancel</button>` : ''}
-                <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
-                <button class="dropdown-item" style="color:var(--danger);" onclick="deleteCustomerOrder('${ord.id}')">🗑 Delete Order from DB</button>
+          <div class="order-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="flex:1; min-width:0; padding-right:4px;">
+              <strong style="font-size:13px; display:block; word-break:break-word;">ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
+              <div class="dropdown-wrapper">
+                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                <div class="dropdown-menu">
+                  ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'processing')">🔄 Process Order</button>` : ''}<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'completed')">✅ Complete</button><button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus('${ord.id}', 'cancelled')">❌ Cancel</button>` : ''}
+                  <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
+                  ${isOwn ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deleteCustomerOrder('${ord.id}')">🗑 Delete Order from DB</button>` : ''}
+                </div>
               </div>
             </div>
-            <div style="font-weight:bold; font-size:13px;">Total: ₹${totalAmount.toFixed(2)}</div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-bottom:6px;">📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${formatTime(ord.created_at)}<br>📍 ${ord.address || 'N/A'}</div>
+          <div style="margin-top:6px;">${items.length ? items.map(it => `<div class="item-row"><span>• ${it.product_name} (×${it.quantity || 1})</span><strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong></div>`).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}</div>
+          <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
+            <div style="font-weight:bold; font-size:14px; color:var(--success);">Total: ₹${totalAmount.toFixed(2)}</div>
           </div>
         </div>`;
     }).join("");
