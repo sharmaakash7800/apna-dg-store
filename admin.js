@@ -10,113 +10,7 @@ const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPS3892GpqKP
 let googleSheetScriptUrl = DEFAULT_SHEET_URL;
 localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
 
-let actionVisibilityConfig = JSON.parse(localStorage.getItem("actionVisibilityConfig")) || {
-  nav_customerOrders: true,
-  nav_supplierHistory: true,
-  nav_supplierReorder: true,
-  nav_productsAdmin: true,
-  nav_salesReport: true,
-  contactPills: true,
-  pdfReport: true,
-  googleSync: true,
-  changeSupplier: true,
-  editItems: true,
-  cancelOrder: true,
-  changeDate: true,
-  deleteOrder: true,
-  deleteOnReceived: true
-};
 
-function applyVisibilityConfig() {
-  const navKeys = [
-    { key: 'customerOrders', bId: 'nav-customerOrders' },
-    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
-    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
-    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
-    { key: 'salesReport', bId: 'nav-salesReport' }
-  ];
-
-  navKeys.forEach(item => {
-    const isVisible = actionVisibilityConfig[`nav_${item.key}`] !== false;
-    const bNavBtn = document.getElementById(item.bId);
-    if (bNavBtn) bNavBtn.style.display = isVisible ? "flex" : "none";
-
-    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
-    if (sidebarBtn) sidebarBtn.style.display = isVisible ? "flex" : "none";
-  });
-}
-
-function switchVisTab(tabName) {
-  ['nav', 'actions', 'permissions'].forEach(t => {
-    const tabEl = document.getElementById(`visTab_${t}`);
-    const btnEl = document.getElementById(`visTabBtn_${t}`);
-    if (tabEl) tabEl.style.display = t === tabName ? "block" : "none";
-    if (btnEl) {
-      if (t === tabName) btnEl.classList.add("active");
-      else btnEl.classList.remove("active");
-    }
-  });
-}
-
-let bsVisModalInstance = null;
-
-function openVisibilityModal() {
-  const modalEl = document.getElementById("visibilityControlModal");
-  if (!modalEl) return;
-
-  Object.keys(actionVisibilityConfig).forEach(key => {
-    const chk = document.getElementById(`vis_${key}`);
-    if (chk) chk.checked = actionVisibilityConfig[key] !== false;
-  });
-
-  if (window.bootstrap && window.bootstrap.Modal) {
-    if (!bsVisModalInstance) {
-      bsVisModalInstance = new bootstrap.Modal(modalEl);
-    }
-    bsVisModalInstance.show();
-  } else {
-    modalEl.style.display = "flex";
-  }
-}
-
-function closeVisibilityModal() {
-  const modalEl = document.getElementById("visibilityControlModal");
-  if (bsVisModalInstance) {
-    bsVisModalInstance.hide();
-  } else if (modalEl) {
-    modalEl.style.display = "none";
-  }
-  applyVisibilityConfig();
-  loadPurchaseOrders();
-}
-
-function toggleVisConfig(key, isChecked) {
-  actionVisibilityConfig[key] = isChecked;
-  localStorage.setItem("actionVisibilityConfig", JSON.stringify(actionVisibilityConfig));
-  applyVisibilityConfig();
-}
-
-function resetVisibilityConfig() {
-  actionVisibilityConfig = {
-    nav_customerOrders: true,
-    nav_supplierHistory: true,
-    nav_supplierReorder: true,
-    nav_productsAdmin: true,
-    nav_salesReport: true,
-    contactPills: true,
-    pdfReport: true,
-    googleSync: true,
-    changeSupplier: true,
-    editItems: true,
-    cancelOrder: true,
-    changeDate: true,
-    deleteOrder: true,
-    deleteOnReceived: true
-  };
-  localStorage.setItem("actionVisibilityConfig", JSON.stringify(actionVisibilityConfig));
-  openVisibilityModal();
-  applyVisibilityConfig();
-}
 
 function saveGoogleSheetUrl(url) {
   googleSheetScriptUrl = (url || "").trim();
@@ -1947,7 +1841,7 @@ async function loadPurchaseOrders() {
             <div class="dropdown-wrapper">
               <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
               <div class="dropdown-menu">
-                ${actionVisibilityConfig.contactPills !== false && phone ? `
+                ${phone ? `
                   <div class="dropdown-header">📞 Contact Supplier</div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
                     <a href="tel:${phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
@@ -1956,17 +1850,15 @@ async function loadPurchaseOrders() {
                   <div class="dropdown-divider"></div>
                 ` : ''}
                 <div class="dropdown-header">📄 Document & Actions</div>
-                ${actionVisibilityConfig.pdfReport !== false ? `<button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF Report</button>` : ''}
-                ${actionVisibilityConfig.googleSync !== false ? `<button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>` : ''}
-                ${actionVisibilityConfig.changeSupplier !== false ? `<button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>` : ''}
-                ${actionVisibilityConfig.editItems !== false && statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order Items</button>` : ''}
+                <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF Report</button>
+                <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
+                <button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>
+                ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order Items</button>` : ''}
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-header">⚡ Manage Status</div>
-                ${actionVisibilityConfig.cancelOrder !== false && statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
-                ${actionVisibilityConfig.changeDate !== false && statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
-                ${actionVisibilityConfig.deleteOrder !== false && (actionVisibilityConfig.deleteOnReceived !== false || statusLower !== 'received') ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
-                <div class="dropdown-divider"></div>
-                <button class="dropdown-item" style="font-size:10px; color:var(--text-muted); justify-content:center;" onclick="openVisibilityModal()">⚙️ Menu Settings</button>
+                ${statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
+                ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
+                <button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>
               </div>
             </div>
           </div>
@@ -2437,7 +2329,6 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
-  applyVisibilityConfig();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
