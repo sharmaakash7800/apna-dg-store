@@ -1,5 +1,5 @@
-/* APNA DG STORE - SERVICE WORKER FOR PWA NATIVE APP INSTALLATION */
-const CACHE_NAME = 'apna-dg-store-v1';
+/* APNA DG STORE - PWA SERVICE WORKER FOR BOTH ADMIN & CUSTOMER STORE APPS */
+const CACHE_NAME = 'apna-dg-store-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -6,6 +6,24 @@
   <meta name="theme-color" content="#0f172a" />
   <title>Apna DG Store</title>
 
+  <!-- PWA STANDALONE MOBILE APP CONFIG (CUSTOMER STORE) -->
+  <link rel="manifest" href="manifest-store.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Apna DG Store">
+  <meta name="apple-touch-fullscreen" content="yes">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js?v=2.0').then(reg => {
+          console.log('Customer Store PWA ServiceWorker registered!');
+        }).catch(err => console.log('SW reg error:', err));
+      });
+    }
+  </script>
+
   <style>
     :root {
       --navy: #0f172a;
