@@ -16,11 +16,16 @@
 
   <!-- HEADER -->
   <header>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <button class="menu-toggle-btn" onclick="toggleSidebar()">
-        ☰ <span>Menu</span>
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="menu-toggle-btn" onclick="toggleSidebar()">
+          ☰ <span>Menu</span>
+        </button>
+        <div class="header-title">Apna DG Store Admin</div>
+      </div>
+      <button class="btn-outline" style="padding:6px 12px; font-size:11px; font-weight:bold; border-radius:10px;" onclick="openVisibilityModal()" title="Customize action buttons visibility">
+        ⚙️ Menu Visibility Settings
       </button>
-      <div class="header-title">Apna DG Store Admin</div>
     </div>
   </header>
 
@@ -990,8 +995,64 @@
     </div>
   </div>
 
+  <!-- ACTION VISIBILITY CONTROL MODAL -->
+  <div id="visibilityControlModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:480px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+        <h3 style="margin:0; font-size:16px; color:var(--text-dark);">⚙️ Menu & Action Visibility Controls</h3>
+        <button onclick="closeVisibilityModal()" style="border:0; background:var(--bg); padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">✕ Close</button>
+      </div>
+      
+      <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Select karein ki Order Actions menu me kaunse buttons show honge aur kaunse hide honge:</p>
+
+      <div style="display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; padding-right:4px;">
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>📞 Call & WhatsApp Buttons</span>
+          <input type="checkbox" id="vis_contactPills" onchange="toggleVisConfig('contactPills', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>📄 Send PDF Report</span>
+          <input type="checkbox" id="vis_pdfReport" onchange="toggleVisConfig('pdfReport', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>📊 Sync to Google Sheet</span>
+          <input type="checkbox" id="vis_googleSync" onchange="toggleVisConfig('googleSync', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>🏷 Change Supplier Name</span>
+          <input type="checkbox" id="vis_changeSupplier" onchange="toggleVisConfig('changeSupplier', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>✏️ Edit Order Items</span>
+          <input type="checkbox" id="vis_editItems" onchange="toggleVisConfig('editItems', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>❌ Cancel Reorder Option</span>
+          <input type="checkbox" id="vis_cancelOrder" onchange="toggleVisConfig('cancelOrder', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>📅 Change Received Date</span>
+          <input type="checkbox" id="vis_changeDate" onchange="toggleVisConfig('changeDate', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); font-size:12px; font-weight:bold; cursor:pointer;">
+          <span>🗑 Delete Order from DB Option</span>
+          <input type="checkbox" id="vis_deleteOrder" onchange="toggleVisConfig('deleteOrder', this.checked)" />
+        </label>
+        <label style="display:flex; align-items:center; justify-content:space-between; background:rgba(239, 68, 68, 0.08); padding:8px 12px; border-radius:8px; border:1px solid var(--danger); font-size:12px; font-weight:bold; cursor:pointer; color:var(--danger);">
+          <span>Show Delete Option on Received Orders Too</span>
+          <input type="checkbox" id="vis_deleteOnReceived" onchange="toggleVisConfig('deleteOnReceived', this.checked)" />
+        </label>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:14px; border-top:1px solid var(--border); padding-top:10px;">
+        <button class="btn-outline" style="flex:1; padding:8px;" onclick="resetVisibilityConfig()">↺ Reset Default</button>
+        <button class="btn-primary" style="flex:2; padding:8px; font-weight:bold;" onclick="closeVisibilityModal()">✅ Save & Apply Controls</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=17.0"></script>
+  <script src="admin.js?v=18.0"></script>
 </body>
 
 </html>
