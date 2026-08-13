@@ -9,6 +9,10 @@
   <!-- HTML2PDF CDN for PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+  <!-- Bootstrap 5 CSS & JS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
   <link rel="stylesheet" href="admin.css?v=4.0" />
 </head>
 
@@ -995,205 +999,203 @@
     </div>
   </div>
 
-  <!-- ACTION VISIBILITY CONTROL MODAL -->
-  <div id="visibilityControlModal" class="modal-overlay">
-    <div class="modal-card" style="max-width:540px; width:92%; padding:20px; border-radius:18px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:20px;">⚙️</span>
-          <div>
-            <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-dark);">Menu & Visibility Controls</h3>
-            <small style="color:var(--text-muted); font-size:10px;">Control which tabs & buttons are visible</small>
+  <!-- BOOTSTRAP 5 ACTION VISIBILITY CONTROL MODAL -->
+  <div class="modal fade" id="visibilityControlModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header border-bottom-0 pb-0">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fs-4">⚙️</span>
+            <div>
+              <h5 class="modal-title fw-bold mb-0 text-dark">Menu & Visibility Controls</h5>
+              <small class="text-muted" style="font-size: 11px;">Customize tabs and action buttons</small>
+            </div>
           </div>
-        </div>
-        <button onclick="closeVisibilityModal()" style="border:0; background:var(--bg); padding:6px 12px; border-radius:10px; cursor:pointer; font-weight:bold; color:var(--text-dark);">✕ Close</button>
-      </div>
-      
-      <!-- SEGMENTED CATEGORY TABS -->
-      <div style="display:flex; gap:6px; margin-bottom:14px; background:var(--bg); padding:4px; border-radius:12px; border:1px solid var(--border);">
-        <button id="visTabBtn_nav" class="vis-tab-btn active" style="flex:1;" onclick="switchVisTab('nav')">📱 Navigation Bar</button>
-        <button id="visTabBtn_actions" class="vis-tab-btn" style="flex:1;" onclick="switchVisTab('actions')">⚡ Card Menu</button>
-        <button id="visTabBtn_permissions" class="vis-tab-btn" style="flex:1;" onclick="switchVisTab('permissions')">🛡️ Permissions</button>
-      </div>
-
-      <!-- TAB 1: NAVIGATION TABS -->
-      <div id="visTab_nav" class="vis-tab-content" style="display:block; max-height:360px; overflow-y:auto; padding-right:2px;">
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Bottom Navigation Bar & Drawer Tabs</div>
-        
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>🛍</span>
-            <div>Customer Orders Tab<span class="vis-sub">Show/Hide Orders tab in bottom bar</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_nav_customerOrders" onchange="toggleVisConfig('nav_customerOrders', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeVisibilityModal()"></button>
         </div>
 
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📋</span>
-            <div>Supplier Reorders History Tab<span class="vis-sub">Show/Hide History tab in bottom bar</span></div>
+        <div class="modal-body pt-3">
+          <!-- BOOTSTRAP NAV PILLS -->
+          <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-3" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link active py-1 fs-7 fw-bold" id="tab-nav-btn" data-bs-toggle="pill" data-bs-target="#tab-nav" type="button" onclick="switchVisTab('nav')">📱 Navigation</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link py-1 fs-7 fw-bold" id="tab-actions-btn" data-bs-toggle="pill" data-bs-target="#tab-actions" type="button" onclick="switchVisTab('actions')">⚡ Actions</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link py-1 fs-7 fw-bold" id="tab-perms-btn" data-bs-toggle="pill" data-bs-target="#tab-perms" type="button" onclick="switchVisTab('permissions')">🛡️ Delete</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- TAB 1: NAVIGATION TABS -->
+            <div class="tab-pane fade show active" id="tab-nav">
+              <div class="list-group list-group-flush border rounded-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">🛍 Customer Orders</span>
+                    <div class="text-muted small" style="font-size:10px;">Show/Hide Orders tab in bottom bar</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_nav_customerOrders" onchange="toggleVisConfig('nav_customerOrders', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📋 Reorders History</span>
+                    <div class="text-muted small" style="font-size:10px;">Show/Hide History tab in bottom bar</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_nav_supplierHistory" onchange="toggleVisConfig('nav_supplierHistory', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">➕ Create Reorder</span>
+                    <div class="text-muted small" style="font-size:10px;">Show/Hide Direct Reorder tab</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_nav_supplierReorder" onchange="toggleVisConfig('nav_supplierReorder', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📦 Products List</span>
+                    <div class="text-muted small" style="font-size:10px;">Show/Hide Products inventory tab</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_nav_productsAdmin" onchange="toggleVisConfig('nav_productsAdmin', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📊 Sales Analytics</span>
+                    <div class="text-muted small" style="font-size:10px;">Show/Hide Sales report tab</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_nav_salesReport" onchange="toggleVisConfig('nav_salesReport', this.checked)">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: CARD ACTIONS -->
+            <div class="tab-pane fade" id="tab-actions">
+              <div class="list-group list-group-flush border rounded-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📞 Call & WhatsApp</span>
+                    <div class="text-muted small" style="font-size:10px;">Quick supplier contact buttons</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_contactPills" onchange="toggleVisConfig('contactPills', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📄 PDF Report</span>
+                    <div class="text-muted small" style="font-size:10px;">Download order slip PDF</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_pdfReport" onchange="toggleVisConfig('pdfReport', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📊 Google Sheet Sync</span>
+                    <div class="text-muted small" style="font-size:10px;">Sync order manually to sheet</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_googleSync" onchange="toggleVisConfig('googleSync', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">🏷 Change Supplier Name</span>
+                    <div class="text-muted small" style="font-size:10px;">Reassign order supplier</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_changeSupplier" onchange="toggleVisConfig('changeSupplier', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">✏️ Edit Order Items</span>
+                    <div class="text-muted small" style="font-size:10px;">Modify rates & items in PO</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_editItems" onchange="toggleVisConfig('editItems', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">❌ Cancel Reorder</span>
+                    <div class="text-muted small" style="font-size:10px;">Cancel pending PO</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_cancelOrder" onchange="toggleVisConfig('cancelOrder', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">📅 Change Received Date</span>
+                    <div class="text-muted small" style="font-size:10px;">Edit stock received date</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_changeDate" onchange="toggleVisConfig('changeDate', this.checked)">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: PERMISSIONS & DELETE -->
+            <div class="tab-pane fade" id="tab-perms">
+              <div class="list-group list-group-flush border rounded-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                  <div>
+                    <span class="fw-bold me-1">🗑 Delete Order from DB</span>
+                    <div class="text-muted small" style="font-size:10px;">Enable order delete option</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_deleteOrder" onchange="toggleVisConfig('deleteOrder', this.checked)">
+                  </div>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2 bg-danger-subtle text-danger">
+                  <div>
+                    <span class="fw-bold me-1">⚠️ Delete on Received Orders</span>
+                    <div class="small text-danger-emphasis" style="font-size:10px;">Allow deleting already received POs</div>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="vis_deleteOnReceived" onchange="toggleVisConfig('deleteOnReceived', this.checked)">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_nav_supplierHistory" onchange="toggleVisConfig('nav_supplierHistory', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
         </div>
 
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>➕</span>
-            <div>Direct Supplier Reorder Tab<span class="vis-sub">Show/Hide Reorder creation tab</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_nav_supplierReorder" onchange="toggleVisConfig('nav_supplierReorder', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-3" onclick="resetVisibilityConfig()">↺ Reset Defaults</button>
+          <button type="button" class="btn btn-sm btn-primary rounded-3 fw-bold px-3" onclick="closeVisibilityModal()" data-bs-dismiss="modal">✅ Save & Apply</button>
         </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📦</span>
-            <div>Products Master List Tab<span class="vis-sub">Show/Hide Products inventory tab</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_nav_productsAdmin" onchange="toggleVisConfig('nav_productsAdmin', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📊</span>
-            <div>Sales Analytics Tab<span class="vis-sub">Show/Hide Sales report tab</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_nav_salesReport" onchange="toggleVisConfig('nav_salesReport', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <!-- TAB 2: CARD MENU ACTIONS -->
-      <div id="visTab_actions" class="vis-tab-content" style="display:none; max-height:360px; overflow-y:auto; padding-right:2px;">
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Order Card Actions Dropdown</div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📞</span>
-            <div>Call & WhatsApp Buttons<span class="vis-sub">Quick contact pills for supplier</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_contactPills" onchange="toggleVisConfig('contactPills', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📄</span>
-            <div>Send PDF Report Option<span class="vis-sub">Generate downloadable PDF order slip</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_pdfReport" onchange="toggleVisConfig('pdfReport', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📊</span>
-            <div>Sync to Google Sheet Option<span class="vis-sub">Manual Google Sheet sync button</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_googleSync" onchange="toggleVisConfig('googleSync', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>🏷</span>
-            <div>Change Supplier Name Action<span class="vis-sub">Reassign order to a different supplier</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_changeSupplier" onchange="toggleVisConfig('changeSupplier', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>✏️</span>
-            <div>Edit Order Items Action<span class="vis-sub">Modify items, rates, quantities in pending PO</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_editItems" onchange="toggleVisConfig('editItems', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>❌</span>
-            <div>Cancel Reorder Option<span class="vis-sub">Mark pending order as cancelled</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_cancelOrder" onchange="toggleVisConfig('cancelOrder', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>📅</span>
-            <div>Change Received Date Option<span class="vis-sub">Edit timestamp for received orders</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_changeDate" onchange="toggleVisConfig('changeDate', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <!-- TAB 3: PERMISSIONS & DELETE -->
-      <div id="visTab_permissions" class="vis-tab-content" style="display:none; max-height:360px; overflow-y:auto; padding-right:2px;">
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Delete & Safety Permissions</div>
-
-        <div class="vis-toggle-row">
-          <div class="vis-label">
-            <span>🗑</span>
-            <div>Delete Order from DB Option<span class="vis-sub">Enable/Disable order deletion button</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_deleteOrder" onchange="toggleVisConfig('deleteOrder', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-
-        <div class="vis-toggle-row" style="background:rgba(239, 68, 68, 0.06); border-color:rgba(239, 68, 68, 0.25);">
-          <div class="vis-label" style="color:var(--danger);">
-            <span>⚠️</span>
-            <div>Delete on Received Orders<span class="vis-sub">Allow deleting orders that are already received</span></div>
-          </div>
-          <label class="vis-switch">
-            <input type="checkbox" id="vis_deleteOnReceived" onchange="toggleVisConfig('deleteOnReceived', this.checked)" />
-            <span class="vis-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div style="display:flex; gap:8px; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
-        <button class="btn-outline" style="flex:1; padding:10px; font-size:12px;" onclick="resetVisibilityConfig()">↺ Reset All Defaults</button>
-        <button class="btn-primary" style="flex:2; padding:10px; font-size:13px; font-weight:bold;" onclick="closeVisibilityModal()">✅ Save & Apply Controls</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=19.0"></script>
+  <script src="admin.js?v=20.0"></script>
 </body>
 
 </html>

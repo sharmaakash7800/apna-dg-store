@@ -58,19 +58,34 @@ function switchVisTab(tabName) {
   });
 }
 
+let bsVisModalInstance = null;
+
 function openVisibilityModal() {
-  const modal = document.getElementById("visibilityControlModal");
-  if (!modal) return;
+  const modalEl = document.getElementById("visibilityControlModal");
+  if (!modalEl) return;
+
   Object.keys(actionVisibilityConfig).forEach(key => {
     const chk = document.getElementById(`vis_${key}`);
     if (chk) chk.checked = actionVisibilityConfig[key] !== false;
   });
-  modal.style.display = "flex";
+
+  if (window.bootstrap && window.bootstrap.Modal) {
+    if (!bsVisModalInstance) {
+      bsVisModalInstance = new bootstrap.Modal(modalEl);
+    }
+    bsVisModalInstance.show();
+  } else {
+    modalEl.style.display = "flex";
+  }
 }
 
 function closeVisibilityModal() {
-  const modal = document.getElementById("visibilityControlModal");
-  if (modal) modal.style.display = "none";
+  const modalEl = document.getElementById("visibilityControlModal");
+  if (bsVisModalInstance) {
+    bsVisModalInstance.hide();
+  } else if (modalEl) {
+    modalEl.style.display = "none";
+  }
   applyVisibilityConfig();
   loadPurchaseOrders();
 }
