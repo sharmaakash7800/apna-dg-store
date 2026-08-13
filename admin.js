@@ -21,7 +21,7 @@ function saveGoogleSheetUrl(url) {
 }
 
 async function syncOrderToGoogleSheet(payload) {
-  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  const baseUrl = "https://script.google.com/macros/s/AKfycbzoW-h73FcusbWxhI0am3g5BmQLebvpZy-fXdeuTECvxLo0lvHqZpjL9cYBL4GRtv9HSw/exec";
   if (!baseUrl) {
     console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
     return;
@@ -1101,8 +1101,11 @@ async function submitTickedReorder(sourceModal = false) {
         name: i.product_name,
         quantity: q,
         costPack: cp > 0 ? cp.toFixed(2) : "0",
+        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
         supplier: supplier,
+        location: supplier,
         person: supplier,
+        buyer: supplier,
         price: (q * cp).toFixed(2)
       };
     });
