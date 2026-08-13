@@ -2138,28 +2138,6 @@ async function receiveStock(poId) {
 
   await db.from("purchase_orders").update({ status: "received", received_at: receivedTimestamp }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
   alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
-
-  if (po && items?.length) {
-    syncOrderToGoogleSheet({
-      targetSheet: "Admin Orders Indent",
-      isPO: true,
-      orderId: po.po_number || ('#' + po.id),
-      orderType: "Supplier Stock Received",
-      partyName: po.supplier_name || 'Akash Sharma',
-      itemsArray: items.map((i, idx) => ({
-        indentNo: 100 + idx + 1,
-        name: i.product_name,
-        quantity: i.quantity,
-        sku: i.product_id || '',
-        price: (Number(i.quantity) * Number(i.purchase_price)).toFixed(2),
-        location: "Raghav Agency"
-      })),
-      totalAmount: po.total_amount,
-      status: "received",
-      notes: "Stock Received Entry (" + cleanDate + ")"
-    });
-  }
-
   loadPurchaseOrders(); loadProductsForReorder();
 }
 
