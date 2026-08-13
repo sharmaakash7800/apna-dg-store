@@ -8,7 +8,64 @@ let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 /* GOOGLE SHEETS AUTOMATIC SYNC LOGIC */
 const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPS3892GpqKPPoL3gkHLK2BnMtXrW2j9ALCBqblf82uLi9rslEVh2eaGOMwi9UT6-R7Q/exec";
 let googleSheetScriptUrl = DEFAULT_SHEET_URL;
-localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
+let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConfig")) || {
+  contactPills: true,
+  pdfReport: true,
+  googleSync: true,
+  changeSupplier: true,
+  editItems: true,
+  cancelOrder: true,
+  changeDate: true,
+  deleteOrder: true,
+  nav_customerOrders: true,
+  nav_supplierHistory: true,
+  nav_supplierReorder: true,
+  nav_productsAdmin: true,
+  nav_salesReport: true
+};
+
+function toggleCustomizerAccordion() {
+  const content = document.getElementById("customizerAccordionContent");
+  const icon = document.getElementById("custAccIcon");
+  if (!content) return;
+  const isHidden = content.style.display === "none";
+  content.style.display = isHidden ? "block" : "none";
+  if (icon) icon.textContent = isHidden ? "▲" : "▼";
+  if (isHidden) initCustomizerCheckboxes();
+}
+
+function initCustomizerCheckboxes() {
+  Object.keys(panelCustomizerConfig).forEach(key => {
+    const chk = document.getElementById(`chk_${key}`);
+    if (chk) chk.checked = panelCustomizerConfig[key] !== false;
+  });
+}
+
+function updatePanelCustomizer(key, isChecked) {
+  panelCustomizerConfig[key] = isChecked;
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  applyPanelCustomizer();
+  loadPurchaseOrders();
+}
+
+function applyPanelCustomizer() {
+  const navKeys = [
+    { key: 'customerOrders', bId: 'nav-customerOrders' },
+    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
+    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
+    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
+    { key: 'salesReport', bId: 'nav-salesReport' }
+  ];
+
+  navKeys.forEach(item => {
+    const isVisible = panelCustomizerConfig[`nav_${item.key}`] !== false;
+    const bNavBtn = document.getElementById(item.bId);
+    if (bNavBtn) bNavBtn.style.display = isVisible ? "flex" : "none";
+
+    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
+    if (sidebarBtn) sidebarBtn.style.display = isVisible ? "flex" : "none";
+  });
+}
 
 
 
@@ -1841,7 +1898,7 @@ async function loadPurchaseOrders() {
             <div class="dropdown-wrapper">
               <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
               <div class="dropdown-menu">
-                ${phone ? `
+                ${panelCustomizerConfig.contactPills !== false && phone ? `
                   <div class="dropdown-header">📞 Contact Supplier</div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
                     <a href="tel:${phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
@@ -1850,15 +1907,15 @@ async function loadPurchaseOrders() {
                   <div class="dropdown-divider"></div>
                 ` : ''}
                 <div class="dropdown-header">📄 Document & Actions</div>
-                <button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF Report</button>
-                <button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>
-                <button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>
-                ${statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order Items</button>` : ''}
+                ${panelCustomizerConfig.pdfReport !== false ? `<button class="dropdown-item" onclick="generateSupplierPoPdf('${po.id}')">📄 Send PDF Report</button>` : ''}
+                ${panelCustomizerConfig.googleSync !== false ? `<button class="dropdown-item" onclick="syncPoToSheet('${po.id}')">📊 Sync to Google Sheet</button>` : ''}
+                ${panelCustomizerConfig.changeSupplier !== false ? `<button class="dropdown-item" onclick="changePoSupplier('${po.id}')">🏷 Change Supplier Name</button>` : ''}
+                ${panelCustomizerConfig.editItems !== false && statusLower === 'pending' ? `<button class="dropdown-item" onclick="openEditPoModal('${po.id}')">✏️ Edit Order Items</button>` : ''}
                 <div class="dropdown-divider"></div>
                 <div class="dropdown-header">⚡ Manage Status</div>
-                ${statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
-                ${statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
-                <button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>
+                ${panelCustomizerConfig.cancelOrder !== false && statusLower === 'pending' ? `<button class="dropdown-item" style="color:var(--danger);" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel Reorder</button>` : ''}
+                ${panelCustomizerConfig.changeDate !== false && statusLower === 'received' ? `<button class="dropdown-item" onclick="changePoReceivedDate('${po.id}', '${po.received_at || po.created_at}')">📅 Change Received Date</button>` : ''}
+                ${panelCustomizerConfig.deleteOrder !== false ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deletePurchaseOrder('${po.id}')">🗑 Delete Order from DB</button>` : ''}
               </div>
             </div>
           </div>
@@ -2329,6 +2386,7 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
+  applyPanelCustomizer();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
