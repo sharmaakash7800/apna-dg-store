@@ -1061,8 +1061,8 @@ function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(
 async function submitTickedReorder(sourceModal = false) {
   const supplierSelect = sourceModal ? document.getElementById("modalTickedSupplierSelect") : document.getElementById("tickedSupplierSelect");
   const supplier = supplierSelect ? supplierSelect.value : "";
-  const buyerInput = sourceModal ? document.getElementById("modalTickedBuyerInput") : document.getElementById("poBuyerInput");
-  const buyerName = buyerInput ? buyerInput.value.trim() || "Akash sharma" : "Akash sharma";
+  const buyerSelect = sourceModal ? document.getElementById("modalTickedBuyerSelect") : document.getElementById("poBuyerSelect");
+  const buyerName = buyerSelect ? buyerSelect.value || "Akash sharma" : "Akash sharma";
   const keys = Object.keys(tickedProductsMap);
 
   if (!supplier) return alert("Supplier select karein.");
@@ -1606,8 +1606,8 @@ function renderPoCart() {
 async function submitPurchaseOrder() {
   const select = document.getElementById("poSupplierSelect");
   const supplier = select ? select.value : "";
-  const buyerInput = document.getElementById("poBuyerInput");
-  const buyerName = buyerInput ? buyerInput.value.trim() || "Akash sharma" : "Akash sharma";
+  const buyerSelect = document.getElementById("poBuyerSelect");
+  const buyerName = buyerSelect ? buyerSelect.value || "Akash sharma" : "Akash sharma";
 
   if (!supplier) return alert("Supplier select karein.");
   if (!poCart.length) return alert("Order me kam se kam 1 item add karein.");

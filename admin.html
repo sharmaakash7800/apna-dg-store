@@ -323,9 +323,13 @@
           </div>
 
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person Name:</label>
-            <input type="text" id="poBuyerInput" value="Akash sharma" placeholder="Buyer Ka Naam..."
-              style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person:</label>
+            <select id="poBuyerSelect"
+              style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+              <option value="Akash sharma">Akash sharma</option>
+              <option value="Prem devi sharma">Prem devi sharma</option>
+              <option value="Bheru lal sharma">Bheru lal sharma</option>
+            </select>
           </div>
 
           <div class="search-select-wrapper">
@@ -967,9 +971,13 @@
         </div>
 
         <div style="margin-bottom:12px;">
-          <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person Name:</label>
-          <input type="text" id="modalTickedBuyerInput" value="Akash sharma" placeholder="Buyer Ka Naam..."
-            style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+          <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person:</label>
+          <select id="modalTickedBuyerSelect"
+            style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+            <option value="Akash sharma">Akash sharma</option>
+            <option value="Prem devi sharma">Prem devi sharma</option>
+            <option value="Bheru lal sharma">Bheru lal sharma</option>
+          </select>
         </div>
 
         <div style="display:flex; gap:8px;">
@@ -983,7 +991,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=9.0"></script>
+  <script src="admin.js?v=10.0"></script>
 </body>
 
 </html>
