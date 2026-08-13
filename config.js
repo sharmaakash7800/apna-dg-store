@@ -201,3 +201,10 @@ let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConf
   nav_productsAdmin: true,
   nav_salesReport: true
 };
+
+function updatePanelCustomizer(key, isChecked) {
+  panelCustomizerConfig[key] = isChecked;
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
+}

@@ -1753,10 +1753,14 @@ function applyPanelCustomizer() {
   navKeys.forEach(item => {
     const isVisible = config[`nav_${item.key}`] !== false;
     const bNavBtn = document.getElementById(item.bId);
-    if (bNavBtn) bNavBtn.style.display = isVisible ? "flex" : "none";
+    if (bNavBtn) {
+      bNavBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
+    }
 
     const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
-    if (sidebarBtn) sidebarBtn.style.display = isVisible ? "flex" : "none";
+    if (sidebarBtn) {
+      sidebarBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
+    }
   });
 }
 
