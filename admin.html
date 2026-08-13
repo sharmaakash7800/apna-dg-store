@@ -103,76 +103,13 @@
             </button>
           </div>
 
-          <!-- CUSTOMIZE PANEL BUTTONS (SHOW/HIDE) -->
-          <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:10px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleCustomizerAccordion()">
-              <span>⚙️ Customize Panel Buttons</span>
-              <span id="custAccIcon" style="font-size:12px;">▼</span>
-            </div>
-
-            <div id="customizerAccordionContent" style="display:none; margin-top:8px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:8px;">
-              <small style="color:var(--text-muted); font-size:10px; display:block; margin-bottom:6px; font-weight:bold;">ACTION BUTTONS VISIBILITY:</small>
-              
-              <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📞 Call & WhatsApp</span>
-                  <input type="checkbox" id="chk_contactPills" onchange="updatePanelCustomizer('contactPills', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📄 PDF Report</span>
-                  <input type="checkbox" id="chk_pdfReport" onchange="updatePanelCustomizer('pdfReport', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📊 Google Sheet Sync</span>
-                  <input type="checkbox" id="chk_googleSync" onchange="updatePanelCustomizer('googleSync', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>🏷 Change Supplier</span>
-                  <input type="checkbox" id="chk_changeSupplier" onchange="updatePanelCustomizer('changeSupplier', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>✏️ Edit Items</span>
-                  <input type="checkbox" id="chk_editItems" onchange="updatePanelCustomizer('editItems', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>❌ Cancel Order</span>
-                  <input type="checkbox" id="chk_cancelOrder" onchange="updatePanelCustomizer('cancelOrder', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📅 Change Received Date</span>
-                  <input type="checkbox" id="chk_changeDate" onchange="updatePanelCustomizer('changeDate', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--danger); font-weight:bold;">
-                  <span>🗑 Delete Order</span>
-                  <input type="checkbox" id="chk_deleteOrder" onchange="updatePanelCustomizer('deleteOrder', this.checked)" />
-                </label>
-              </div>
-
-              <small style="color:var(--text-muted); font-size:10px; display:block; margin-top:10px; margin-bottom:6px; font-weight:bold;">NAV TABS VISIBILITY:</small>
-              
-              <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>🛍 Customer Orders</span>
-                  <input type="checkbox" id="chk_nav_customerOrders" onchange="updatePanelCustomizer('nav_customerOrders', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📋 Reorders History</span>
-                  <input type="checkbox" id="chk_nav_supplierHistory" onchange="updatePanelCustomizer('nav_supplierHistory', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>➕ Create Reorder</span>
-                  <input type="checkbox" id="chk_nav_supplierReorder" onchange="updatePanelCustomizer('nav_supplierReorder', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📦 Products List</span>
-                  <input type="checkbox" id="chk_nav_productsAdmin" onchange="updatePanelCustomizer('nav_productsAdmin', this.checked)" />
-                </label>
-                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
-                  <span>📊 Sales Analytics</span>
-                  <input type="checkbox" id="chk_nav_salesReport" onchange="updatePanelCustomizer('nav_salesReport', this.checked)" />
-                </label>
-              </div>
-            </div>
+          <!-- CUSTOMIZE PANEL BUTTONS (POPS OPEN MODAL) -->
+          <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+            <button type="button" class="btn-outline"
+              style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; cursor:pointer; justify-content:center; font-weight:bold; background:var(--surface); color:var(--text-dark);"
+              onclick="closeSidebar(); openPanelCustomizerModal();">
+              ⚙️ Customize Panel Buttons
+            </button>
           </div>
         </div>
       </div>
@@ -1062,8 +999,115 @@
     </div>
   </div>
 
+  <!-- PANEL CUSTOMIZER POPUP MODAL SCREEN -->
+  <div id="panelCustomizerModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:620px; width:92%; padding:20px; border-radius:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">⚙️</span>
+          <div>
+            <h3 style="margin:0; font-size:17px; font-weight:800; color:var(--text-dark);">Admin Panel Customizer</h3>
+            <small style="color:var(--text-muted); font-size:11px;">Bina coding ke buttons aur tabs show/hide karein</small>
+          </div>
+        </div>
+        <button onclick="closePanelCustomizerModal()" style="border:0; background:var(--bg); padding:6px 12px; border-radius:10px; cursor:pointer; font-weight:bold; color:var(--text-dark);">✕ Close</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; max-height:420px; overflow-y:auto; padding-right:4px;">
+        
+        <!-- CARD 1: ORDER CARD ACTION BUTTONS -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:12px;">
+          <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <span>⚡</span> <span>ACTION BUTTONS</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📞 Call & WhatsApp</span>
+              <input type="checkbox" id="pop_contactPills" onchange="updatePanelCustomizer('contactPills', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📄 Send PDF Report</span>
+              <input type="checkbox" id="pop_pdfReport" onchange="updatePanelCustomizer('pdfReport', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📊 Sync to Google Sheet</span>
+              <input type="checkbox" id="pop_googleSync" onchange="updatePanelCustomizer('googleSync', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>🏷 Change Supplier</span>
+              <input type="checkbox" id="pop_changeSupplier" onchange="updatePanelCustomizer('changeSupplier', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>✏️ Edit Order Items</span>
+              <input type="checkbox" id="pop_editItems" onchange="updatePanelCustomizer('editItems', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>❌ Cancel Reorder</span>
+              <input type="checkbox" id="pop_cancelOrder" onchange="updatePanelCustomizer('cancelOrder', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📅 Change Received Date</span>
+              <input type="checkbox" id="pop_changeDate" onchange="updatePanelCustomizer('changeDate', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:rgba(239,68,68,0.08); padding:6px 10px; border-radius:8px; border:1px solid var(--danger); color:var(--danger); font-weight:bold;">
+              <span>🗑 Delete Order from DB</span>
+              <input type="checkbox" id="pop_deleteOrder" onchange="updatePanelCustomizer('deleteOrder', this.checked)" />
+            </label>
+          </div>
+        </div>
+
+        <!-- CARD 2: NAVIGATION BAR TABS -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:12px;">
+          <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <span>📱</span> <span>NAVIGATION TABS</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>🛍 Customer Orders</span>
+              <input type="checkbox" id="pop_nav_customerOrders" onchange="updatePanelCustomizer('nav_customerOrders', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📋 Reorders History</span>
+              <input type="checkbox" id="pop_nav_supplierHistory" onchange="updatePanelCustomizer('nav_supplierHistory', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>➕ Create Reorder</span>
+              <input type="checkbox" id="pop_nav_supplierReorder" onchange="updatePanelCustomizer('nav_supplierReorder', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📦 Products List</span>
+              <input type="checkbox" id="pop_nav_productsAdmin" onchange="updatePanelCustomizer('nav_productsAdmin', this.checked)" />
+            </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:var(--surface); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <span>📊 Sales Analytics</span>
+              <input type="checkbox" id="pop_nav_salesReport" onchange="updatePanelCustomizer('nav_salesReport', this.checked)" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+        <button class="btn-outline" style="flex:1; padding:10px; font-size:12px;" onclick="resetPanelCustomizer()">↺ Reset Defaults</button>
+        <button class="btn-primary" style="flex:2; padding:10px; font-size:13px; font-weight:bold;" onclick="closePanelCustomizerModal()">✅ Apply & Save Settings</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=22.0"></script>
+  <script src="admin.js?v=23.0"></script>
 </body>
 
 </html>

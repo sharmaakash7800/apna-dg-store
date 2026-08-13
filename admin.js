@@ -24,21 +24,21 @@ let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConf
   nav_salesReport: true
 };
 
-function toggleCustomizerAccordion() {
-  const content = document.getElementById("customizerAccordionContent");
-  const icon = document.getElementById("custAccIcon");
-  if (!content) return;
-  const isHidden = content.style.display === "none";
-  content.style.display = isHidden ? "block" : "none";
-  if (icon) icon.textContent = isHidden ? "▲" : "▼";
-  if (isHidden) initCustomizerCheckboxes();
-}
-
-function initCustomizerCheckboxes() {
+function openPanelCustomizerModal() {
+  const modal = document.getElementById("panelCustomizerModal");
+  if (!modal) return;
   Object.keys(panelCustomizerConfig).forEach(key => {
-    const chk = document.getElementById(`chk_${key}`);
+    const chk = document.getElementById(`pop_${key}`);
     if (chk) chk.checked = panelCustomizerConfig[key] !== false;
   });
+  modal.style.display = "flex";
+}
+
+function closePanelCustomizerModal() {
+  const modal = document.getElementById("panelCustomizerModal");
+  if (modal) modal.style.display = "none";
+  applyPanelCustomizer();
+  loadPurchaseOrders();
 }
 
 function updatePanelCustomizer(key, isChecked) {
@@ -46,6 +46,27 @@ function updatePanelCustomizer(key, isChecked) {
   localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
   applyPanelCustomizer();
   loadPurchaseOrders();
+}
+
+function resetPanelCustomizer() {
+  panelCustomizerConfig = {
+    contactPills: true,
+    pdfReport: true,
+    googleSync: true,
+    changeSupplier: true,
+    editItems: true,
+    cancelOrder: true,
+    changeDate: true,
+    deleteOrder: true,
+    nav_customerOrders: true,
+    nav_supplierHistory: true,
+    nav_supplierReorder: true,
+    nav_productsAdmin: true,
+    nav_salesReport: true
+  };
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  openPanelCustomizerModal();
+  applyPanelCustomizer();
 }
 
 function applyPanelCustomizer() {
