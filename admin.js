@@ -21,15 +21,15 @@ function saveGoogleSheetUrl(url) {
 }
 
 async function syncOrderToGoogleSheet(payload) {
-  const baseUrl = "https://script.google.com/macros/s/AKfycbzoW-h73FcusbWxhI0am3g5BmQLebvpZy-fXdeuTECvxLo0lvHqZpjL9cYBL4GRtv9HSw/exec";
+  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
   if (!baseUrl) {
     console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
     return;
   }
   try {
     const payloadStr = JSON.stringify(payload);
-    const targetUrl = baseUrl.includes("?") 
-      ? `${baseUrl}&payload=${encodeURIComponent(payloadStr)}` 
+    const targetUrl = baseUrl.includes("?")
+      ? `${baseUrl}&payload=${encodeURIComponent(payloadStr)}`
       : `${baseUrl}?payload=${encodeURIComponent(payloadStr)}`;
 
     await fetch(targetUrl, {
@@ -485,7 +485,7 @@ function toggleSalesReportSection() {
   if (!container) return;
   const isHidden = container.style.display === "none" || !container.style.display;
   container.style.display = isHidden ? "block" : "none";
-  
+
   const btn = document.getElementById("btnToggleSalesReport");
   if (btn) {
     btn.textContent = isHidden ? "📊 Hide Sales Report" : "📊 Sales Report";
@@ -643,7 +643,7 @@ async function calculateReports() {
   document.getElementById("summaryOffline") && (document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2));
   document.getElementById("summaryOnline") && (document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2));
   document.getElementById("summaryTotalSales") && (document.getElementById("summaryTotalSales").textContent = "₹" + grandTotal.toFixed(2));
-  
+
   const breakdownBody = document.getElementById("collectionBreakdownBody");
   if (breakdownBody) {
     breakdownBody.innerHTML = `
@@ -1101,11 +1101,8 @@ async function submitTickedReorder(sourceModal = false) {
         name: i.product_name,
         quantity: q,
         costPack: cp > 0 ? cp.toFixed(2) : "0",
-        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
         supplier: supplier,
-        location: supplier,
         person: supplier,
-        buyer: supplier,
         price: (q * cp).toFixed(2)
       };
     });
@@ -1139,7 +1136,7 @@ async function loadSuppliers() {
 
   const options = '<option value="">-- Select Supplier --</option>' + suppliersList.map(s => `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${s.phone ? ` (${s.phone})` : ' (No No.)'}</option>`).join("");
   ['poSupplierSelect', 'editPoSupplierSelect', 'tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).innerHTML = options));
-  
+
   if (document.getElementById("supplierReportSupplierSelect")) {
     document.getElementById("supplierReportSupplierSelect").innerHTML = '<option value="">-- All Suppliers --</option>' + suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
   }
@@ -1439,18 +1436,34 @@ function getProductSku(productId, productName) {
   if (!prod && pName) {
     const lowerName = pName.toLowerCase();
     prod = productsList.find(p => (p.name || '').toLowerCase() === lowerName) ||
-           productsList.find(p => (p.name || '').toLowerCase().includes(lowerName)) ||
-           productsList.find(p => lowerName.includes((p.name || '').toLowerCase()));
+      productsList.find(p => (p.name || '').toLowerCase().includes(lowerName)) ||
+      productsList.find(p => lowerName.includes((p.name || '').toLowerCase()));
   }
 
   if (prod) {
     const sku = prod.sku || prod.sku_code || prod.skucode || prod.barcode || prod.code || prod.product_code || prod.sku_id;
-    if (sku && String(sku).trim() !== "" && String(sku).trim() !== "null" && String(sku).trim() !== "undefined") {
+    if (sku && String(sku).trim() !== "" && String(sku).trim() !== "0" && String(sku).trim() !== "null" && String(sku).trim() !== "undefined") {
       return String(sku).trim().replace(/^SKU-/i, '');
     }
   }
 
-  return "0";
+  const targetName = prod?.name || pName;
+  const targetId = prod?.id || pIdNum;
+
+  if (targetName) {
+    const firstWord = targetName.split(' ')[0] || '';
+    let prefix = firstWord.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
+    if (prefix.endsWith('M') && prefix.length > 2 && /^\d+G/.test(prefix)) {
+      prefix = prefix.slice(0, -1);
+    }
+    if (!prefix || prefix.length < 2) {
+      prefix = targetName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
+    }
+    const idSuffix = targetId ? String(targetId) : '000';
+    return `${prefix}-${idSuffix}`;
+  }
+
+  return targetId ? `PROD-${targetId}` : "000";
 }
 
 async function ensureProductsLoaded() {
@@ -1815,7 +1828,7 @@ async function loadPurchaseOrders() {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:6px;">
           <strong>Bill: ₹${Number(po.total_amount || 0).toFixed(2)}</strong>
           ${statusLower === 'pending' ? `<div style="display:flex; gap:6px;"><button class="btn-danger" style="padding:5px 10px; font-size:11px;" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel</button><button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock('${po.id}')">✅ Receive Stock</button></div>` :
-            (statusLower === 'cancelled' ? `<small style="color:var(--danger); font-weight:bold;">Order Cancelled</small>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`)}
+        (statusLower === 'cancelled' ? `<small style="color:var(--danger); font-weight:bold;">Order Cancelled</small>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`)}
         </div>
       </div>`;
   }).join("");
@@ -2023,7 +2036,7 @@ async function changePoReceivedDate(poId, currentDateStr) {
       if (!isNaN(d.getTime())) {
         defaultDate = d.toISOString().split('T')[0];
       }
-    } catch(e) {}
+    } catch (e) { }
   }
 
   const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\nJaise pichli entry ke liye: 2026-08-07", defaultDate);
@@ -2058,7 +2071,7 @@ async function receiveStock(poId) {
   const receivedTimestamp = new Date(`${cleanDate}T12:00:00`).toISOString();
 
   if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty aur Cost Price update ho jayegi.`)) return;
-  
+
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
   const { data: allItems } = await db.from("purchase_order_items").select("*");
@@ -2198,9 +2211,9 @@ async function updateOrderStatus(id, newStatus) {
 
   const { error } = await db.from("orders").update(updateData).eq("id", id);
   if (error) alert("Error: " + error.message);
-  else { 
-    alert("Order Status update ho gaya!"); 
-    loadCustomerOrders(); 
+  else {
+    alert("Order Status update ho gaya!");
+    loadCustomerOrders();
     try {
       const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
       const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
@@ -2220,7 +2233,7 @@ async function updateOrderStatus(id, newStatus) {
           notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
         });
       }
-    } catch(e) { console.error("Sheet sync error:", e); }
+    } catch (e) { console.error("Sheet sync error:", e); }
   }
 }
 

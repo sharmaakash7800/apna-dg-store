@@ -95,521 +95,563 @@
             <input type="text" id="googleSheetUrlInput" placeholder="Paste Apps Script Exec URL..."
               style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);"
               onchange="saveGoogleSheetUrl(this.value)" />
-            <div id="sheetSyncStatus"
-              style="font-size:10px; font-weight:700; margin-top:4px; color:var(--text-muted);">⚠️ Sheet URL Not Set</div>
+            <div id="sheetSyncStatus" style="font-size:10px; font-weight:700; margin-top:4px; color:var(--text-muted);">
+              ⚠️ Sheet URL Not Set</div>
             <button type="button" onclick="copyAppsScriptCode()" class="btn-outline"
               style="width:100%; margin-top:8px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
               📋 Copy Google Apps Script Code
             </button>
           </div>
-              </div>
-          </div>
         </div>
       </div>
-    </aside>
+  </div>
+  </div>
+  </aside>
 
-    <!-- FLOATING BOTTOM NAVIGATION BAR (MOBILE) -->
-    <nav class="bottom-nav">
-      <button id="nav-customerOrders" class="bottom-nav-btn active" onclick="switchAdminView('customerOrders')">
-        <span class="icon">🛍</span>
-        <span>Orders</span>
-      </button>
-      <button id="nav-supplierHistory" class="bottom-nav-btn" onclick="switchAdminView('supplierHistory')">
-        <span class="icon">📋</span>
-        <span>History</span>
-      </button>
-      <button id="nav-supplierReorder" class="bottom-nav-btn" onclick="switchAdminView('supplierReorder')">
-        <span class="icon">➕</span>
-        <span>Reorder</span>
-      </button>
-      <button id="nav-productsAdmin" class="bottom-nav-btn" onclick="switchAdminView('productsAdmin')">
-        <span class="icon">📦</span>
-        <span>Products</span>
-      </button>
-      <button id="nav-salesReport" class="bottom-nav-btn" onclick="switchAdminView('salesReport')">
-        <span class="icon">📊</span>
-        <span>Sales</span>
-      </button>
-    </nav>
+  <!-- FLOATING BOTTOM NAVIGATION BAR (MOBILE) -->
+  <nav class="bottom-nav">
+    <button id="nav-customerOrders" class="bottom-nav-btn active" onclick="switchAdminView('customerOrders')">
+      <span class="icon">🛍</span>
+      <span>Orders</span>
+    </button>
+    <button id="nav-supplierHistory" class="bottom-nav-btn" onclick="switchAdminView('supplierHistory')">
+      <span class="icon">📋</span>
+      <span>History</span>
+    </button>
+    <button id="nav-supplierReorder" class="bottom-nav-btn" onclick="switchAdminView('supplierReorder')">
+      <span class="icon">➕</span>
+      <span>Reorder</span>
+    </button>
+    <button id="nav-productsAdmin" class="bottom-nav-btn" onclick="switchAdminView('productsAdmin')">
+      <span class="icon">📦</span>
+      <span>Products</span>
+    </button>
+    <button id="nav-salesReport" class="bottom-nav-btn" onclick="switchAdminView('salesReport')">
+      <span class="icon">📊</span>
+      <span>Sales</span>
+    </button>
+  </nav>
 
-    <div class="container" style="width:100%; max-width:1380px; margin:0 auto; padding:16px 24px;">
+  <div class="container" style="width:100%; max-width:1380px; margin:0 auto; padding:16px 24px;">
 
-      <!-- VIEW 1: CUSTOMER ORDERS -->
-      <section id="view-customerOrders" class="admin-view">
-        <div class="card">
-          <div
-            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <h2 style="margin:0;" id="headingCustOrders">🛍 Customer Orders</h2>
-            <button class="btn-primary" id="btnRefreshCust" onclick="loadCustomerOrders()"
-              style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
-          </div>
-
-          <!-- DATE RANGE FILTER FOR CUSTOMER ORDERS (DEFAULT LAST 7 DAYS) -->
-          <div
-            style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-              <div style="flex:1; max-width:210px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
-                  Date Preset:</label>
-                <select id="custDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                  onchange="setCustOrdersDateFilter(this.value)">
-                  <option value="today">Today</option>
-                  <option value="week" selected>📅 Last 7 Days (Default)</option>
-                  <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </select>
-              </div>
-              <div style="flex:1; max-width:200px; min-width:130px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                  Date (Start):</label>
-                <input type="date" id="custFromDate" onchange="loadCustomerOrders()" />
-              </div>
-              <div style="flex:1; max-width:200px; min-width:130px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                  Date (End):</label>
-                <input type="date" id="custToDate" onchange="loadCustomerOrders()" />
-              </div>
-              <div>
-                <button class="btn-primary" id="btnFilterOrders" onclick="loadCustomerOrders()"
-                  style="padding:10px 14px;">🔍 Filter Orders</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="customerOrdersContainer">
-            <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 2: SUPPLIER REORDERS HISTORY -->
-      <section id="view-supplierHistory" class="admin-view" style="display:none;">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h2 style="margin:0;" id="headingReorderHistory">📋 Supplier Reorders History</h2>
-            <button class="btn-primary" id="btnRefreshHist" onclick="loadPurchaseOrders()"
-              style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
-          </div>
-          <div id="purchaseOrdersList">
-            <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading reorders...</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 3: NAYA SUPPLIER REORDER -->
-      <section id="view-supplierReorder" class="admin-view" style="display:none;">
-        <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <button class="btn-outline" id="btnMasterAdd" onclick="toggleMasterSupplierAddCard('')">➕ Master Supplier Add
-            Karein</button>
-          <button class="btn-outline" id="btnMasterList" onclick="toggleMasterSupplierListCard('')">👥 Master Suppliers
-            List</button>
-        </div>
-
-        <div class="card" id="masterSupplierAddCard" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
-            <button onclick="toggleMasterSupplierAddCard('')"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
-              Close</button>
-          </div>
-          <div class="form-grid">
-            <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
-            <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
-            <button class="btn-primary" onclick="addNewSupplierMaster('')">Save Supplier</button>
-          </div>
-        </div>
-
-        <div class="card" id="masterSupplierListCard" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0;">👥 Master Suppliers List</h3>
-            <button onclick="toggleMasterSupplierListCard('')"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
-              Close</button>
-          </div>
-          <div id="suppliersMasterList">
-            <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2 id="headingNewReorder">➕ Naya Supplier Reorder Banayein</h2>
-
-          <!-- TOGGLE BUTTON FOR SUPPLIER RATE & PACKET CALCULATOR -->
-          <button type="button" class="btn-outline"
-            style="margin-bottom:12px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; cursor:pointer;"
-            onclick="togglePoRateCalc()">
-            <span>🧮 Supplier Rate Calculator ▾</span>
-          </button>
-
-          <!-- SUPPLIER RATE & PACKET CALCULATOR (HIDDEN BY DEFAULT) -->
-          <div id="poRateCalcBox"
-            style="display:none; background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:12px; margin-bottom:14px;">
-            <div
-              style="font-size:12px; font-weight:800; color:var(--calc-text); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-              <span>🧮 Supplier Rate & Packet Calculator</span>
-              <div style="display:flex; gap:6px;">
-                <button type="button" class="btn-outline active-filter" id="calcTabPacketBtn"
-                  style="padding:4px 10px; font-size:11px; border-radius:12px;"
-                  onclick="switchCalcMode('packet', '')">📦 Packet / Box Calculator</button>
-                <button type="button" class="btn-outline" id="calcTabBillBtn"
-                  style="padding:4px 10px; font-size:11px; border-radius:12px;" onclick="switchCalcMode('bill', '')">💵
-                  Total Bill Calculator</button>
-              </div>
-            </div>
-
-            <!-- PACKET / BOX CALCULATOR MODE -->
-            <div id="calcModePacket" style="display:block;">
-              <div
-                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Packet / Box Cost
-                    (₹):</label>
-                  <input type="number" id="calcPacketCost" placeholder="e.g. 215" step="0.01"
-                    oninput="calculatePacketRate('')" />
-                </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">1 Packet me Pouches:</label>
-                  <input type="number" id="calcPouchCount" placeholder="e.g. 50" min="1"
-                    oninput="calculatePacketRate('')" />
-                </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Kitne Packets Liye:</label>
-                  <input type="number" id="calcPacketQty" value="1" min="1" oninput="calculatePacketRate('')" />
-                </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Calculated Pouch
-                    Price:</label>
-                  <input type="text" id="calcPacketResultRate" readonly
-                    style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);"
-                    placeholder="₹0.00 / pouch" />
-                </div>
-              </div>
-            </div>
-
-            <!-- TOTAL BILL CALCULATOR MODE -->
-            <div id="calcModeBill" style="display:none;">
-              <div
-                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Qty (Count):</label>
-                  <input type="number" id="calcTotalQty" placeholder="e.g. 50" min="1"
-                    oninput="calculateUnitRate('')" />
-                </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Bill (₹):</label>
-                  <input type="number" id="calcTotalBill" placeholder="e.g. 2500" step="0.01"
-                    oninput="calculateUnitRate('')" />
-                </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Each Item Rate:</label>
-                  <input type="text" id="calcResultRate" readonly
-                    style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);"
-                    placeholder="₹0.00 / item" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-grid">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
-              <select id="poSupplierSelect" onchange="onSupplierChange()">
-                <option value="">-- Select Supplier --</option>
-              </select>
-              <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
-            </div>
-
-            <div class="search-select-wrapper">
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein:</label>
-              <input type="text" id="poProductSearch" placeholder="🔍 Product Name or SKU..." autocomplete="off" />
-              <input type="hidden" id="selectedProductId" />
-              <div id="poSearchResults" class="search-results-list"></div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Qty (Packets/Box):</label>
-                <input id="poQty" type="text" inputmode="numeric" value="1" onfocus="this.select()" oninput="updatePoPacketRateCalc('')" />
-              </div>
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label>
-                <input id="poPrice" type="text" inputmode="decimal" placeholder="Total Price (₹)" onfocus="this.select()"
-                  oninput="updatePoPacketRateCalc('')" />
-              </div>
-            </div>
-            <div>
-              <label style="display:block; visibility:hidden; font-size:11px;">Add</label>
-              <button type="button" class="btn-primary" onclick="addItemToPoCart()">+ Add Item</button>
-            </div>
-          </div>
-
-          <!-- LIVE AUTO CALCULATED EACH PCS PRICE BADGE -->
-          <div id="poPacketRateHelperBadge"
-            style="margin-top:10px; background: rgba(79, 70, 229, 0.1); border: 1px solid var(--primary); padding:10px 14px; border-radius:10px; display:none;">
-          </div>
-
-          <div style="margin-top:15px;">
-            <h3 style="font-size:12px; color:var(--text-muted);">Reorder Items List:</h3>
-            <div id="poCartItems">
-              <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add
-                nahi hai.</div>
-            </div>
-
-            <div
-              style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-              <div>
-                <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
-                <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
-              </div>
-              <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Reorder</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 4: PRODUCTS LIST -->
-      <section id="view-productsAdmin" class="admin-view" style="display:none;">
-        <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <button class="btn-primary" id="btnAddNewProductToggle" onclick="toggleAddNewProductCard()">➕ Naya Product Add
-            Karein</button>
-        </div>
-
-        <!-- ADD NEW PRODUCT FORM CARD -->
-        <div class="card" id="addNewProductCard" style="display:none; transition:all 0.3s ease;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0; color:var(--primary);" id="headingAddProductForm">➕ Add New Product to DB</h3>
-            <button onclick="toggleAddNewProductCard()"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:bold;">✕
-              Close</button>
-          </div>
-
-          <div class="form-grid">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Name *:</label>
-              <input type="text" id="newProdName" placeholder="e.g. Parle-G Biscuit 100g" />
-            </div>
-
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Category *:</label>
-              <input type="text" id="newProdCategory" list="existingCategoriesList"
-                placeholder="e.g. Biscuit, Grocery, Food..." />
-              <datalist id="existingCategoriesList"></datalist>
-            </div>
-
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Unit:</label>
-              <select id="newProdUnit">
-                <option value="Piece">Piece / Nos</option>
-                <option value="Packet">Packet / Box</option>
-                <option value="Kg">Kg</option>
-                <option value="gram">gram</option>
-                <option value="Ltr">Ltr / ml</option>
-              </select>
-            </div>
-
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Cost Price (Khareedi Rate
-                ₹):</label>
-              <input type="number" step="0.01" id="newProdCostPrice" placeholder="e.g. 8.50" />
-            </div>
-
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Selling Price (Bechne Ka Rate ₹)
-                *:</label>
-              <input type="number" step="0.01" id="newProdSellingPrice" placeholder="e.g. 10.00" />
-            </div>
-
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Initial Stock Quantity:</label>
-              <input type="number" min="0" id="newProdStockQty" value="10" placeholder="e.g. 50" />
-            </div>
-
-            <div style="grid-column: 1 / -1;">
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Picture Image URL
-                (Optional):</label>
-              <input type="text" id="newProdImageUrl" placeholder="https://example.com/item.jpg" />
-            </div>
-
-            <div style="grid-column: 1 / -1; margin-top:4px;">
-              <button class="btn-green" style="width:100%; padding:12px; font-size:13px; font-weight:bold;"
-                onclick="saveNewProductToDb()">🚀 Save Product to DB</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" id="prod_masterSupplierAddCard" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
-            <button onclick="toggleMasterSupplierAddCard('prod_')"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
-              Close</button>
-          </div>
-          <div class="form-grid">
-            <input id="prod_newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
-            <input id="prod_newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
-            <button class="btn-primary" onclick="addNewSupplierMaster('prod_')">Save Supplier</button>
-          </div>
-        </div>
-
-        <div class="card" id="prod_masterSupplierListCard" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0;">👥 Master Suppliers List</h3>
-            <button onclick="toggleMasterSupplierListCard('prod_')"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
-              Close</button>
-          </div>
-          <div id="prod_suppliersMasterList">
-            <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
-          </div>
-        </div>
-
-        <!-- PRODUCTS TAB MAIN LAYOUT (FULL WIDTH TABLE CARD, REORDER PLACED VIA FLOATING BOTTOM DRAWER) -->
-        <div class="products-layout-grid"
-          style="display:grid; grid-template-columns: 1fr; gap:14px; align-items:start;">
-
-          <!-- PRODUCTS LIST TABLE -->
-          <div class="card" style="margin:0;">
-            <div
-              style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-              <h2 style="margin:0;"><span id="headingProductsList">📦 Products List</span> (<span
-                  id="totalProductsCount">0</span>)</h2>
-              <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄
-                Refresh</button>
-            </div>
-
-            <!-- SEARCH & BULK CATEGORY CONTROL BAR -->
-            <div class="prod-search-controls-bar">
-              <div style="flex:2; min-width:180px;">
-                <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product name, category..."
-                  oninput="renderProductsTable()" />
-              </div>
-              <div style="display:flex; gap:6px; align-items:center; flex:3; min-width:260px; flex-wrap:wrap;">
-                <select id="bulkCategorySelect" style="flex:1; min-width:130px; padding:8px; font-size:12px;"
-                  onchange="renderProductsTable()"></select>
-
-                <select id="bulkCategoryActionSelect"
-                  style="flex:1; min-width:160px; padding:8px; font-size:12px; font-weight:700; color:var(--primary);"
-                  onchange="executeCategoryBulkAction(this.value)">
-                  <option value="">⚙️ Category Action --</option>
-                  <option value="show">👁️ Show Category on Customer Panel</option>
-                  <option value="hide">🙈 Hide Category from Customer Panel</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="table-responsive">
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th style="width:30px; text-align:center;">Select</th>
-                    <th>ID</th>
-                    <th>Item Name</th>
-                    <th>Category</th>
-                    <th>Unit</th>
-                    <th>Stock Qty</th>
-                    <th>Packet Cost (₹)</th>
-                    <th>Unit Cost (₹)</th>
-                    <th>Selling (₹)</th>
-                    <th style="text-align:center;">Customer Panel Status</th>
-                    <th style="text-align:center;">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="productsTableBody">
-                  <tr>
-                    <td colspan="11" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- VIEW 5: SALES REPORT -->
-      <section id="view-salesReport" class="admin-view" style="display:none;">
+    <!-- VIEW 1: CUSTOMER ORDERS -->
+    <section id="view-customerOrders" class="admin-view">
+      <div class="card">
         <div
           style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-          <h2 style="margin:0;" id="headingSalesReport">📊 Sales & Collection Center</h2>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn-primary" id="btnToggleSalesReport" onclick="toggleSalesReportSection()">📊 Sales Report</button>
-            <button class="btn-green" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter Counter Collection</button>
-          </div>
+          <h2 style="margin:0;" id="headingCustOrders">🛍 Customer Orders</h2>
+          <button class="btn-primary" id="btnRefreshCust" onclick="loadCustomerOrders()"
+            style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
         </div>
 
-        <div class="card" id="counterCollectionCard" style="display:none; transition:all 0.3s ease;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0;">💵 Counter Collection Entry (Offline / Manual Cash)</h3>
-            <button onclick="toggleCounterCollectionCard()"
-              style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
-              Close</button>
-          </div>
-          <div class="form-grid">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
-              <input type="date" id="manualCashFromDate" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
-              <input type="date" id="manualCashToDate" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
-              <select id="manualCashMode">
-                <option value="offline">💵 Offline (Cash)</option>
-                <option value="online">💳 Online (UPI/Cards)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
-              <input type="number" id="manualCashAmount" placeholder="Collection Amount" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
-              <input type="text" id="manualCashNote" placeholder="e.g. Counter Sales" />
-            </div>
-            <div>
-              <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
-              <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
-            </div>
-          </div>
-
-          <!-- COUNTER COLLECTION HISTORY SECTION -->
-          <div style="margin-top:20px; border-top:1px dashed var(--border); padding-top:14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h4 style="margin:0; font-size:13px; color:var(--text-dark);">📜 Recent Counter Collection History</h4>
-              <button class="btn-outline" style="padding:3px 8px; font-size:11px;" onclick="loadCounterCollectionHistory()">🔄 Refresh History</button>
-            </div>
-            <div id="counterCollectionHistoryContainer">
-              <div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Collection History load ho rahi hai...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART (ALWAYS VISIBLE BY DEFAULT) -->
-        <div class="card" id="reinvestmentComparisonCard">
-          <div
-            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
-            <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
-              onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
-          </div>
-
-          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-            <div style="flex:1; max-width:200px; min-width:140px;">
+        <!-- DATE RANGE FILTER FOR CUSTOMER ORDERS (DEFAULT LAST 7 DAYS) -->
+        <div
+          style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; max-width:210px; min-width:140px;">
               <label
                 style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
                 Date Preset:</label>
-              <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                onchange="setReinvestmentDateFilter(this.value)">
+              <select id="custDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+                onchange="setCustOrdersDateFilter(this.value)">
                 <option value="today">Today</option>
-                <option value="week" selected>📅 This Week (Default)</option>
-                <option value="last_week">Last Week</option>
+                <option value="week" selected>📅 Last 7 Days (Default)</option>
+                <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+            <div style="flex:1; max-width:200px; min-width:130px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                Date (Start):</label>
+              <input type="date" id="custFromDate" onchange="loadCustomerOrders()" />
+            </div>
+            <div style="flex:1; max-width:200px; min-width:130px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                Date (End):</label>
+              <input type="date" id="custToDate" onchange="loadCustomerOrders()" />
+            </div>
+            <div>
+              <button class="btn-primary" id="btnFilterOrders" onclick="loadCustomerOrders()"
+                style="padding:10px 14px;">🔍 Filter Orders</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="customerOrdersContainer">
+          <div style="text-align:center; padding:20px; color:var(--text-muted);">Orders load ho rahe hain...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: SUPPLIER REORDERS HISTORY -->
+    <section id="view-supplierHistory" class="admin-view" style="display:none;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 style="margin:0;" id="headingReorderHistory">📋 Supplier Reorders History</h2>
+          <button class="btn-primary" id="btnRefreshHist" onclick="loadPurchaseOrders()"
+            style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+        </div>
+        <div id="purchaseOrdersList">
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Loading reorders...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: NAYA SUPPLIER REORDER -->
+    <section id="view-supplierReorder" class="admin-view" style="display:none;">
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <button class="btn-outline" id="btnMasterAdd" onclick="toggleMasterSupplierAddCard('')">➕ Master Supplier Add
+          Karein</button>
+        <button class="btn-outline" id="btnMasterList" onclick="toggleMasterSupplierListCard('')">👥 Master Suppliers
+          List</button>
+      </div>
+
+      <div class="card" id="masterSupplierAddCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
+          <button onclick="toggleMasterSupplierAddCard('')"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
+            Close</button>
+        </div>
+        <div class="form-grid">
+          <input id="newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
+          <input id="newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
+          <button class="btn-primary" onclick="addNewSupplierMaster('')">Save Supplier</button>
+        </div>
+      </div>
+
+      <div class="card" id="masterSupplierListCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">👥 Master Suppliers List</h3>
+          <button onclick="toggleMasterSupplierListCard('')"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
+            Close</button>
+        </div>
+        <div id="suppliersMasterList">
+          <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 id="headingNewReorder">➕ Naya Supplier Reorder Banayein</h2>
+
+        <!-- TOGGLE BUTTON FOR SUPPLIER RATE & PACKET CALCULATOR -->
+        <button type="button" class="btn-outline"
+          style="margin-bottom:12px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:6px; cursor:pointer;"
+          onclick="togglePoRateCalc()">
+          <span>🧮 Supplier Rate Calculator ▾</span>
+        </button>
+
+        <!-- SUPPLIER RATE & PACKET CALCULATOR (HIDDEN BY DEFAULT) -->
+        <div id="poRateCalcBox"
+          style="display:none; background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:12px; margin-bottom:14px;">
+          <div
+            style="font-size:12px; font-weight:800; color:var(--calc-text); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <span>🧮 Supplier Rate & Packet Calculator</span>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-outline active-filter" id="calcTabPacketBtn"
+                style="padding:4px 10px; font-size:11px; border-radius:12px;" onclick="switchCalcMode('packet', '')">📦
+                Packet / Box Calculator</button>
+              <button type="button" class="btn-outline" id="calcTabBillBtn"
+                style="padding:4px 10px; font-size:11px; border-radius:12px;" onclick="switchCalcMode('bill', '')">💵
+                Total Bill Calculator</button>
+            </div>
+          </div>
+
+          <!-- PACKET / BOX CALCULATOR MODE -->
+          <div id="calcModePacket" style="display:block;">
+            <div
+              style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Packet / Box Cost
+                  (₹):</label>
+                <input type="number" id="calcPacketCost" placeholder="e.g. 215" step="0.01"
+                  oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">1 Packet me Pouches:</label>
+                <input type="number" id="calcPouchCount" placeholder="e.g. 50" min="1"
+                  oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Kitne Packets Liye:</label>
+                <input type="number" id="calcPacketQty" value="1" min="1" oninput="calculatePacketRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Calculated Pouch
+                  Price:</label>
+                <input type="text" id="calcPacketResultRate" readonly
+                  style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);"
+                  placeholder="₹0.00 / pouch" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TOTAL BILL CALCULATOR MODE -->
+          <div id="calcModeBill" style="display:none;">
+            <div
+              style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:8px; align-items:center;">
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Qty (Count):</label>
+                <input type="number" id="calcTotalQty" placeholder="e.g. 50" min="1" oninput="calculateUnitRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Bill (₹):</label>
+                <input type="number" id="calcTotalBill" placeholder="e.g. 2500" step="0.01"
+                  oninput="calculateUnitRate('')" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Each Item Rate:</label>
+                <input type="text" id="calcResultRate" readonly
+                  style="font-weight:bold; color:var(--success); background:var(--surface); border-color:var(--border);"
+                  placeholder="₹0.00 / item" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Select Karein:</label>
+            <select id="poSupplierSelect" onchange="onSupplierChange()">
+              <option value="">-- Select Supplier --</option>
+            </select>
+            <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
+          </div>
+
+          <div class="search-select-wrapper">
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein:</label>
+            <input type="text" id="poProductSearch" placeholder="🔍 Product Name or SKU..." autocomplete="off" />
+            <input type="hidden" id="selectedProductId" />
+            <div id="poSearchResults" class="search-results-list"></div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Qty (Packets/Box):</label>
+              <input id="poQty" type="text" inputmode="numeric" value="1" onfocus="this.select()"
+                oninput="updatePoPacketRateCalc('')" />
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label>
+              <input id="poPrice" type="text" inputmode="decimal" placeholder="Total Price (₹)" onfocus="this.select()"
+                oninput="updatePoPacketRateCalc('')" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block; visibility:hidden; font-size:11px;">Add</label>
+            <button type="button" class="btn-primary" onclick="addItemToPoCart()">+ Add Item</button>
+          </div>
+        </div>
+
+        <!-- LIVE AUTO CALCULATED EACH PCS PRICE BADGE -->
+        <div id="poPacketRateHelperBadge"
+          style="margin-top:10px; background: rgba(79, 70, 229, 0.1); border: 1px solid var(--primary); padding:10px 14px; border-radius:10px; display:none;">
+        </div>
+
+        <div style="margin-top:15px;">
+          <h3 style="font-size:12px; color:var(--text-muted);">Reorder Items List:</h3>
+          <div id="poCartItems">
+            <div style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Abhi koi item add
+              nahi hai.</div>
+          </div>
+
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+            <div>
+              <small style="display:block; color:var(--text-muted); font-size:10px;">EST. TOTAL BILL</small>
+              <strong style="font-size:18px; color:var(--text-dark);">₹<span id="poTotalBill">0.00</span></strong>
+            </div>
+            <button class="btn-green" onclick="submitPurchaseOrder()">🚀 Save Reorder</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: PRODUCTS LIST -->
+    <section id="view-productsAdmin" class="admin-view" style="display:none;">
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <button class="btn-primary" id="btnAddNewProductToggle" onclick="toggleAddNewProductCard()">➕ Naya Product Add
+          Karein</button>
+      </div>
+
+      <!-- ADD NEW PRODUCT FORM CARD -->
+      <div class="card" id="addNewProductCard" style="display:none; transition:all 0.3s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; color:var(--primary);" id="headingAddProductForm">➕ Add New Product to DB</h3>
+          <button onclick="toggleAddNewProductCard()"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:bold;">✕
+            Close</button>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Name *:</label>
+            <input type="text" id="newProdName" placeholder="e.g. Parle-G Biscuit 100g" />
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Category *:</label>
+            <input type="text" id="newProdCategory" list="existingCategoriesList"
+              placeholder="e.g. Biscuit, Grocery, Food..." />
+            <datalist id="existingCategoriesList"></datalist>
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Unit:</label>
+            <select id="newProdUnit">
+              <option value="Piece">Piece / Nos</option>
+              <option value="Packet">Packet / Box</option>
+              <option value="Kg">Kg</option>
+              <option value="gram">gram</option>
+              <option value="Ltr">Ltr / ml</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Cost Price (Khareedi Rate
+              ₹):</label>
+            <input type="number" step="0.01" id="newProdCostPrice" placeholder="e.g. 8.50" />
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Selling Price (Bechne Ka Rate ₹)
+              *:</label>
+            <input type="number" step="0.01" id="newProdSellingPrice" placeholder="e.g. 10.00" />
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Initial Stock Quantity:</label>
+            <input type="number" min="0" id="newProdStockQty" value="10" placeholder="e.g. 50" />
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Picture Image URL
+              (Optional):</label>
+            <input type="text" id="newProdImageUrl" placeholder="https://example.com/item.jpg" />
+          </div>
+
+          <div style="grid-column: 1 / -1; margin-top:4px;">
+            <button class="btn-green" style="width:100%; padding:12px; font-size:13px; font-weight:bold;"
+              onclick="saveNewProductToDb()">🚀 Save Product to DB</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="prod_masterSupplierAddCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">➕ Master Supplier Add Karein</h3>
+          <button onclick="toggleMasterSupplierAddCard('prod_')"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
+            Close</button>
+        </div>
+        <div class="form-grid">
+          <input id="prod_newSupplierInput" type="text" placeholder="Supplier Ka Naam" />
+          <input id="prod_newSupplierPhone" type="tel" placeholder="Mobile / Phone No." />
+          <button class="btn-primary" onclick="addNewSupplierMaster('prod_')">Save Supplier</button>
+        </div>
+      </div>
+
+      <div class="card" id="prod_masterSupplierListCard" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">👥 Master Suppliers List</h3>
+          <button onclick="toggleMasterSupplierListCard('prod_')"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
+            Close</button>
+        </div>
+        <div id="prod_suppliersMasterList">
+          <div style="text-align:center; padding:10px; color:var(--text-muted);">Suppliers load ho rahe hain...</div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS TAB MAIN LAYOUT (FULL WIDTH TABLE CARD, REORDER PLACED VIA FLOATING BOTTOM DRAWER) -->
+      <div class="products-layout-grid" style="display:grid; grid-template-columns: 1fr; gap:14px; align-items:start;">
+
+        <!-- PRODUCTS LIST TABLE -->
+        <div class="card" style="margin:0;">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <h2 style="margin:0;"><span id="headingProductsList">📦 Products List</span> (<span
+                id="totalProductsCount">0</span>)</h2>
+            <button class="btn-primary" onclick="loadAllProductsView()" style="padding:6px 12px; font-size:11px;">🔄
+              Refresh</button>
+          </div>
+
+          <!-- SEARCH & BULK CATEGORY CONTROL BAR -->
+          <div class="prod-search-controls-bar">
+            <div style="flex:2; min-width:180px;">
+              <input type="text" id="adminProductSearchInput" placeholder="🔍 Search product name, category..."
+                oninput="renderProductsTable()" />
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex:3; min-width:260px; flex-wrap:wrap;">
+              <select id="bulkCategorySelect" style="flex:1; min-width:130px; padding:8px; font-size:12px;"
+                onchange="renderProductsTable()"></select>
+
+              <select id="bulkCategoryActionSelect"
+                style="flex:1; min-width:160px; padding:8px; font-size:12px; font-weight:700; color:var(--primary);"
+                onchange="executeCategoryBulkAction(this.value)">
+                <option value="">⚙️ Category Action --</option>
+                <option value="show">👁️ Show Category on Customer Panel</option>
+                <option value="hide">🙈 Hide Category from Customer Panel</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width:30px; text-align:center;">Select</th>
+                  <th>ID</th>
+                  <th>Item Name</th>
+                  <th>Category</th>
+                  <th>Unit</th>
+                  <th>Stock Qty</th>
+                  <th>Packet Cost (₹)</th>
+                  <th>Unit Cost (₹)</th>
+                  <th>Selling (₹)</th>
+                  <th style="text-align:center;">Customer Panel Status</th>
+                  <th style="text-align:center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <tr>
+                  <td colspan="11" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 5: SALES REPORT -->
+    <section id="view-salesReport" class="admin-view" style="display:none;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h2 style="margin:0;" id="headingSalesReport">📊 Sales & Collection Center</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-primary" id="btnToggleSalesReport" onclick="toggleSalesReportSection()">📊 Sales
+            Report</button>
+          <button class="btn-green" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter Counter
+            Collection</button>
+        </div>
+      </div>
+
+      <div class="card" id="counterCollectionCard" style="display:none; transition:all 0.3s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h3 style="margin:0;">💵 Counter Collection Entry (Offline / Manual Cash)</h3>
+          <button onclick="toggleCounterCollectionCard()"
+            style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
+            Close</button>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <input type="date" id="manualCashFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <input type="date" id="manualCashToDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
+            <select id="manualCashMode">
+              <option value="offline">💵 Offline (Cash)</option>
+              <option value="online">💳 Online (UPI/Cards)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
+            <input type="number" id="manualCashAmount" placeholder="Collection Amount" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
+            <input type="text" id="manualCashNote" placeholder="e.g. Counter Sales" />
+          </div>
+          <div>
+            <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
+            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
+          </div>
+        </div>
+
+        <!-- COUNTER COLLECTION HISTORY SECTION -->
+        <div style="margin-top:20px; border-top:1px dashed var(--border); padding-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h4 style="margin:0; font-size:13px; color:var(--text-dark);">📜 Recent Counter Collection History</h4>
+            <button class="btn-outline" style="padding:3px 8px; font-size:11px;"
+              onclick="loadCounterCollectionHistory()">🔄 Refresh History</button>
+          </div>
+          <div id="counterCollectionHistoryContainer">
+            <div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Collection History
+              load ho rahi hai...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART (ALWAYS VISIBLE BY DEFAULT) -->
+      <div class="card" id="reinvestmentComparisonCard">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <h2 style="margin:0;">⚖️ Collection vs Purchase (Reinvestment) Comparison</h2>
+          <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
+            onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+          <div style="flex:1; max-width:200px; min-width:140px;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+              Date Preset:</label>
+            <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+              onchange="setReinvestmentDateFilter(this.value)">
+              <option value="today">Today</option>
+              <option value="week" selected>📅 This Week (Default)</option>
+              <option value="last_week">Last Week</option>
+              <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+          <div style="flex:1; max-width:200px; min-width:140px;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+              Date (Start):</label>
+            <input type="date" id="reinvestmentFromDate" />
+          </div>
+          <div style="flex:1; max-width:220px; min-width:140px;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+              Date (End):</label>
+            <input type="date" id="reinvestmentToDate" />
+          </div>
+        </div>
+
+        <div id="reinvestmentComparisonContainer">
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
+        </div>
+      </div>
+
+      <!-- SALES REPORT FULL CONTAINER (TOGGLED VIA BUTTON) -->
+      <div id="salesReportFullContainer" style="display:none; transition:all 0.3s ease;">
+        <div class="card" id="salesReportSectionCard">
+          <h2>📊 Sales Report</h2>
+
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
+            <div style="flex:1; max-width:210px; min-width:140px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+                Date Preset:</label>
+              <select id="salesReportDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+                onchange="setDateFilter(this.value)">
+                <option value="today">Today</option>
+                <option value="week" selected>This Week</option>
+                <option value="last_week">Last week</option>
                 <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
                 <option value="month">This Month</option>
                 <option value="year">This Year</option>
@@ -618,200 +660,161 @@
             <div style="flex:1; max-width:200px; min-width:140px;">
               <label
                 style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                Date (Start):</label>
-              <input type="date" id="reinvestmentFromDate" />
+                Date:</label>
+              <input type="date" id="reportFromDate" />
             </div>
-            <div style="flex:1; max-width:220px; min-width:140px;">
+            <div style="flex:1; max-width:200px; min-width:140px;">
               <label
                 style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                Date (End):</label>
-              <input type="date" id="reinvestmentToDate" />
-            </div>
-          </div>
-
-          <div id="reinvestmentComparisonContainer">
-            <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
-          </div>
-        </div>
-
-        <!-- SALES REPORT FULL CONTAINER (TOGGLED VIA BUTTON) -->
-        <div id="salesReportFullContainer" style="display:none; transition:all 0.3s ease;">
-          <div class="card" id="salesReportSectionCard">
-            <h2>📊 Sales Report</h2>
-
-            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-              <div style="flex:1; max-width:210px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
-                  Date Preset:</label>
-                <select id="salesReportDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
-                  onchange="setDateFilter(this.value)">
-                  <option value="today">Today</option>
-                  <option value="week" selected>This Week</option>
-                  <option value="last_week">Last week</option>
-                  <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </select>
-              </div>
-              <div style="flex:1; max-width:200px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                  Date:</label>
-                <input type="date" id="reportFromDate" />
-              </div>
-              <div style="flex:1; max-width:200px; min-width:140px;">
-                <label
-                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                  Date:</label>
-                <input type="date" id="reportToDate" />
-              </div>
-              <div>
-                <button class="btn-primary" onclick="calculateReports()" style="padding:10px 14px;">📈 Calculate
-                  Report</button>
-              </div>
-            </div>
-
-            <div class="summary-grid">
-              <div class="summary-card">
-                <small>💵 OFFLINE COLLECTION</small>
-                <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
-              </div>
-              <div class="summary-card">
-                <small>💳 ONLINE COLLECTION</small>
-                <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
-              </div>
-              <div class="summary-card">
-                <small>💰 TOTAL COLLECTION (SALES)</small>
-                <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
-              </div>
-            </div>
-
-            <!-- DETAILED BREAKDOWN TABLE -->
-            <div style="margin-top:20px;">
-              <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown
-              </h3>
-              <div class="table-responsive">
-                <table class="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Period / Date Range</th>
-                      <th>Offline (Cash)</th>
-                      <th>Online (UPI/Cards)</th>
-                      <th>Total Sales</th>
-                      <th>Total Orders</th>
-                    </tr>
-                  </thead>
-                  <tbody id="collectionBreakdownBody">
-                    <tr>
-                      <td colspan="5" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate
-                        Report' par click karein.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 6: SUPPLIER-WISE PURCHASE REPORT -->
-      <section id="view-supplierReport" class="admin-view" style="display:none;">
-        <div class="card">
-          <h2 id="headingSupplierReport">🏬 Supplier-Wise Purchase Report</h2>
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-            <button class="btn-outline" onclick="setSupplierReportDateFilter('today')">Today</button>
-            <button class="btn-outline" onclick="setSupplierReportDateFilter('week')">This Week</button>
-            <button class="btn-outline" onclick="setSupplierReportDateFilter('two_weeks')">Last 2 Weeks</button>
-            <button class="btn-outline" onclick="setSupplierReportDateFilter('month')">This Month</button>
-            <button class="btn-outline" onclick="setSupplierReportDateFilter('year')">This Year</button>
-          </div>
-
-          <div class="form-grid">
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
-              <input type="date" id="supplierReportFromDate" />
+                Date:</label>
+              <input type="date" id="reportToDate" />
             </div>
             <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
-              <input type="date" id="supplierReportToDate" />
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Filter:</label>
-              <select id="supplierReportSupplierSelect">
-                <option value="">-- All Suppliers --</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Order Status:</label>
-              <select id="supplierReportStatusSelect">
-                <option value="">All Statuses</option>
-                <option value="received">✅ Stock Received</option>
-                <option value="pending">⏳ Pending</option>
-              </select>
-            </div>
-            <div style="grid-column: 1 / -1;">
-              <button class="btn-primary" style="width:100%;" onclick="calculateSupplierPurchaseReport()">📈 Calculate
-                Supplier Purchase Report</button>
+              <button class="btn-primary" onclick="calculateReports()" style="padding:10px 14px;">📈 Calculate
+                Report</button>
             </div>
           </div>
 
-          <div class="summary-grid" style="margin-top:16px;">
+          <div class="summary-grid">
             <div class="summary-card">
-              <small>🏬 TOTAL SUPPLIER PURCHASES</small>
-              <strong style="color:var(--primary);" id="summarySupplierTotal">₹0.00</strong>
+              <small>💵 OFFLINE COLLECTION</small>
+              <strong style="color:var(--primary);" id="summaryOffline">₹0.00</strong>
             </div>
             <div class="summary-card">
-              <small>📦 TOTAL REORDERS COUNT</small>
-              <strong style="color:var(--blue);" id="summarySupplierOrderCount">0 Orders</strong>
+              <small>💳 ONLINE COLLECTION</small>
+              <strong style="color:var(--blue);" id="summaryOnline">₹0.00</strong>
             </div>
             <div class="summary-card">
-              <small>✅ RECEIVED PURCHASES</small>
-              <strong style="color:var(--success);" id="summarySupplierReceived">₹0.00</strong>
-            </div>
-            <div class="summary-card">
-              <small>⏳ PENDING REORDERS</small>
-              <strong style="color:var(--danger);" id="summarySupplierPending">₹0.00</strong>
+              <small>💰 TOTAL COLLECTION (SALES)</small>
+              <strong style="color:var(--success);" id="summaryTotalSales">₹0.00</strong>
             </div>
           </div>
 
+          <!-- DETAILED BREAKDOWN TABLE -->
           <div style="margin-top:20px;">
-            <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">👥 Supplier-Wise Purchase Summary
+            <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">🗓 Collection Summary Breakdown
             </h3>
             <div class="table-responsive">
               <table class="custom-table">
                 <thead>
                   <tr>
-                    <th>Supplier Name</th>
+                    <th>Period / Date Range</th>
+                    <th>Offline (Cash)</th>
+                    <th>Online (UPI/Cards)</th>
+                    <th>Total Sales</th>
                     <th>Total Orders</th>
-                    <th>Received Bill (₹)</th>
-                    <th>Pending Bill (₹)</th>
-                    <th>Grand Total Purchase (₹)</th>
                   </tr>
                 </thead>
-                <tbody id="supplierSummaryTableBody">
+                <tbody id="collectionBreakdownBody">
                   <tr>
-                    <td colspan="5" style="text-align:center; color:var(--text-muted);">Dates select karke 'Calculate
-                      Supplier Purchase Report' par click karein.</td>
+                    <td colspan="5" style="text-align:center; color:var(--text-muted);">Date select karke 'Calculate
+                      Report' par click karein.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div style="margin-top:20px;">
-            <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Detailed Supplier Reorders List
-            </h3>
-            <div id="supplierDetailedOrdersList">
-              <div style="text-align:center; padding:10px; color:var(--text-muted); font-size:12px;">Detailed purchase
-                history yahan dikhegi.</div>
-            </div>
+    <!-- VIEW 6: SUPPLIER-WISE PURCHASE REPORT -->
+    <section id="view-supplierReport" class="admin-view" style="display:none;">
+      <div class="card">
+        <h2 id="headingSupplierReport">🏬 Supplier-Wise Purchase Report</h2>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('today')">Today</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('week')">This Week</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('two_weeks')">Last 2 Weeks</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('month')">This Month</button>
+          <button class="btn-outline" onclick="setSupplierReportDateFilter('year')">This Year</button>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
+            <input type="date" id="supplierReportFromDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
+            <input type="date" id="supplierReportToDate" />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Supplier Filter:</label>
+            <select id="supplierReportSupplierSelect">
+              <option value="">-- All Suppliers --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Order Status:</label>
+            <select id="supplierReportStatusSelect">
+              <option value="">All Statuses</option>
+              <option value="received">✅ Stock Received</option>
+              <option value="pending">⏳ Pending</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <button class="btn-primary" style="width:100%;" onclick="calculateSupplierPurchaseReport()">📈 Calculate
+              Supplier Purchase Report</button>
           </div>
         </div>
-      </section>
 
-    </div>
+        <div class="summary-grid" style="margin-top:16px;">
+          <div class="summary-card">
+            <small>🏬 TOTAL SUPPLIER PURCHASES</small>
+            <strong style="color:var(--primary);" id="summarySupplierTotal">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>📦 TOTAL REORDERS COUNT</small>
+            <strong style="color:var(--blue);" id="summarySupplierOrderCount">0 Orders</strong>
+          </div>
+          <div class="summary-card">
+            <small>✅ RECEIVED PURCHASES</small>
+            <strong style="color:var(--success);" id="summarySupplierReceived">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>⏳ PENDING REORDERS</small>
+            <strong style="color:var(--danger);" id="summarySupplierPending">₹0.00</strong>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">👥 Supplier-Wise Purchase Summary
+          </h3>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Supplier Name</th>
+                  <th>Total Orders</th>
+                  <th>Received Bill (₹)</th>
+                  <th>Pending Bill (₹)</th>
+                  <th>Grand Total Purchase (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="supplierSummaryTableBody">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--text-muted);">Dates select karke 'Calculate
+                    Supplier Purchase Report' par click karein.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">📋 Detailed Supplier Reorders List
+          </h3>
+          <div id="supplierDetailedOrdersList">
+            <div style="text-align:center; padding:10px; color:var(--text-muted); font-size:12px;">Detailed purchase
+              history yahan dikhegi.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
   </div>
 
   <!-- EDIT SUPPLIER REORDER MODAL -->
@@ -968,7 +971,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=6.0"></script>
+  <script src="admin.js?v=7.0"></script>
 </body>
 
 </html>
