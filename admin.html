@@ -173,12 +173,12 @@
         <!-- DATE RANGE FILTER FOR CUSTOMER ORDERS (DEFAULT LAST 7 DAYS) -->
         <div
           style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
-          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-            <div style="flex:1; max-width:210px; min-width:140px;">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
               <label
                 style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
                 Date Preset:</label>
-              <select id="custDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+              <select id="custDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;"
                 onchange="setCustOrdersDateFilter(this.value)">
                 <option value="today">Today</option>
                 <option value="week" selected>📅 Last 7 Days (Default)</option>
@@ -187,21 +187,26 @@
                 <option value="year">This Year</option>
               </select>
             </div>
-            <div style="flex:1; max-width:200px; min-width:130px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-                Date (Start):</label>
-              <input type="date" id="custFromDate" onchange="loadCustomerOrders()" />
+
+            <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
+              <div>
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                  Date (Start):</label>
+                <input type="date" id="custFromDate" style="width:100%; padding:8px;" onchange="loadCustomerOrders()" />
+              </div>
+              <div>
+                <label
+                  style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                  Date (End):</label>
+                <input type="date" id="custToDate" style="width:100%; padding:8px;" onchange="loadCustomerOrders()" />
+              </div>
             </div>
-            <div style="flex:1; max-width:200px; min-width:130px;">
-              <label
-                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-                Date (End):</label>
-              <input type="date" id="custToDate" onchange="loadCustomerOrders()" />
-            </div>
+
             <div>
               <button class="btn-primary" id="btnFilterOrders" onclick="loadCustomerOrders()"
-                style="padding:10px 14px;">🔍 Filter Orders</button>
+                style="width:100%; padding:10px 14px; justify-content:center;">🔍 Filter Orders</button>
             </div>
           </div>
         </div>
@@ -228,11 +233,10 @@
 
     <!-- VIEW 3: NAYA SUPPLIER REORDER -->
     <section id="view-supplierReorder" class="admin-view" style="display:none;">
-      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-        <button class="btn-outline" id="btnMasterAdd" onclick="toggleMasterSupplierAddCard('')">➕ Master Supplier Add
-          Karein</button>
-        <button class="btn-outline" id="btnMasterList" onclick="toggleMasterSupplierListCard('')">👥 Master Suppliers
-          List</button>
+      <!-- ADD MASTER SUPPLIER & SUPPLIERS LIST SIDE-BY-SIDE IN 1 ROW -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px; width:100%;">
+        <button class="btn-outline" id="btnMasterAdd" style="padding:10px 6px; font-size:12px; white-space:nowrap; justify-content:center;" onclick="toggleMasterSupplierAddCard('')">➕ Add Supplier</button>
+        <button class="btn-outline" id="btnMasterList" style="padding:10px 6px; font-size:12px; white-space:nowrap; justify-content:center;" onclick="toggleMasterSupplierListCard('')">👥 Suppliers List</button>
       </div>
 
       <div class="card" id="masterSupplierAddCard" style="display:none;">
@@ -571,11 +575,9 @@
       <div
         style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
         <h2 style="margin:0;" id="headingSalesReport">📊 Sales & Collection Center</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn-primary" id="btnToggleSalesReport" onclick="toggleSalesReportSection()">📊 Sales
-            Report</button>
-          <button class="btn-green" id="btnCounterCollection" onclick="toggleCounterCollectionCard()">💵 ➕ Enter Counter
-            Collection</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%; margin-top:8px;">
+          <button class="btn-primary" id="btnToggleSalesReport" style="padding:10px 6px; font-size:12px; white-space:nowrap; justify-content:center;" onclick="toggleSalesReportSection()">📊 Sales Report</button>
+          <button class="btn-green" id="btnCounterCollection" style="padding:10px 6px; font-size:12px; white-space:nowrap; justify-content:center;" onclick="toggleCounterCollectionCard()">💵 ➕ Counter Collection</button>
         </div>
       </div>
 
@@ -587,13 +589,16 @@
             Close</button>
         </div>
         <div class="form-grid">
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">From Date (Start):</label>
-            <input type="date" id="manualCashFromDate" />
-          </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">To Date (End):</label>
-            <input type="date" id="manualCashToDate" />
+          <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; grid-column: span 2;">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date (Start):</label>
+              <input type="date" id="manualCashFromDate" style="width:100%; padding:8px;" />
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date (End):</label>
+              <input type="date" id="manualCashToDate" style="width:100%; padding:8px;" />
+            </div>
           </div>
           <div>
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
@@ -639,12 +644,12 @@
             onclick="calculateWeeklyReinvestmentComparison()">📈 Calculate Comparison</button>
         </div>
 
-        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end;">
-          <div style="flex:1; max-width:200px; min-width:140px;">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+          <div>
             <label
               style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
               Date Preset:</label>
-            <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer;"
+            <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;"
               onchange="setReinvestmentDateFilter(this.value)">
               <option value="today">Today</option>
               <option value="week" selected>📅 This Week (Default)</option>
@@ -654,17 +659,21 @@
               <option value="year">This Year</option>
             </select>
           </div>
-          <div style="flex:1; max-width:200px; min-width:140px;">
-            <label
-              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
-              Date (Start):</label>
-            <input type="date" id="reinvestmentFromDate" />
-          </div>
-          <div style="flex:1; max-width:220px; min-width:140px;">
-            <label
-              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
-              Date (End):</label>
-            <input type="date" id="reinvestmentToDate" />
+
+          <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
+            <div>
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                Date (Start):</label>
+              <input type="date" id="reinvestmentFromDate" style="width:100%; padding:8px;" />
+            </div>
+            <div>
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                Date (End):</label>
+              <input type="date" id="reinvestmentToDate" style="width:100%; padding:8px;" />
+            </div>
           </div>
         </div>
 
@@ -1235,9 +1244,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=27.0"></script>
-  <script src="sync-engine.js?v=27.0"></script>
-  <script src="admin.js?v=27.0"></script>
+  <script src="config.js?v=28.0"></script>
+  <script src="sync-engine.js?v=28.0"></script>
+  <script src="admin.js?v=28.0"></script>
 </body>
 
 </html>
