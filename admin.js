@@ -1447,23 +1447,13 @@ function getProductSku(productId, productName) {
     }
   }
 
-  const targetName = prod?.name || pName;
-  const targetId = prod?.id || pIdNum;
+  const targetName = prod?.name || pName || 'PROD';
+  const targetId = prod?.id || pIdNum || 1;
 
-  if (targetName) {
-    const firstWord = targetName.split(' ')[0] || '';
-    let prefix = firstWord.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
-    if (prefix.endsWith('M') && prefix.length > 2 && /^\d+G/.test(prefix)) {
-      prefix = prefix.slice(0, -1);
-    }
-    if (!prefix || prefix.length < 2) {
-      prefix = targetName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
-    }
-    const idSuffix = targetId ? String(targetId) : '000';
-    return `${prefix}-${idSuffix}`;
-  }
+  const prefix = targetName.substring(0, 3).toUpperCase();
+  const numStr = String(targetId).padStart(5, '0');
 
-  return targetId ? `PROD-${targetId}` : "000";
+  return `${prefix}-${numStr}`;
 }
 
 async function ensureProductsLoaded() {
