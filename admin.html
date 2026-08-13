@@ -94,36 +94,39 @@
             </button>
           </div>
 
-          <div style="margin-top:10px;">
-            <label
-              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📊
-              Google Sheet Web App URL:</label>
-            <input type="text" id="googleSheetUrlInput" placeholder="Paste Apps Script Exec URL..."
-              style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);"
-              onchange="saveGoogleSheetUrl(this.value)" />
-            <div id="sheetSyncStatus" style="font-size:10px; font-weight:700; margin-top:4px; color:var(--text-muted);">
-              ⚠️ Sheet URL Not Set</div>
-            <button type="button" onclick="copyAppsScriptCode()" class="btn-outline"
-              style="width:100%; margin-top:8px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
-              📋 Copy Google Apps Script Code
-            </button>
-            <button type="button" onclick="changeMasterPin()" class="btn-outline"
-              style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--text-dark);">
-              🔑 Change Master PIN
-            </button>
-            <button type="button" onclick="closeSidebar(); openStaffManagerModal();" class="btn-outline"
-              style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
-              👥 Staff Accounts & Permissions
-            </button>
-          </div>
+          <!-- OWNER-ONLY SENSITIVE SETTINGS CONTAINER -->
+          <div id="ownerOnlySidebarSettings">
+            <div style="margin-top:10px;">
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📊
+                Google Sheet Web App URL:</label>
+              <input type="text" id="googleSheetUrlInput" placeholder="Paste Apps Script Exec URL..."
+                style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; background:var(--surface); color:var(--text-dark); border:1px solid var(--border);"
+                onchange="saveGoogleSheetUrl(this.value)" />
+              <div id="sheetSyncStatus" style="font-size:10px; font-weight:700; margin-top:4px; color:var(--text-muted);">
+                ⚠️ Sheet URL Not Set</div>
+              <button type="button" onclick="copyAppsScriptCode()" class="btn-outline"
+                style="width:100%; margin-top:8px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
+                📋 Copy Google Apps Script Code
+              </button>
+              <button type="button" onclick="changeMasterPin()" class="btn-outline"
+                style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--text-dark);">
+                🔑 Change Master PIN
+              </button>
+              <button type="button" onclick="closeSidebar(); openStaffManagerModal();" class="btn-outline"
+                style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
+                👥 Staff Accounts & Permissions
+              </button>
+            </div>
 
-          <!-- CUSTOMIZE PANEL BUTTONS (POPS OPEN MODAL) -->
-          <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
-            <button type="button" class="btn-outline"
-              style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; cursor:pointer; justify-content:center; font-weight:bold; background:var(--surface); color:var(--text-dark);"
-              onclick="closeSidebar(); openPanelCustomizerModal();">
-              ⚙️ Customize Panel Buttons
-            </button>
+            <!-- CUSTOMIZE PANEL BUTTONS (POPS OPEN MODAL) -->
+            <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+              <button type="button" class="btn-outline"
+                style="width:100%; padding:8px 10px; font-size:11px; border-radius:10px; cursor:pointer; justify-content:center; font-weight:bold; background:var(--surface); color:var(--text-dark);"
+                onclick="closeSidebar(); openPanelCustomizerModal();">
+                ⚙️ Customize Panel Buttons
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1232,9 +1235,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=26.0"></script>
-  <script src="sync-engine.js?v=26.0"></script>
-  <script src="admin.js?v=26.0"></script>
+  <script src="config.js?v=27.0"></script>
+  <script src="sync-engine.js?v=27.0"></script>
+  <script src="admin.js?v=27.0"></script>
 </body>
 
 </html>

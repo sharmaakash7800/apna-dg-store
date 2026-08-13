@@ -115,6 +115,7 @@ function switchRoleUI() {
 function updateRoleUI() {
   const roleBadgeHeader = document.getElementById("roleBadgeHeader");
   const roleBadgeSidebar = document.getElementById("roleBadgeSidebar");
+  const ownerSettingsDiv = document.getElementById("ownerOnlySidebarSettings");
   const isOwn = isOwner();
   const labelText = isOwn ? "👑 Owner" : "👤 Staff";
   const bgStyle = isOwn ? "background:rgba(79,70,229,0.15); color:var(--primary); border:1px solid var(--primary);" : "background:rgba(245,158,11,0.15); color:#d97706; border:1px solid #f59e0b;";
@@ -126,6 +127,11 @@ function updateRoleUI() {
   if (roleBadgeSidebar) {
     roleBadgeSidebar.textContent = labelText;
     roleBadgeSidebar.style.cssText = `padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; ${bgStyle}`;
+  }
+
+  // Strictly HIDE sensitive Owner settings when in Staff Mode!
+  if (ownerSettingsDiv) {
+    ownerSettingsDiv.style.setProperty("display", isOwn ? "block" : "none", "important");
   }
 }
 
