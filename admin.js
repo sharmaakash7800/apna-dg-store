@@ -185,9 +185,10 @@ function copyAppsScriptCode() {
     "          'Cost/Pack',",
     "          'Supplier',",
     "          'Buyer(Perchase Person',",
-    "          'Price (₹)'",
+    "          'Price (₹)',",
+    "          'Total'",
     "        ]);",
-    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 10);",
+    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 11);",
     "        poHeaderRange.setFontWeight('bold');",
     "        poHeaderRange.setBackground('#006666');",
     "        poHeaderRange.setFontColor('#ffffff');",
@@ -196,9 +197,13 @@ function copyAppsScriptCode() {
     "      var timestampStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
     "",
     "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
-    "        for (var i = 0; i < data.itemsArray.length; i++) {",
+    "        var totalItems = data.itemsArray.length;",
+    "        for (var i = 0; i < totalItems; i++) {",
     "          var item = data.itemsArray[i];",
     "          var cleanSku = String(item.sku || '0').replace(/^SKU-/i, '').trim();",
+    "          cleanSku = cleanSku.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
+    "          var isLastItem = (i === totalItems - 1);",
+    "          var billTotalVal = isLastItem ? (item.orderTotal || data.totalAmount || data.price || '') : '';",
     "          poSheet.appendRow([",
     "            timestampStr,",
     "            orderIdStr,",
@@ -208,12 +213,14 @@ function copyAppsScriptCode() {
     "            item.quantity || 1,",
     "            item.costPack || item.cost_pack || 0,",
     "            item.supplier || partyStr || 'N/A',",
-    "            data.buyer || partyStr || item.person || 'Admin',",
-    "            item.price || item.totalPrice || 0",
+    "            data.buyer || partyStr || item.person || 'Akash sharma',",
+    "            item.price || item.totalPrice || 0,",
+    "            billTotalVal",
     "          ]);",
     "        }",
     "      } else {",
     "        var cleanSkuSingle = String(data.sku || '0').replace(/^SKU-/i, '').trim();",
+    "        cleanSkuSingle = cleanSkuSingle.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
     "        poSheet.appendRow([",
     "          timestampStr,",
     "          orderIdStr,",
@@ -223,7 +230,8 @@ function copyAppsScriptCode() {
     "          data.quantity || 1,",
     "          data.costPack || data.cost_pack || 0,",
     "          partyStr || 'N/A',",
-    "          data.buyer || partyStr || 'Admin',",
+    "          data.buyer || partyStr || 'Akash sharma',",
+    "          data.totalAmount || data.price || 0,",
     "          data.totalAmount || data.price || 0",
     "        ]);",
     "      }",
@@ -1097,6 +1105,7 @@ async function submitTickedReorder(sourceModal = false) {
       const skuCode = getProductSku(i.product_id, i.product_name);
       const q = Number(i.quantity || 1);
       const cp = Number(i.purchase_price || 0);
+      const isLast = (idx === dbItems.length - 1);
       return {
         indentNo: 101 + idx,
         sku: skuCode,
@@ -1108,7 +1117,8 @@ async function submitTickedReorder(sourceModal = false) {
         location: supplier,
         person: buyerName,
         buyer: buyerName,
-        price: (q * cp).toFixed(2)
+        price: (q * cp).toFixed(2),
+        orderTotal: isLast ? totalAmount.toFixed(2) : ""
       };
     });
 
@@ -1446,20 +1456,25 @@ function getProductSku(productId, productName) {
       productsList.find(p => lowerName.includes((p.name || '').toLowerCase()));
   }
 
+  let clean = "";
   if (prod) {
-    const sku = prod.sku || prod.sku_code || prod.skucode || prod.barcode || prod.code || prod.product_code || prod.sku_id;
-    if (sku && String(sku).trim() !== "" && String(sku).trim() !== "0" && String(sku).trim() !== "null" && String(sku).trim() !== "undefined") {
-      return String(sku).trim().replace(/^SKU-/i, '');
+    const rawSku = prod.sku || prod.sku_code || prod.skucode || prod.barcode || prod.code || prod.product_code || prod.sku_id;
+    if (rawSku && String(rawSku).trim() !== "" && String(rawSku).trim() !== "0" && String(rawSku).trim() !== "null" && String(rawSku).trim() !== "undefined") {
+      clean = String(rawSku).trim().replace(/^SKU-/i, '');
     }
   }
 
-  const targetName = prod?.name || pName || 'PROD';
-  const targetId = prod?.id || pIdNum || 1;
+  if (!clean) {
+    const targetName = prod?.name || pName || 'PROD';
+    const targetId = prod?.id || pIdNum || 1;
 
-  const prefix = targetName.substring(0, 3).toUpperCase();
-  const numStr = String(targetId).padStart(5, '0');
+    const prefix = targetName.substring(0, 3).toUpperCase();
+    const numStr = String(targetId).padStart(5, '0');
+    clean = `${prefix}-${numStr}`;
+  }
 
-  return `${prefix}-${numStr}`;
+  clean = clean.replace(/^([A-Z0-9]{2,4}-)\1/gi, '$1');
+  return clean;
 }
 
 async function ensureProductsLoaded() {
@@ -1633,6 +1648,7 @@ async function submitPurchaseOrder() {
       const skuCode = getProductSku(i.product_id, i.product_name);
       const q = Number(i.quantity || 1);
       const cp = Number(i.purchase_price || 0);
+      const isLast = (idx === items.length - 1);
       return {
         indentNo: 101 + idx,
         sku: skuCode,
@@ -1644,7 +1660,8 @@ async function submitPurchaseOrder() {
         location: supplier,
         person: buyerName,
         buyer: buyerName,
-        price: (q * cp).toFixed(2)
+        price: (q * cp).toFixed(2),
+        orderTotal: isLast ? totalAmount.toFixed(2) : ""
       };
     });
 
@@ -1994,10 +2011,13 @@ async function syncPoToSheet(poId) {
   if (!po || !items?.length) return alert("Order details loading failed.");
   await ensureProductsLoaded();
 
+  const totalBill = po.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
+
   const sheetItems = items.map((i, idx) => {
     const skuCode = getProductSku(i.product_id, i.product_name);
     const q = Number(i.quantity || 1);
     const cp = Number(i.purchase_price || 0);
+    const isLast = (idx === items.length - 1);
     return {
       indentNo: 101 + idx,
       sku: skuCode,
@@ -2007,9 +2027,10 @@ async function syncPoToSheet(poId) {
       cost_pack: cp > 0 ? cp.toFixed(2) : "0",
       supplier: po.supplier_name || 'N/A',
       location: po.supplier_name || 'N/A',
-      person: po.supplier_name || 'Admin',
-      buyer: po.supplier_name || 'Admin',
-      price: (q * cp).toFixed(2)
+      person: po.supplier_name || 'Akash sharma',
+      buyer: po.supplier_name || 'Akash sharma',
+      price: (q * cp).toFixed(2),
+      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
     };
   });
 
