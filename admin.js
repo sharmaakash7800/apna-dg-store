@@ -11,6 +11,11 @@ let googleSheetScriptUrl = DEFAULT_SHEET_URL;
 localStorage.setItem("googleSheetScriptUrl", DEFAULT_SHEET_URL);
 
 let actionVisibilityConfig = JSON.parse(localStorage.getItem("actionVisibilityConfig")) || {
+  nav_customerOrders: true,
+  nav_supplierHistory: true,
+  nav_supplierReorder: true,
+  nav_productsAdmin: true,
+  nav_salesReport: true,
   contactPills: true,
   pdfReport: true,
   googleSync: true,
@@ -21,6 +26,37 @@ let actionVisibilityConfig = JSON.parse(localStorage.getItem("actionVisibilityCo
   deleteOrder: true,
   deleteOnReceived: true
 };
+
+function applyVisibilityConfig() {
+  const navKeys = [
+    { key: 'customerOrders', bId: 'nav-customerOrders' },
+    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
+    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
+    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
+    { key: 'salesReport', bId: 'nav-salesReport' }
+  ];
+
+  navKeys.forEach(item => {
+    const isVisible = actionVisibilityConfig[`nav_${item.key}`] !== false;
+    const bNavBtn = document.getElementById(item.bId);
+    if (bNavBtn) bNavBtn.style.display = isVisible ? "flex" : "none";
+
+    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
+    if (sidebarBtn) sidebarBtn.style.display = isVisible ? "flex" : "none";
+  });
+}
+
+function switchVisTab(tabName) {
+  ['nav', 'actions', 'permissions'].forEach(t => {
+    const tabEl = document.getElementById(`visTab_${t}`);
+    const btnEl = document.getElementById(`visTabBtn_${t}`);
+    if (tabEl) tabEl.style.display = t === tabName ? "block" : "none";
+    if (btnEl) {
+      if (t === tabName) btnEl.classList.add("active");
+      else btnEl.classList.remove("active");
+    }
+  });
+}
 
 function openVisibilityModal() {
   const modal = document.getElementById("visibilityControlModal");
@@ -35,16 +71,23 @@ function openVisibilityModal() {
 function closeVisibilityModal() {
   const modal = document.getElementById("visibilityControlModal");
   if (modal) modal.style.display = "none";
+  applyVisibilityConfig();
   loadPurchaseOrders();
 }
 
 function toggleVisConfig(key, isChecked) {
   actionVisibilityConfig[key] = isChecked;
   localStorage.setItem("actionVisibilityConfig", JSON.stringify(actionVisibilityConfig));
+  applyVisibilityConfig();
 }
 
 function resetVisibilityConfig() {
   actionVisibilityConfig = {
+    nav_customerOrders: true,
+    nav_supplierHistory: true,
+    nav_supplierReorder: true,
+    nav_productsAdmin: true,
+    nav_salesReport: true,
     contactPills: true,
     pdfReport: true,
     googleSync: true,
@@ -57,6 +100,7 @@ function resetVisibilityConfig() {
   };
   localStorage.setItem("actionVisibilityConfig", JSON.stringify(actionVisibilityConfig));
   openVisibilityModal();
+  applyVisibilityConfig();
 }
 
 function saveGoogleSheetUrl(url) {
@@ -2378,6 +2422,7 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
+  applyVisibilityConfig();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
