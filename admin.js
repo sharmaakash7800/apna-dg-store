@@ -160,6 +160,23 @@ function copyAppsScriptCode() {
     "        .setMimeType(ContentService.MimeType.JSON);",
     "    }",
     "",
+    "    if (data.action === 'delete') {",
+    "      var sheetsToClean = ['Admin Orders Indent', 'Admin Orders Log'];",
+    "      for (var s = 0; s < sheetsToClean.length; s++) {",
+    "        var sh = ss.getSheetByName(sheetsToClean[s]);",
+    "        if (sh) {",
+    "          var rows = sh.getDataRange().getValues();",
+    "          for (var r = rows.length - 1; r >= 1; r--) {",
+    "            if (String(rows[r][1]) === String(data.orderId)) {",
+    "              sh.deleteRow(r + 1);",
+    "            }",
+    "          }",
+    "        }",
+    "      }",
+    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'delete' }))",
+    "        .setMimeType(ContentService.MimeType.JSON);",
+    "    }",
+    "",
     "    var isPO = !isCollection && (",
     "      data.isPO || ",
     "      data.targetSheet === 'Admin Orders Indent' ||",
@@ -1761,10 +1778,21 @@ async function changePoNumber(poId) {
 
 async function deletePurchaseOrder(poId) {
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  const poNum = po?.po_number || (typeof poId === 'string' && poId.startsWith('PO-') ? poId : `PO-${poId}`);
+
   await db.from("purchase_order_items").delete().or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
   const { error } = await db.from("purchase_orders").delete().or(`id.eq.${idCond},id.eq.${String(poId)}`);
   if (error) alert("Delete error: " + error.message);
-  else { alert("Order Database se remove ho gaya!"); loadPurchaseOrders(); }
+  else {
+    syncOrderToGoogleSheet({
+      action: "delete",
+      targetSheet: "Admin Orders Indent",
+      orderId: poNum
+    });
+    alert(`Order ${poNum} Database aur Google Sheet dono se remove ho gaya!`);
+    loadPurchaseOrders();
+  }
 }
 
 async function loadPurchaseOrders() {
