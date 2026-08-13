@@ -588,36 +588,43 @@
             style="border:0; background:var(--bg); padding:4px 8px; border-radius:6px; cursor:pointer;">✕
             Close</button>
         </div>
-        <div class="form-grid">
-          <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; grid-column: span 2;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <!-- ROW 1: DATES (FROM DATE & TO DATE SIDE-BY-SIDE IN 1 ROW) -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
             <div>
               <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date (Start):</label>
-              <input type="date" id="manualCashFromDate" style="width:100%; padding:8px;" />
+              <input type="date" id="manualCashFromDate" style="width:100%; padding:8px 10px; font-size:12px; border-radius:8px; border:1px solid var(--border);" />
             </div>
             <div>
               <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date (End):</label>
-              <input type="date" id="manualCashToDate" style="width:100%; padding:8px;" />
+              <input type="date" id="manualCashToDate" style="width:100%; padding:8px 10px; font-size:12px; border-radius:8px; border:1px solid var(--border);" />
             </div>
           </div>
-          <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Payment Mode:</label>
-            <select id="manualCashMode">
-              <option value="offline">💵 Offline (Cash)</option>
-              <option value="online">💳 Online (UPI/Cards)</option>
-            </select>
+
+          <!-- ROW 2: PAYMENT MODE & AMOUNT SIDE-BY-SIDE IN 1 ROW -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Payment Mode:</label>
+              <select id="manualCashMode" style="width:100%; padding:9px 10px; font-size:12px; font-weight:bold; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+                <option value="offline">💵 Offline (Cash)</option>
+                <option value="online">💳 Online (UPI/Card)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Amount (₹):</label>
+              <input type="number" id="manualCashAmount" placeholder="Amount (e.g. 500)" style="width:100%; padding:9px 10px; font-size:12px; font-weight:bold; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+            </div>
           </div>
+
+          <!-- ROW 3: NOTE / REMARK FULL WIDTH -->
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Amount (₹):</label>
-            <input type="number" id="manualCashAmount" placeholder="Collection Amount" />
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Note / Remark (Optional):</label>
+            <input type="text" id="manualCashNote" placeholder="e.g. Counter Cash Sale, GPay Payment..." style="width:100%; padding:9px 10px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
           </div>
+
+          <!-- ROW 4: SAVE BUTTON FULL WIDTH -->
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Note / Remark:</label>
-            <input type="text" id="manualCashNote" placeholder="e.g. Counter Sales" />
-          </div>
-          <div>
-            <label style="display:block; visibility:hidden; font-size:11px;">Save</label>
-            <button class="btn-green" onclick="saveOfflineCashEntry()">💾 Save Entry</button>
+            <button class="btn-green" style="width:100%; padding:12px; font-size:13px; font-weight:bold; justify-content:center; border-radius:10px;" onclick="saveOfflineCashEntry()">💾 Save Collection Entry</button>
           </div>
         </div>
 
@@ -1244,9 +1251,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=30.0"></script>
-  <script src="sync-engine.js?v=30.0"></script>
-  <script src="admin.js?v=30.0"></script>
+  <script src="config.js?v=31.0"></script>
+  <script src="sync-engine.js?v=31.0"></script>
+  <script src="admin.js?v=31.0"></script>
 </body>
 
 </html>
