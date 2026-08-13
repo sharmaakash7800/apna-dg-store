@@ -111,6 +111,10 @@
               style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--text-dark);">
               🔑 Change Master PIN
             </button>
+            <button type="button" onclick="closeSidebar(); openStaffManagerModal();" class="btn-outline"
+              style="width:100%; margin-top:6px; padding:6px 10px; font-size:11px; border-radius:8px; cursor:pointer; background:var(--surface); color:var(--primary); border:1px solid var(--primary);">
+              👥 Staff Accounts & Permissions
+            </button>
           </div>
 
           <!-- CUSTOMIZE PANEL BUTTONS (POPS OPEN MODAL) -->
@@ -1112,6 +1116,117 @@
       <div style="display:flex; gap:8px; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
         <button class="btn-outline" style="flex:1; padding:10px; font-size:12px;" onclick="resetPanelCustomizer()">↺ Reset Defaults</button>
         <button class="btn-primary" style="flex:2; padding:10px; font-size:13px; font-weight:bold;" onclick="closePanelCustomizerModal()">✅ Apply & Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF ACCOUNTS & PERMISSIONS MODAL -->
+  <div id="staffManagerModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:640px; width:94%; padding:20px; border-radius:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">👥</span>
+          <div>
+            <h3 style="margin:0; font-size:17px; font-weight:800; color:var(--text-dark);">Staff Accounts & Permissions Manager</h3>
+            <small style="color:var(--text-muted); font-size:11px;">Staff passwords, block access & visibility permissions</small>
+          </div>
+        </div>
+        <button onclick="closeStaffManagerModal()" style="border:0; background:var(--bg); padding:6px 12px; border-radius:10px; cursor:pointer; font-weight:bold; color:var(--text-dark);">✕ Close</button>
+      </div>
+
+      <!-- SECTION 1: CREDENTIALS & ACCESS REVOCATION -->
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:14px;">
+        <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span>🔐</span> <span>STAFF CREDENTIALS & ACCESS CONTROL</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:end;">
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Staff Login Password / PIN:</label>
+            <input type="text" id="staffPassInput" style="width:100%; padding:8px 10px; font-size:12px; font-weight:bold; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Staff Account Status:</label>
+            <select id="staffAccessStatusSelect" style="width:100%; padding:8px 10px; font-size:12px; font-weight:bold; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+              <option value="true">✅ Active (Staff can log in)</option>
+              <option value="false">⛔ Blocked / Revoked (Job Leave / Suspended)</option>
+            </select>
+          </div>
+        </div>
+        <small style="font-size:10px; color:var(--danger); display:block; margin-top:6px;">⚠️ Jab bhi koi Staff job chhode, yahan se status **Blocked** kar dein ya Password change kar dein.</small>
+      </div>
+
+      <!-- SECTION 2: STAFF VISIBILITY PERMISSIONS -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; max-height:300px; overflow-y:auto; padding-right:4px;">
+        
+        <!-- STAFF NAV TABS -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:10px;">
+          <div style="font-size:11px; font-weight:800; color:var(--text-dark); margin-bottom:8px;">📱 STAFF NAV TABS (SHOW/HIDE)</div>
+          
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>🛍 Customer Orders</span>
+              <input type="checkbox" id="stf_nav_customerOrders" onchange="updateStaffPermission('nav_customerOrders', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📋 Reorders History</span>
+              <input type="checkbox" id="stf_nav_supplierHistory" onchange="updateStaffPermission('nav_supplierHistory', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>➕ Create Reorder</span>
+              <input type="checkbox" id="stf_nav_supplierReorder" onchange="updateStaffPermission('nav_supplierReorder', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📦 Products Inventory</span>
+              <input type="checkbox" id="stf_nav_productsAdmin" onchange="updateStaffPermission('nav_productsAdmin', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📊 Sales Reports</span>
+              <input type="checkbox" id="stf_nav_salesReport" onchange="updateStaffPermission('nav_salesReport', this.checked)" />
+            </label>
+          </div>
+        </div>
+
+        <!-- STAFF ACTION PERMISSIONS -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:10px;">
+          <div style="font-size:11px; font-weight:800; color:var(--text-dark); margin-bottom:8px;">⚡ STAFF ACTIONS (SHOW/HIDE)</div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📞 Call & WhatsApp</span>
+              <input type="checkbox" id="stf_contactPills" onchange="updateStaffPermission('contactPills', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📄 Send PDF Slip</span>
+              <input type="checkbox" id="stf_pdfReport" onchange="updateStaffPermission('pdfReport', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>📊 Sync to Google Sheet</span>
+              <input type="checkbox" id="stf_googleSync" onchange="updateStaffPermission('googleSync', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>🏷 Change Supplier</span>
+              <input type="checkbox" id="stf_changeSupplier" onchange="updateStaffPermission('changeSupplier', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>✏️ Edit Order Items</span>
+              <input type="checkbox" id="stf_editItems" onchange="updateStaffPermission('editItems', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>❌ Cancel Reorder</span>
+              <input type="checkbox" id="stf_cancelOrder" onchange="updateStaffPermission('cancelOrder', this.checked)" />
+            </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--danger); font-weight:bold;">
+              <span>🗑 Delete Order (Blocked)</span>
+              <input type="checkbox" id="stf_deleteOrder" disabled />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:13px; font-weight:bold;" onclick="saveStaffAccountSettings()">✅ Save Credentials & Permissions</button>
       </div>
     </div>
   </div>

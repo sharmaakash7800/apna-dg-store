@@ -22,12 +22,32 @@ function updateSheetStatusUI() {
 }
 
 // ------------------------------------------
-// ROLE-BASED AUTH & MASTER PIN PERMISSIONS (POINT 3)
+// ROLE-BASED AUTH & STAFF CREDENTIALS MANAGER
 // ------------------------------------------
 
-// Roles: 'owner' (Full Access) | 'staff' (Restricted Actions)
+// Roles: 'owner' (Full Access) | 'staff' (Restricted Access)
 let currentRole = localStorage.getItem("appUserRole") || "owner";
 let masterPin = localStorage.getItem("appMasterPin") || "1234";
+
+// Staff Security Credentials & Permissions
+let staffPassword = localStorage.getItem("appStaffPassword") || "staff123";
+let staffAccessEnabled = localStorage.getItem("appStaffAccessEnabled") !== "false";
+
+let staffPermissions = JSON.parse(localStorage.getItem("appStaffPermissions")) || {
+  nav_customerOrders: true,
+  nav_supplierHistory: true,
+  nav_supplierReorder: true,
+  nav_productsAdmin: false, // Hidden for staff by default
+  nav_salesReport: false,   // Hidden for staff by default
+  contactPills: true,
+  pdfReport: true,
+  googleSync: true,
+  changeSupplier: false,
+  editItems: false,
+  cancelOrder: false,
+  changeDate: false,
+  deleteOrder: false
+};
 
 function getCurrentRole() {
   return currentRole;
@@ -42,6 +62,7 @@ function setRole(role) {
   currentRole = role;
   localStorage.setItem("appUserRole", role);
   updateRoleUI();
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
   if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
 }
 
@@ -59,18 +80,18 @@ function verifyOwnerPin(promptText) {
 
 function changeMasterPin() {
   if (!verifyOwnerPin("Purana Master PIN entered karein PIN badalne ke liye:")) return;
-  const newPin = prompt("Naya 4-Digit Master PIN dalein:");
+  const newPin = prompt("Naya 4-Digit Owner Master PIN dalein:");
   if (!newPin || newPin.trim().length < 4) {
     return alert("❌ PIN kam se kam 4 digits ka hona chahiye.");
   }
   masterPin = newPin.trim();
   localStorage.setItem("appMasterPin", masterPin);
-  alert("✅ Master PIN successfully update ho gaya!");
+  alert("✅ Owner Master PIN successfully update ho gaya!");
 }
 
 function switchRoleUI() {
   if (currentRole === "staff") {
-    const pin = prompt("Owner Mode me switch karne ke liye Master PIN dalein:");
+    const pin = prompt("Owner Mode me switch karne ke liye Owner Master PIN dalein:");
     if (pin && pin.trim() === masterPin) {
       setRole("owner");
       alert("👑 Aap Owner Mode me switch ho gaye hain!");
@@ -78,9 +99,15 @@ function switchRoleUI() {
       alert("❌ Galat PIN!");
     }
   } else {
-    if (confirm("Staff Mode me switch karein? (Staff Delete/Settings ke liye PIN mangega)")) {
+    if (!staffAccessEnabled) {
+      return alert("⛔ Staff Access is BLOCKED by Owner! Staff Manager me jaa kar enable karein.");
+    }
+    const staffPass = prompt(`Staff Mode me switch karne ke liye Staff Password dalein:\n(Default Password: ${staffPassword})`);
+    if (staffPass && staffPass.trim() === staffPassword) {
       setRole("staff");
       alert("👤 Aap Staff Mode me switch ho gaye hain!");
+    } else if (staffPass !== null) {
+      alert("❌ Galat Staff Password!");
     }
   }
 }
@@ -103,7 +130,61 @@ function updateRoleUI() {
 }
 
 // ------------------------------------------
-// PANEL CUSTOMIZER STATE CONFIGURATION
+// STAFF ACCOUNTS & PERMISSIONS MANAGER
+// ------------------------------------------
+
+function openStaffManagerModal() {
+  if (!verifyOwnerPin("Staff Permissions & Passwords manage karne ke liye Owner PIN dalein:")) return;
+  const modal = document.getElementById("staffManagerModal");
+  if (!modal) return;
+
+  const passInput = document.getElementById("staffPassInput");
+  const statusSelect = document.getElementById("staffAccessStatusSelect");
+  if (passInput) passInput.value = staffPassword;
+  if (statusSelect) statusSelect.value = String(staffAccessEnabled);
+
+  Object.keys(staffPermissions).forEach(key => {
+    const chk = document.getElementById(`stf_${key}`);
+    if (chk) chk.checked = staffPermissions[key] === true;
+  });
+
+  modal.style.display = "flex";
+}
+
+function closeStaffManagerModal() {
+  const modal = document.getElementById("staffManagerModal");
+  if (modal) modal.style.display = "none";
+}
+
+function updateStaffPermission(key, isChecked) {
+  staffPermissions[key] = isChecked;
+}
+
+function saveStaffAccountSettings() {
+  const passInput = document.getElementById("staffPassInput");
+  const statusSelect = document.getElementById("staffAccessStatusSelect");
+
+  if (passInput && passInput.value.trim()) {
+    staffPassword = passInput.value.trim();
+    localStorage.setItem("appStaffPassword", staffPassword);
+  }
+
+  if (statusSelect) {
+    staffAccessEnabled = statusSelect.value === "true";
+    localStorage.setItem("appStaffAccessEnabled", String(staffAccessEnabled));
+  }
+
+  localStorage.setItem("appStaffPermissions", JSON.stringify(staffPermissions));
+  closeStaffManagerModal();
+
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
+
+  alert("✅ Staff Password, Access Status aur Permissions update ho gayi!");
+}
+
+// ------------------------------------------
+// OWNER PANEL CUSTOMIZER CONFIGURATION
 // ------------------------------------------
 let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConfig")) || {
   contactPills: true,
