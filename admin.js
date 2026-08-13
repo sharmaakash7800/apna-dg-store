@@ -2220,6 +2220,7 @@ async function loadCustomerOrders() {
     (allItems || []).forEach(it => { (itemsMap[String(it.order_id)] ||= []).push(it); });
 
     container.innerHTML = filtered.map(ord => {
+      const isOwn = isOwner();
       const items = itemsMap[String(ord.id)] || [];
       let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
       if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) totalAmount = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
