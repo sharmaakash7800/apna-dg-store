@@ -5,124 +5,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedProductsMap = {};
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
-/* GOOGLE SHEETS AUTOMATIC SYNC LOGIC */
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPS3892GpqKPPoL3gkHLK2BnMtXrW2j9ALCBqblf82uLi9rslEVh2eaGOMwi9UT6-R7Q/exec";
-let googleSheetScriptUrl = DEFAULT_SHEET_URL;
-let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConfig")) || {
-  contactPills: true,
-  pdfReport: true,
-  googleSync: true,
-  changeSupplier: true,
-  editItems: true,
-  cancelOrder: true,
-  changeDate: true,
-  deleteOrder: true,
-  nav_customerOrders: true,
-  nav_supplierHistory: true,
-  nav_supplierReorder: true,
-  nav_productsAdmin: true,
-  nav_salesReport: true
-};
-
-function openPanelCustomizerModal() {
-  const modal = document.getElementById("panelCustomizerModal");
-  if (!modal) return;
-  Object.keys(panelCustomizerConfig).forEach(key => {
-    const chk = document.getElementById(`pop_${key}`);
-    if (chk) chk.checked = panelCustomizerConfig[key] !== false;
-  });
-  modal.style.display = "flex";
-}
-
-function closePanelCustomizerModal() {
-  const modal = document.getElementById("panelCustomizerModal");
-  if (modal) modal.style.display = "none";
-  applyPanelCustomizer();
-  loadPurchaseOrders();
-}
-
-function updatePanelCustomizer(key, isChecked) {
-  panelCustomizerConfig[key] = isChecked;
-  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
-  applyPanelCustomizer();
-  loadPurchaseOrders();
-}
-
-function resetPanelCustomizer() {
-  panelCustomizerConfig = {
-    contactPills: true,
-    pdfReport: true,
-    googleSync: true,
-    changeSupplier: true,
-    editItems: true,
-    cancelOrder: true,
-    changeDate: true,
-    deleteOrder: true,
-    nav_customerOrders: true,
-    nav_supplierHistory: true,
-    nav_supplierReorder: true,
-    nav_productsAdmin: true,
-    nav_salesReport: true
-  };
-  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
-  openPanelCustomizerModal();
-  applyPanelCustomizer();
-}
-
-function applyPanelCustomizer() {
-  const navKeys = [
-    { key: 'customerOrders', bId: 'nav-customerOrders' },
-    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
-    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
-    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
-    { key: 'salesReport', bId: 'nav-salesReport' }
-  ];
-
-  navKeys.forEach(item => {
-    const isVisible = panelCustomizerConfig[`nav_${item.key}`] !== false;
-    const bNavBtn = document.getElementById(item.bId);
-    if (bNavBtn) bNavBtn.style.display = isVisible ? "flex" : "none";
-
-    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
-    if (sidebarBtn) sidebarBtn.style.display = isVisible ? "flex" : "none";
-  });
-}
-
-
-
-function saveGoogleSheetUrl(url) {
-  googleSheetScriptUrl = (url || "").trim();
-  localStorage.setItem("googleSheetScriptUrl", googleSheetScriptUrl);
-  const statusEl = document.getElementById("sheetSyncStatus");
-  if (statusEl) {
-    statusEl.textContent = googleSheetScriptUrl ? "✅ Sheet Sync Active" : "⚠️ Sheet URL Not Set";
-    statusEl.style.color = googleSheetScriptUrl ? "var(--success)" : "var(--danger)";
-  }
-}
-
-async function syncOrderToGoogleSheet(payload) {
-  const baseUrl = googleSheetScriptUrl || localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
-  if (!baseUrl) {
-    console.log("Google Sheet Web App URL missing. Skipping sheet sync.");
-    return;
-  }
-  try {
-    const payloadStr = JSON.stringify(payload);
-    const targetUrl = baseUrl.includes("?")
-      ? `${baseUrl}&payload=${encodeURIComponent(payloadStr)}`
-      : `${baseUrl}?payload=${encodeURIComponent(payloadStr)}`;
-
-    await fetch(targetUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: payloadStr
-    });
-    console.log("Successfully sent payload to Google Sheet:", payload);
-  } catch (err) {
-    console.error("Google Sheet Sync Error:", err);
-  }
-}
+/* GOOGLE SHEETS AUTOMATIC SYNC LOGIC (MANAGED BY CONFIG.JS & SYNC-ENGINE.JS) */
 
 function copyAppsScriptCode() {
   const code = [
@@ -1856,7 +1739,48 @@ async function changePoNumber(poId) {
   }
 }
 
+function openPanelCustomizerModal() {
+  if (!verifyOwnerPin("Panel Customizer kholne ke liye Owner PIN dalein:")) return;
+  const modal = document.getElementById("panelCustomizerModal");
+  if (!modal) return;
+  Object.keys(panelCustomizerConfig).forEach(key => {
+    const chk = document.getElementById(`pop_${key}`);
+    if (chk) chk.checked = panelCustomizerConfig[key] !== false;
+  });
+  modal.style.display = "flex";
+}
+
+function closePanelCustomizerModal() {
+  const modal = document.getElementById("panelCustomizerModal");
+  if (modal) modal.style.display = "none";
+  applyPanelCustomizer();
+  loadPurchaseOrders();
+}
+
+function resetPanelCustomizer() {
+  panelCustomizerConfig = {
+    contactPills: true,
+    pdfReport: true,
+    googleSync: true,
+    changeSupplier: true,
+    editItems: true,
+    cancelOrder: true,
+    changeDate: true,
+    deleteOrder: true,
+    nav_customerOrders: true,
+    nav_supplierHistory: true,
+    nav_supplierReorder: true,
+    nav_productsAdmin: true,
+    nav_salesReport: true
+  };
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  openPanelCustomizerModal();
+  applyPanelCustomizer();
+}
+
 async function deletePurchaseOrder(poId) {
+  if (!verifyOwnerPin("Order Delete karne ke liye Owner Master PIN dalein:")) return;
+
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
   const poNum = po?.po_number || (typeof poId === 'string' && poId.startsWith('PO-') ? poId : `PO-${poId}`);
@@ -1870,7 +1794,7 @@ async function deletePurchaseOrder(poId) {
       targetSheet: "Admin Orders Indent",
       orderId: poNum
     });
-    alert(`Order ${poNum} Database aur Google Sheet dono se remove ho gaya!`);
+    alert(`Order ${poNum} Database se remove ho gaya!`);
     loadPurchaseOrders();
   }
 }
@@ -2407,7 +2331,11 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
+  updateRoleUI();
+  updateSheetStatusUI();
+  updateQueueBadgeUI();
   applyPanelCustomizer();
+  processPendingSyncQueue();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
