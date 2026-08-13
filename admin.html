@@ -15,7 +15,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Apna DG Store">
+  <meta name="apple-touch-fullscreen" content="yes">
   <meta name="theme-color" content="#4f46e5">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js?v=1.0').then(reg => {
+          console.log('PWA ServiceWorker registered!');
+        }).catch(err => console.log('SW reg error:', err));
+      });
+    }
+  </script>
 
   <link rel="stylesheet" href="admin.css?v=4.0" />
 </head>
@@ -1276,9 +1287,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=33.0"></script>
-  <script src="sync-engine.js?v=33.0"></script>
-  <script src="admin.js?v=33.0"></script>
+  <script src="config.js?v=34.0"></script>
+  <script src="sync-engine.js?v=34.0"></script>
+  <script src="admin.js?v=34.0"></script>
 </body>
 
 </html>
