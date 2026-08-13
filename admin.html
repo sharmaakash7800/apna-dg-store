@@ -16,14 +16,22 @@
 
   <!-- HEADER -->
   <header>
-    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
         <button class="menu-toggle-btn" onclick="toggleSidebar()">
           ☰ <span>Menu</span>
         </button>
-        <div class="header-title">Apna DG Store Admin</div>
+        
+        <!-- GLOBAL SMART SEARCH BAR CONTAINER -->
+        <div id="globalSmartSearchContainer" style="position:relative; flex:1; max-width:320px; min-width:130px;">
+          <input type="text" id="globalSmartSearchInput" placeholder="🔍 Search Order, Product, Phone..." style="width:100%; padding:6px 10px; font-size:11px; font-weight:600; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text-dark);" oninput="handleGlobalSmartSearch(this.value)" onfocus="handleGlobalSmartSearch(this.value)" />
+          
+          <!-- SEARCH RESULTS DROPDOWN -->
+          <div id="globalSearchResultsDropdown" style="display:none; position:absolute; top:36px; left:0; right:0; width:100%; min-width:280px; max-height:360px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.15); z-index:9999; padding:8px;"></div>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
+
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
         <span id="pendingSyncBadgeHeader" style="display:none; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; background:rgba(245,158,11,0.15); color:#d97706; border:1px solid #f59e0b; cursor:pointer;" onclick="processPendingSyncQueue()" title="Click to process pending sync queue">🔄 Sync Queue (0)</span>
         <span id="roleBadgeHeader" onclick="switchRoleUI()" title="Click to switch between Owner & Staff Mode">👑 Owner</span>
       </div>
@@ -1128,6 +1136,11 @@
               <span>📊 Sales Analytics</span>
               <input type="checkbox" id="pop_nav_salesReport" onchange="updatePanelCustomizer('nav_salesReport', this.checked)" />
             </label>
+
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:rgba(79,70,229,0.08); padding:6px 10px; border-radius:8px; border:1px solid var(--primary); font-weight:bold;">
+              <span>🔍 Global Header Search Bar</span>
+              <input type="checkbox" id="pop_globalSearch" onchange="updatePanelCustomizer('globalSearch', this.checked)" />
+            </label>
           </div>
         </div>
       </div>
@@ -1204,6 +1217,10 @@
               <span>📊 Sales Reports</span>
               <input type="checkbox" id="stf_nav_salesReport" onchange="updateStaffPermission('nav_salesReport', this.checked)" />
             </label>
+            <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+              <span>🔍 Global Header Search Bar</span>
+              <input type="checkbox" id="stf_globalSearch" onchange="updateStaffPermission('globalSearch', this.checked)" />
+            </label>
           </div>
         </div>
 
@@ -1251,9 +1268,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=31.0"></script>
-  <script src="sync-engine.js?v=31.0"></script>
-  <script src="admin.js?v=31.0"></script>
+  <script src="config.js?v=32.0"></script>
+  <script src="sync-engine.js?v=32.0"></script>
+  <script src="admin.js?v=32.0"></script>
 </body>
 
 </html>

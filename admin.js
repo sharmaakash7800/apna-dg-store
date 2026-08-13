@@ -1762,7 +1762,139 @@ function applyPanelCustomizer() {
       sidebarBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
     }
   });
+
+  // Global Header Search Bar Visibility
+  const globalSearchContainer = document.getElementById("globalSmartSearchContainer");
+  if (globalSearchContainer) {
+    globalSearchContainer.style.setProperty("display", config.globalSearch !== false ? "block" : "none", "important");
+  }
 }
+
+/* GLOBAL SMART SEARCH BAR SYSTEM */
+async function handleGlobalSmartSearch(query) {
+  const dropdown = document.getElementById("globalSearchResultsDropdown");
+  if (!dropdown) return;
+
+  const q = (query || "").trim().toLowerCase();
+  if (q.length < 2) {
+    dropdown.style.display = "none";
+    dropdown.innerHTML = "";
+    return;
+  }
+
+  dropdown.style.display = "block";
+  dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--text-muted);'>🔍 Searching across store...</div>";
+
+  try {
+    const matchedProducts = (productsList || []).filter(p => 
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q) ||
+      (p.sku || '').toLowerCase().includes(q)
+    ).slice(0, 4);
+
+    const matchedSuppliers = (suppliersList || []).filter(s =>
+      (s.name || '').toLowerCase().includes(q) ||
+      (s.phone || '').includes(q)
+    ).slice(0, 3);
+
+    const [{ data: custOrders }, { data: poOrders }] = await Promise.all([
+      db.from("orders").select("id, order_id, customer_name, mobile, status, total_amount").or(`customer_name.ilike.%${q}%,mobile.ilike.%${q}%,order_id.ilike.%${q}%`).limit(4),
+      db.from("purchase_orders").select("id, po_number, supplier_name, status, total_amount").or(`supplier_name.ilike.%${q}%,po_number.ilike.%${q}%`).limit(4)
+    ]);
+
+    let html = "";
+
+    if (matchedProducts.length > 0) {
+      html += `<div style="font-size:10px; font-weight:800; color:var(--primary); margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">📦 PRODUCTS FOUND (${matchedProducts.length})</div>`;
+      matchedProducts.forEach(p => {
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('product', '${p.id}')">
+            <div>
+              <strong style="display:block;">${p.name}</strong>
+              <small style="color:var(--text-muted);">Stock: ${p.stock_qty || 0} | Price: ₹${p.selling_price || 0}</small>
+            </div>
+            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">View ↗</button>
+          </div>`;
+      });
+    }
+
+    if (custOrders && custOrders.length > 0) {
+      html += `<div style="font-size:10px; font-weight:800; color:#16a34a; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">🛍 CUSTOMER ORDERS (${custOrders.length})</div>`;
+      custOrders.forEach(o => {
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('customerOrder', '${o.id}')">
+            <div>
+              <strong style="display:block;">ID: ${o.order_id || '#' + o.id} (${o.customer_name || 'Customer'})</strong>
+              <small style="color:var(--text-muted);">📞 ${o.mobile || 'N/A'} | Status: ${o.status || 'pending'}</small>
+            </div>
+            <button class="btn-primary" style="padding:2px 6px; font-size:10px;">View Order ↗</button>
+          </div>`;
+      });
+    }
+
+    if (poOrders && poOrders.length > 0) {
+      html += `<div style="font-size:10px; font-weight:800; color:#2563eb; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">📋 REORDERS (${poOrders.length})</div>`;
+      poOrders.forEach(po => {
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('supplierPo', '${po.id}')">
+            <div>
+              <strong style="display:block;">${po.po_number || '#' + po.id} (${po.supplier_name})</strong>
+              <small style="color:var(--text-muted);">Status: ${po.status || 'pending'} | Total: ₹${po.total_amount || 0}</small>
+            </div>
+            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">View PO ↗</button>
+          </div>`;
+      });
+    }
+
+    if (matchedSuppliers.length > 0) {
+      html += `<div style="font-size:10px; font-weight:800; color:#d97706; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">🚚 SUPPLIERS (${matchedSuppliers.length})</div>`;
+      matchedSuppliers.forEach(s => {
+        html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('supplier', '${s.name}')">
+            <div>
+              <strong style="display:block;">${s.name}</strong>
+              <small style="color:var(--text-muted);">📞 ${s.phone || 'N/A'}</small>
+            </div>
+            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">Reorder ↗</button>
+          </div>`;
+      });
+    }
+
+    if (!html) {
+      dropdown.innerHTML = "<div style='text-align:center; padding:12px; font-size:11px; color:var(--text-muted);'>❌ Koi result nahi mila.</div>";
+    } else {
+      dropdown.innerHTML = html;
+    }
+  } catch (err) {
+    console.error("Global search error:", err);
+    dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--danger);'>Search error.</div>";
+  }
+}
+
+function selectSearchResult(type, id) {
+  const dropdown = document.getElementById("globalSearchResultsDropdown");
+  if (dropdown) dropdown.style.display = "none";
+
+  if (type === 'customerOrder') {
+    switchAdminView('customerOrders');
+  } else if (type === 'supplierPo') {
+    switchAdminView('supplierHistory');
+  } else if (type === 'product') {
+    switchAdminView('productsAdmin');
+  } else if (type === 'supplier') {
+    switchAdminView('supplierReorder');
+    const ts = document.getElementById("tickedSupplierSelect");
+    if (ts) ts.value = id;
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("globalSmartSearchContainer");
+  const dropdown = document.getElementById("globalSearchResultsDropdown");
+  if (container && dropdown && !container.contains(e.target)) {
+    dropdown.style.display = "none";
+  }
+});
 
 function openPanelCustomizerModal() {
   if (!verifyOwnerPin("Panel Customizer kholne ke liye Owner PIN dalein:")) return;

@@ -37,8 +37,8 @@ let staffPermissions = JSON.parse(localStorage.getItem("appStaffPermissions")) |
   nav_customerOrders: true,
   nav_supplierHistory: true,
   nav_supplierReorder: true,
-  nav_productsAdmin: false, // Hidden for staff by default
-  nav_salesReport: false,   // Hidden for staff by default
+  nav_productsAdmin: false,
+  nav_salesReport: false,
   contactPills: true,
   pdfReport: true,
   googleSync: true,
@@ -46,7 +46,8 @@ let staffPermissions = JSON.parse(localStorage.getItem("appStaffPermissions")) |
   editItems: false,
   cancelOrder: false,
   changeDate: false,
-  deleteOrder: false
+  deleteOrder: false,
+  globalSearch: true
 };
 
 function getCurrentRole() {
@@ -205,7 +206,8 @@ let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConf
   nav_supplierHistory: true,
   nav_supplierReorder: true,
   nav_productsAdmin: true,
-  nav_salesReport: true
+  nav_salesReport: true,
+  globalSearch: true
 };
 
 function updatePanelCustomizer(key, isChecked) {
