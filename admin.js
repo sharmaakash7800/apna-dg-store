@@ -1061,6 +1061,8 @@ function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(
 async function submitTickedReorder(sourceModal = false) {
   const supplierSelect = sourceModal ? document.getElementById("modalTickedSupplierSelect") : document.getElementById("tickedSupplierSelect");
   const supplier = supplierSelect ? supplierSelect.value : "";
+  const buyerInput = sourceModal ? document.getElementById("modalTickedBuyerInput") : document.getElementById("poBuyerInput");
+  const buyerName = buyerInput ? buyerInput.value.trim() || "Akash sharma" : "Akash sharma";
   const keys = Object.keys(tickedProductsMap);
 
   if (!supplier) return alert("Supplier select karein.");
@@ -1101,8 +1103,11 @@ async function submitTickedReorder(sourceModal = false) {
         name: i.product_name,
         quantity: q,
         costPack: cp > 0 ? cp.toFixed(2) : "0",
+        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
         supplier: supplier,
-        person: supplier,
+        location: supplier,
+        person: buyerName,
+        buyer: buyerName,
         price: (q * cp).toFixed(2)
       };
     });
@@ -1113,6 +1118,7 @@ async function submitTickedReorder(sourceModal = false) {
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
+      buyer: buyerName,
       itemsArray: sheetItems,
       totalAmount: totalAmount,
       status: "pending",
@@ -1600,6 +1606,9 @@ function renderPoCart() {
 async function submitPurchaseOrder() {
   const select = document.getElementById("poSupplierSelect");
   const supplier = select ? select.value : "";
+  const buyerInput = document.getElementById("poBuyerInput");
+  const buyerName = buyerInput ? buyerInput.value.trim() || "Akash sharma" : "Akash sharma";
+
   if (!supplier) return alert("Supplier select karein.");
   if (!poCart.length) return alert("Order me kam se kam 1 item add karein.");
 
@@ -1633,8 +1642,8 @@ async function submitPurchaseOrder() {
         cost_pack: cp > 0 ? cp.toFixed(2) : "0",
         supplier: supplier,
         location: supplier,
-        person: supplier,
-        buyer: supplier,
+        person: buyerName,
+        buyer: buyerName,
         price: (q * cp).toFixed(2)
       };
     });
@@ -1645,6 +1654,7 @@ async function submitPurchaseOrder() {
       orderId: poNumber,
       orderType: "Supplier Reorder",
       partyName: supplier,
+      buyer: buyerName,
       itemsArray: sheetItems,
       totalAmount: totalAmount,
       status: "pending",

@@ -322,6 +322,12 @@
             <div id="selectedSupplierActions" style="margin-top:6px; display:none;"></div>
           </div>
 
+          <div>
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person Name:</label>
+            <input type="text" id="poBuyerInput" value="Akash sharma" placeholder="Buyer Ka Naam..."
+              style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+          </div>
+
           <div class="search-select-wrapper">
             <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Product Search Karein:</label>
             <input type="text" id="poProductSearch" placeholder="🔍 Product Name or SKU..." autocomplete="off" />
@@ -960,6 +966,12 @@
             style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border);"></select>
         </div>
 
+        <div style="margin-bottom:12px;">
+          <label style="font-size:11px; font-weight:700; color:var(--text-muted);">Buyer / Purchase Person Name:</label>
+          <input type="text" id="modalTickedBuyerInput" value="Akash sharma" placeholder="Buyer Ka Naam..."
+            style="width:100%; margin-top:4px; font-size:12px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+        </div>
+
         <div style="display:flex; gap:8px;">
           <button class="btn-danger" style="flex:1; padding:10px;"
             onclick="clearAllSelection(); closeTickedCartModal();">Clear All</button>
@@ -971,7 +983,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=8.0"></script>
+  <script src="admin.js?v=9.0"></script>
 </body>
 
 </html>
