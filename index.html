@@ -24,31 +24,56 @@
     }
   </script>
 
+  <!-- GOOGLE FONTS FOR ULTRA-PREMIUM STORE DESIGN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --navy: #0f172a;
-      --navy-2: #1e293b;
+      --navy: #4f46e5;
+      --navy-2: #3730a3;
       --blue: #2563eb;
       --blue-dark: #1d4ed8;
       --yellow: #f59e0b;
-      --green: #16a34a;
+      --green: #10b981;
       --bg: #f8fafc;
       --surface: #ffffff;
+      --card-bg: #ffffff;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
-      --danger: #dc2626;
+      --danger: #ef4444;
       --shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+      --header-bg: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+    }
+
+    body.dark-mode {
+      --bg: #0b0f19;
+      --surface: #151c2c;
+      --card-bg: #1e293b;
+      --border: #2d3748;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --navy: #818cf8;
+      --navy-2: #6366f1;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      --header-bg: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text);
       background: var(--bg);
       -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1, h2, h3, h4, .brand h1, .catalog-heading h2 {
+      font-family: 'Outfit', sans-serif;
     }
 
     button, input, select, textarea { font: inherit; }
@@ -58,10 +83,10 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: var(--navy);
+      background: var(--header-bg);
       color: white;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-      padding: 10px 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      padding: 12px 0;
     }
 
     .header-container {
@@ -666,6 +691,10 @@
         </div>
 
         <div class="header-actions">
+          <button id="themeToggleBtn" class="account-button" style="padding:6px 10px; font-size:16px; border-radius:10px; background:rgba(255,255,255,0.15);" type="button" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">
+            <span id="themeToggleIcon">🌙</span>
+          </button>
+
           <button id="accountToggleBtn" class="account-button" type="button">
             Hello, Customer
             <strong>Your Orders</strong>
@@ -869,6 +898,24 @@
 
     const MY_UPI_ID = "board.black@ibl";
     const MY_STORE_NAME = "Apna DG Store";
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle('dark-mode');
+      localStorage.setItem('apnaStoreTheme', isDark ? 'dark' : 'light');
+      const icon = document.getElementById('themeToggleIcon');
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    }
+
+    (function initTheme() {
+      const savedTheme = localStorage.getItem('apnaStoreTheme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark-mode');
+        window.addEventListener('DOMContentLoaded', () => {
+          const icon = document.getElementById('themeToggleIcon');
+          if (icon) icon.textContent = '☀️';
+        });
+      }
+    })();
 
     let products = [];
     let cart = [];
