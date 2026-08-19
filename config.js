@@ -4,7 +4,7 @@
 
 // NEW GOOGLE APPS SCRIPT DEPLOYED URL
 const DEFAULT_SHEET_URL =
-  "https://script.google.com/macros/s/AKfycbyQ5OJdBIJLWGXzEefiUA26Cdm98RMfZLJbR0NasykpLEWOvDweOUZJ5vF9xTP46eMXbA/exec";
+  "https://script.google.com/macros/s/AKfycbyRsmPPuC_dAAGyjM_T6SvjMSUy_43PCI7ezZy4A2NW00quQQACkscqAbmqFf6EPA17wQ/exec";
 
 // Google Sheet Script URL
 let googleSheetScriptUrl = DEFAULT_SHEET_URL;
