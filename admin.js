@@ -68,7 +68,7 @@ function setRole(role) {
   currentRole = role;
   localStorage.setItem("appUserRole", role);
   updateRoleUI();
-  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  applyPanelCustomizer();
   if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
 }
 
@@ -191,7 +191,7 @@ function saveStaffAccountSettings() {
   }
   localStorage.setItem("appStaffPermissions", JSON.stringify(staffPermissions));
   closeStaffManagerModal();
-  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  applyPanelCustomizer();
   if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
   alert("✅ Staff Credentials aur Permissions update ho gayi!");
 }
@@ -199,7 +199,7 @@ function saveStaffAccountSettings() {
 function updatePanelCustomizer(key, isChecked) {
   panelCustomizerConfig[key] = isChecked;
   localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
-  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  applyPanelCustomizer();
   if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
 }
 
@@ -384,6 +384,139 @@ function toggleDropdown(btn) {
   menu?.classList.toggle('show');
 }
 document.addEventListener('click', e => !e.target.closest('.dropdown-wrapper') && document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')));
+
+/* ==========================================
+   CUSTOMER ORDERS HANDLING (RESTORED & FIXED)
+   ========================================== */
+
+function setCustOrdersDateFilter(type) {
+  const fromEl = document.getElementById("custFromDate");
+  const toEl = document.getElementById("custToDate");
+  if (!fromEl || !toEl) return;
+  const { from, to } = getDateRange(type);
+  fromEl.value = from.toISOString().split("T")[0];
+  toEl.value = to.toISOString().split("T")[0];
+  loadCustomerOrders();
+}
+
+async function loadCustomerOrders() {
+  const container = document.getElementById("customerOrdersContainer");
+  if (!container) return;
+  container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Orders load ho rahe hain...</div>";
+
+  const fromEl = document.getElementById("custFromDate");
+  const toEl = document.getElementById("custToDate");
+  if (fromEl && !fromEl.value) {
+    const { from, to } = getDateRange('week');
+    fromEl.value = from.toISOString().split("T")[0];
+    toEl.value = to.toISOString().split("T")[0];
+  }
+
+  try {
+    let query = db.from("orders").select("*").order("created_at", { ascending: false });
+    if (fromEl?.value) query = query.gte("created_at", fromEl.value + "T00:00:00");
+    if (toEl?.value) query = query.lte("created_at", toEl.value + "T23:59:59");
+
+    const { data: orders, error } = await query;
+    if (error) throw error;
+
+    const filtered = (orders || []).filter(ord => {
+      const [cName, mob, addr] = [String(ord.customer_name || '').toLowerCase(), String(ord.mobile || ''), String(ord.address || '').toLowerCase()];
+      return !(cName.includes('counter') || mob === '0000000000' || addr.includes('[mode:'));
+    });
+
+    if (!filtered.length) {
+      container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Is date range me koi customer order nahi mila.</div>";
+      return;
+    }
+
+    const { data: allItems } = await db.from("order_items").select("*").in("order_id", filtered.map(o => o.id));
+    const itemsMap = {};
+    (allItems || []).forEach(it => { (itemsMap[String(it.order_id)] ||= []).push(it); });
+
+    container.innerHTML = filtered.map(ord => {
+      const isOwn = isOwner();
+      const items = itemsMap[String(ord.id)] || [];
+      let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+      if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) totalAmount = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
+
+      const statusLower = String(ord.status || 'pending').toLowerCase();
+      const badgeClass = statusLower === 'completed' ? 'badge-received' : ((statusLower === 'processing' || statusLower === 'under process') ? 'badge-processing' : (statusLower === 'cancelled' ? 'badge-cancelled' : 'badge-pending'));
+
+      return `
+        <div class="order-card">
+          <div class="order-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="flex:1; min-width:0; padding-right:4px;">
+              <strong style="font-size:13px; display:block; word-break:break-word;">ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
+              <div class="dropdown-wrapper">
+                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+                <div class="dropdown-menu">
+                  ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'processing')">🔄 Process Order</button>` : ''}<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'completed')">✅ Complete</button><button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus('${ord.id}', 'cancelled')">❌ Cancel</button>` : ''}
+                  <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
+                  ${isOwn ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deleteCustomerOrder('${ord.id}')">🗑 Delete Order from DB</button>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-bottom:6px;">📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${formatTime(ord.created_at)}<br>📍 ${ord.address || 'N/A'}</div>
+          <div style="margin-top:6px;">${items.length ? items.map(it => `<div class="item-row"><span>• ${it.product_name} (×${it.quantity || 1})</span><strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong></div>`).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}</div>
+          <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
+            <div style="font-weight:bold; font-size:14px; color:var(--success);">Total: ₹${totalAmount.toFixed(2)}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+  } catch (err) {
+    container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
+  }
+}
+
+async function updateOrderStatus(id, newStatus) {
+  const confirmMsg = newStatus === 'processing' ? "Order ko 'Under Process' mark karein?" : (newStatus === 'completed' ? "Order ko 'Completed' mark karein?" : "Kya aap is order ko CANCEL karna chahte hain?");
+  if (!confirm(confirmMsg)) return;
+
+  const updateData = { status: newStatus, updated_at: new Date().toISOString() };
+  if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
+  if (newStatus === 'cancelled') updateData.cancelled_at = new Date().toISOString();
+
+  const { error } = await db.from("orders").update(updateData).eq("id", id);
+  if (error) alert("Error: " + error.message);
+  else {
+    alert("Order Status update ho gaya!");
+    loadCustomerOrders();
+    try {
+      const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
+      const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
+      if (ord) {
+        const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
+        const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        syncOrderToGoogleSheet({
+          targetSheet: "Admin Orders Log",
+          isCustomerOrder: true,
+          orderId: ord.order_id || ('#' + ord.id),
+          orderType: "Customer Order",
+          partyName: ord.customer_name || 'Customer',
+          items: itemNames,
+          quantity: (items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
+          totalAmount: totalAmount,
+          status: newStatus,
+          notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
+        });
+      }
+    } catch (e) { console.error("Sheet sync error:", e); }
+  }
+}
+
+async function deleteCustomerOrder(id) {
+  if (!confirm("Kya aap is Customer Order ko Database se Delete karna chahte hain?")) return;
+  await db.from("order_items").delete().eq("order_id", id);
+  const { error } = await db.from("orders").delete().eq("id", id);
+  if (error) alert("Delete Error: " + error.message);
+  else { alert("Customer Order Remove ho gaya!"); loadCustomerOrders(); }
+}
 
 /* ==========================================
    REORDERS & RECEIVE STOCK MODULE
@@ -630,7 +763,6 @@ async function receiveStock(poId) {
   let cleanDate = inputDate.trim();
   let receivedTimestamp;
 
-  // Agar aaj ki date hai toh LIVE TIME save hoga, varna manual date
   if (!cleanDate || cleanDate === todayStr) {
     receivedTimestamp = new Date().toISOString();
   } else {
@@ -725,7 +857,7 @@ async function syncPoToSheet(poId) {
     return {
       indentNo: 101 + idx,
       sku: skuCode,
-      name: i.product_name,
+      name: i.product_name || 'Item',
       quantity: q,
       costPack: cp > 0 ? cp.toFixed(2) : "0",
       cost_pack: cp > 0 ? cp.toFixed(2) : "0",
@@ -760,7 +892,10 @@ async function loadPurchaseOrders() {
     db.from("purchase_order_items").select("*")
   ]);
 
-  if (error || !pos?.length) return container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
+  if (error || !pos?.length) {
+    container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
+    return;
+  }
 
   container.innerHTML = pos.map(po => {
     let items = [];
@@ -993,7 +1128,7 @@ function renderEditPoCart() {
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <strong style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
+          <strong id="editItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
           <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
         </div>
       </div>`;
@@ -1038,136 +1173,6 @@ async function saveUpdatedPurchaseOrder() {
 
   closeEditPoModal();
   loadPurchaseOrders();
-}
-
-/* ==========================================
-   CUSTOMER ORDERS HANDLING
-   ========================================== */
-
-function setCustOrdersDateFilter(type) {
-  const fromEl = document.getElementById("custFromDate");
-  const toEl = document.getElementById("custToDate");
-  if (!fromEl || !toEl) return;
-  const { from, to } = getDateRange(type);
-  fromEl.value = from.toISOString().split("T")[0];
-  toEl.value = to.toISOString().split("T")[0];
-  loadCustomerOrders();
-}
-
-async function loadCustomerOrders() {
-  const container = document.getElementById("customerOrdersContainer");
-  if (!container) return;
-  container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Orders load ho rahe hain...</div>";
-
-  const fromEl = document.getElementById("custFromDate");
-  const toEl = document.getElementById("custToDate");
-  if (fromEl && !fromEl.value) {
-    const { from, to } = getDateRange('week');
-    fromEl.value = from.toISOString().split("T")[0];
-    toEl.value = to.toISOString().split("T")[0];
-  }
-
-  try {
-    let query = db.from("orders").select("*").order("created_at", { ascending: false });
-    if (fromEl?.value) query = query.gte("created_at", fromEl.value + "T00:00:00");
-    if (toEl?.value) query = query.lte("created_at", toEl.value + "T23:59:59");
-
-    const { data: orders, error } = await query;
-    if (error) throw error;
-
-    const filtered = (orders || []).filter(ord => {
-      const [cName, mob, addr] = [String(ord.customer_name || '').toLowerCase(), String(ord.mobile || ''), String(ord.address || '').toLowerCase()];
-      return !(cName.includes('counter') || mob === '0000000000' || addr.includes('[mode:'));
-    });
-
-    if (!filtered.length) return container.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Is date range me koi customer order nahi mila.</div>";
-
-    const { data: allItems } = await db.from("order_items").select("*").in("order_id", filtered.map(o => o.id));
-    const itemsMap = {};
-    (allItems || []).forEach(it => { (itemsMap[String(it.order_id)] ||= []).push(it); });
-
-    container.innerHTML = filtered.map(ord => {
-      const isOwn = isOwner();
-      const items = itemsMap[String(ord.id)] || [];
-      let totalAmount = items.reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-      if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) totalAmount = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
-
-      const statusLower = String(ord.status || 'pending').toLowerCase();
-      const badgeClass = statusLower === 'completed' ? 'badge-received' : ((statusLower === 'processing' || statusLower === 'under process') ? 'badge-processing' : (statusLower === 'cancelled' ? 'badge-cancelled' : 'badge-pending'));
-
-      return `
-        <div class="order-card">
-          <div class="order-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div style="flex:1; min-width:0; padding-right:4px;">
-              <strong style="font-size:13px; display:block; word-break:break-word;">ID: ${ord.order_id || ('#' + ord.id)} (${ord.customer_name || 'Customer'})</strong>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-              <span class="badge ${badgeClass}">${ord.status || 'PENDING'}</span>
-              <div class="dropdown-wrapper">
-                <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-                <div class="dropdown-menu">
-                  ${statusLower !== 'completed' && statusLower !== 'cancelled' ? `${statusLower !== 'processing' ? `<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'processing')">🔄 Process Order</button>` : ''}<button class="dropdown-item" onclick="updateOrderStatus('${ord.id}', 'completed')">✅ Complete</button><button class="dropdown-item" style="color:var(--danger);" onclick="updateOrderStatus('${ord.id}', 'cancelled')">❌ Cancel</button>` : ''}
-                  <button class="dropdown-item" onclick="generateCustomerBillPdf('${ord.id}')">📄 Download Bill PDF</button>
-                  ${isOwn ? `<button class="dropdown-item" style="color:var(--danger);" onclick="deleteCustomerOrder('${ord.id}')">🗑 Delete Order from DB</button>` : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-bottom:6px;">📞 <a href="tel:${ord.mobile}">${ord.mobile}</a> | 📅 Created: ${formatTime(ord.created_at)}<br>📍 ${ord.address || 'N/A'}</div>
-          <div style="margin-top:6px;">${items.length ? items.map(it => `<div class="item-row"><span>• ${it.product_name} (×${it.quantity || 1})</span><strong>₹${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</strong></div>`).join('') : '<div style="font-size:11px; color:var(--text-muted);">Counter Sales Entry</div>'}</div>
-          <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
-            <div style="font-weight:bold; font-size:14px; color:var(--success);">Total: ₹${totalAmount.toFixed(2)}</div>
-          </div>
-        </div>`;
-    }).join("");
-
-  } catch (err) {
-    container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:15px;">Error: ${err.message}</div>`;
-  }
-}
-
-async function updateOrderStatus(id, newStatus) {
-  const confirmMsg = newStatus === 'processing' ? "Order ko 'Under Process' mark karein?" : (newStatus === 'completed' ? "Order ko 'Completed' mark karein?" : "Kya aap is order ko CANCEL karna chahte hain?");
-  if (!confirm(confirmMsg)) return;
-
-  const updateData = { status: newStatus, updated_at: new Date().toISOString() };
-  if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
-  if (newStatus === 'cancelled') updateData.cancelled_at = new Date().toISOString();
-
-  const { error } = await db.from("orders").update(updateData).eq("id", id);
-  if (error) alert("Error: " + error.message);
-  else {
-    alert("Order Status update ho gaya!");
-    loadCustomerOrders();
-    try {
-      const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
-      const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
-      if (ord) {
-        const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
-        const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-        syncOrderToGoogleSheet({
-          targetSheet: "Admin Orders Log",
-          isCustomerOrder: true,
-          orderId: ord.order_id || ('#' + ord.id),
-          orderType: "Customer Order",
-          partyName: ord.customer_name || 'Customer',
-          items: itemNames,
-          quantity: (items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
-          totalAmount: totalAmount,
-          status: newStatus,
-          notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
-        });
-      }
-    } catch (e) { console.error("Sheet sync error:", e); }
-  }
-}
-
-async function deleteCustomerOrder(id) {
-  if (!confirm("Kya aap is Customer Order ko Database se Delete karna chahte hain?")) return;
-  await db.from("order_items").delete().eq("order_id", id);
-  const { error } = await db.from("orders").delete().eq("id", id);
-  if (error) alert("Delete Error: " + error.message);
-  else { alert("Customer Order Remove ho gaya!"); loadCustomerOrders(); }
 }
 
 /* ==========================================
@@ -1395,6 +1400,94 @@ function renderTickedProductsList() {
 const openTickedCartModal = async () => { await loadSuppliers(); const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "flex"; };
 const closeTickedCartModal = () => { const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "none"; };
 function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(); renderProductsTable(); }
+
+/* ==========================================
+   REPORTS & COUNTER COLLECTIONS (RESTORED)
+   ========================================= */
+
+function setDateFilter(type) {
+  const { from, to } = getDateRange(type);
+  document.getElementById("reportFromDate") && (document.getElementById("reportFromDate").value = from.toISOString().split('T')[0]);
+  document.getElementById("reportToDate") && (document.getElementById("reportToDate").value = to.toISOString().split('T')[0]);
+  calculateReports();
+}
+
+async function calculateReports() {
+  const fromVal = document.getElementById("reportFromDate")?.value;
+  const toVal = document.getElementById("reportToDate")?.value;
+  if (!fromVal || !toVal) return;
+
+  const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
+  const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
+
+  const [{ data: sales }, { data: offlineData }] = await Promise.all([
+    db.from("orders").select("*, order_items(*)").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()),
+    db.from("Collections").select("*").gte("collection_date", fromVal).lte("collection_date", toVal)
+  ]);
+
+  let offlineTotal = 0, onlineTotal = 0, validOrderCount = 0;
+
+  (sales || []).forEach(ord => {
+    if (ord.status !== 'cancelled') {
+      if (String(ord.order_id || '').startsWith("ORD-CNT-") && offlineData?.length) return;
+      validOrderCount++;
+      let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+      if (itemsTotal === 0 && String(ord.address || '').includes("Amt: ₹")) itemsTotal = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
+      const pMode = `${ord.customer_name || ''} ${ord.address || ''}`.toLowerCase();
+      (pMode.includes('[mode:online]') || pMode.includes('online')) ? onlineTotal += itemsTotal : offlineTotal += itemsTotal;
+    }
+  });
+
+  (offlineData || []).forEach(item => {
+    validOrderCount++;
+    const amt = Number(item.amount || 0);
+    String(item.note || '').toLowerCase().includes('[mode:online]') ? onlineTotal += amt : offlineTotal += amt;
+  });
+
+  const grandTotal = offlineTotal + onlineTotal;
+  document.getElementById("summaryOffline") && (document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2));
+  document.getElementById("summaryOnline") && (document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2));
+  document.getElementById("summaryTotalSales") && (document.getElementById("summaryTotalSales").textContent = "₹" + grandTotal.toFixed(2));
+}
+
+async function loadCounterCollectionHistory() {
+  const container = document.getElementById("counterCollectionHistoryContainer");
+  if (!container) return;
+  try {
+    const { data } = await db.from("Collections").select("*").order("id", { ascending: false }).limit(30);
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Koi Collection Entry nahi hai.</div>`;
+      return;
+    }
+    const rowsHTML = data.map(item => `
+      <tr>
+        <td>${item.collection_date || '-'}</td>
+        <td><strong>₹${Number(item.amount || 0).toFixed(2)}</strong></td>
+        <td>${item.note || 'Counter Collection'}</td>
+      </tr>
+    `).join("");
+    container.innerHTML = `<table class="custom-table" style="font-size:12px; margin:0;"><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody>${rowsHTML}</tbody></table>`;
+  } catch (e) {
+    container.innerHTML = `<div style="text-align:center; color:var(--danger); font-size:12px;">Error loading history</div>`;
+  }
+}
+
+async function calculateWeeklyReinvestmentComparison() {
+  const container = document.getElementById("reinvestmentComparisonContainer");
+  if (!container) return;
+  let [fromVal, toVal] = [document.getElementById("reinvestmentFromDate")?.value, document.getElementById("reinvestmentToDate")?.value];
+  if (!fromVal || !toVal) {
+    const { from, to } = getDateRange('week');
+    fromVal = from.toISOString().split('T')[0]; toVal = to.toISOString().split('T')[0];
+  }
+  container.innerHTML = "<div style='text-align:center; padding:10px; font-size:11px; color:var(--text-muted);'>Comparison updated.</div>";
+}
+
+function setSupplierReportDateFilter(type) {
+  const { from, to } = getDateRange(type);
+  document.getElementById("supplierReportFromDate") && (document.getElementById("supplierReportFromDate").value = from.toISOString().split('T')[0]);
+  document.getElementById("supplierReportToDate") && (document.getElementById("supplierReportToDate").value = to.toISOString().split('T')[0]);
+}
 
 /* ==========================================
    GLOBAL SEARCH & INITIALIZATION
