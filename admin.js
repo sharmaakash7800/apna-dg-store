@@ -422,42 +422,53 @@ const formatTime = dtStr => dtStr ? new Date(dtStr).toLocaleString("hi-IN", { da
 
 /* REPORTS & ANALYTICS */
 async function saveOfflineCashEntry() {
-  const [fromDateVal, toDateVal, modeVal, amountVal, noteVal] = [
-    document.getElementById("manualCashFromDate").value,
-    document.getElementById("manualCashToDate").value,
-    document.getElementById("manualCashMode").value,
-    Number(document.getElementById("manualCashAmount").value),
-    document.getElementById("manualCashNote").value || "Counter Sales"
-  ];
-  if (!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
+  const fromDateVal = document.getElementById("manualCashFromDate")?.value;
+  const toDateVal = document.getElementById("manualCashToDate")?.value;
+  const modeVal = document.getElementById("manualCashMode")?.value || "offline";
+  const amountVal = Number(document.getElementById("manualCashAmount")?.value || 0);
+  const noteVal = document.getElementById("manualCashNote")?.value.trim() || "Counter Sales";
+
+  if (!fromDateVal || !toDateVal || amountVal <= 0) {
+    return alert("Sahi Dates aur Amount dalein.");
+  }
 
   const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
-  const { error: collErr } = await db.from("Collections").insert([{ collection_date: toDateVal, amount: amountVal, note: remarkText }]);
+  
+  const { error: collErr } = await db.from("Collections").insert([{ 
+    collection_date: toDateVal, 
+    amount: amountVal, 
+    note: remarkText 
+  }]);
 
-  if (collErr) alert("Error saving entry: " + collErr.message);
-  else {
-    syncOrderToGoogleSheet({
-      targetSheet: "Collection",
-      isCollection: true,
-      orderId: "COLL-" + Date.now(),
-      orderType: "Counter Sale / Collection",
-      mode: modeVal === 'online' ? 'Online' : 'Cash (Offline)',
-      partyName: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
-      items: noteVal,
-      quantity: 1,
-      totalAmount: amountVal,
-      amount: amountVal,
-      fromDate: fromDateVal,
-      toDate: toDateVal,
-      status: "completed",
-      notes: `Period: ${fromDateVal} to ${toDateVal}`
-    });
-    alert("Collection Entry Successfully Saved!");
-    document.getElementById("manualCashAmount").value = "";
-    document.getElementById("manualCashNote").value = "";
-    loadCounterCollectionHistory();
-    calculateReports();
+  if (collErr) {
+    return alert("Error saving entry in DB: " + collErr.message);
   }
+
+  const now = new Date();
+  const collPayload = {
+    targetSheet: "Collection",
+    isCollection: true,
+    orderId: "COLL-" + Date.now(),
+    orderType: "Counter Sale / Collection",
+    mode: modeVal === 'online' ? 'Online' : 'Cash (Offline)',
+    partyName: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
+    items: noteVal,
+    totalAmount: amountVal,
+    amount: amountVal,
+    fromDate: fromDateVal,
+    toDate: toDateVal,
+    status: "completed",
+    receivedAt: now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    notes: `Period: ${fromDateVal} to ${toDateVal}`
+  };
+
+  syncOrderToGoogleSheet(collPayload);
+
+  alert("✅ Counter Collection Entry Save ho gayi aur Google Sheet me bhej di gayi!");
+  document.getElementById("manualCashAmount").value = "";
+  document.getElementById("manualCashNote").value = "";
+  loadCounterCollectionHistory();
+  calculateReports();
 }
 
 function toggleSalesReportSection() {
@@ -1756,7 +1767,6 @@ function applyPanelCustomizer() {
     }
   });
 
-  // Global Header Search Bar Visibility
   const globalSearchContainer = document.getElementById("globalSmartSearchContainer");
   if (globalSearchContainer) {
     globalSearchContainer.style.setProperty("display", config.globalSearch !== false ? "block" : "none", "important");
@@ -2284,7 +2294,6 @@ async function receiveStock(poId) {
     cleanDate = todayStr;
   }
 
-  // Actual Current Time ke sath ISO Timestamp generate karna
   const now = new Date();
   const [y, m, d] = cleanDate.split('-').map(Number);
   const actualReceivedDate = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
@@ -2297,7 +2306,6 @@ async function receiveStock(poId) {
   const { data: allItems } = await db.from("purchase_order_items").select("*");
   const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
 
-  // 1. Update Product Stock and Cost Price in DB
   if (items?.length) {
     for (let item of items) {
       if (!item.product_id) continue;
@@ -2311,13 +2319,11 @@ async function receiveStock(poId) {
     }
   }
 
-  // 2. Mark PO as Received in Database
   await db.from("purchase_orders").update({
     status: "received",
     received_at: receivedTimestamp
   }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
 
-  // 3. AUTOMATIC SYNC TO GOOGLE SHEET
   await ensureProductsLoaded();
   const totalBill = po?.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
   const buyerName = po?.buyer || "Akash sharma";
@@ -2343,7 +2349,6 @@ async function receiveStock(poId) {
     };
   });
 
-  // Google Sheet Sync Engine Trigger (Timestamp with actual received time)
   await syncOrderToGoogleSheet({
     targetSheet: "Admin Orders Indent",
     isPO: true,
@@ -2459,11 +2464,7 @@ async function updateOrderStatus(id, newStatus) {
   const confirmMsg = newStatus === 'processing' ? "Kya order ko 'Under Process' mark karein?" : (newStatus === 'completed' ? "Kya order ko 'Completed' mark karein?" : "Kya aap is order ko CANCEL karna chahte hain?");
   if (!confirm(confirmMsg)) return;
 
-  const updateData = { status: newStatus, updated_at: new Date().toISOString() };
-  if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
-  if (newStatus === 'cancelled') updateData.cancelled_at = new Date().toISOString();
-
-  const { error } = await db.from("orders").update(updateData).eq("id", id);
+  const { error } = await db.from("orders").update({ status: newStatus }).eq("id", id);
   if (error) alert("Error: " + error.message);
   else {
     alert("Order Status update ho gaya!");
