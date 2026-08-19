@@ -2,7 +2,7 @@
    APNA DG STORE - CONFIG & ROLE AUTH MODULE
    ========================================== */
 
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPS3892GpqKPPoL3gkHLK2BnMtXrW2j9ALCBqblf82uLi9rslEVh2eaGOMwi9UT6-R7Q/exec";
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbzxXHv-f5UCukBgie8lOrBhrAJ37V5BJBeS15bDDBleFs0oHrOYZnemsoQUPfs13AgTlA/exec";
 
 // Google Sheet Script URL
 let googleSheetScriptUrl = localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
