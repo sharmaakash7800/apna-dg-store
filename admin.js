@@ -5,273 +5,149 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedProductsMap = {};
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
-/* GOOGLE SHEETS AUTOMATIC SYNC LOGIC (MANAGED BY CONFIG.JS & SYNC-ENGINE.JS) */
+/* ======================================================
+   GOOGLE SHEETS AUTOMATIC SYNC LOGIC (STRICT STOCK RECEIVED)
+   ====================================================== */
 
 function copyAppsScriptCode() {
-  const code = [
-    "function doPost(e) { return handleRequest(e); }",
-    "function doGet(e) { return handleRequest(e); }",
-    "",
-    "function handleRequest(e) {",
-    "  try {",
-    "    var data = null;",
-    "    if (e && e.postData && e.postData.contents) {",
-    "      try { data = JSON.parse(e.postData.contents); } catch (err1) {}",
-    "    }",
-    "    if (!data && e && e.parameter && e.parameter.payload) {",
-    "      try { data = JSON.parse(e.parameter.payload); } catch (err2) {}",
-    "    }",
-    "    if (!data && e && e.parameter) {",
-    "      data = e.parameter;",
-    "    }",
-    "    if (!data) {",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'No data received' })).setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    if (data.record && typeof data.record === 'object') {",
-    "      data = data.record;",
-    "    }",
-    "",
-    "    var ss = SpreadsheetApp.getActiveSpreadsheet();",
-    "",
-    "    var orderIdStr = String(data.orderId || data.order_id || '');",
-    "    var partyStr = String(data.partyName || data.customer_name || '');",
-    "    var addressStr = String(data.address || data.notes || '');",
-    "    var typeStr = String(data.orderType || '');",
-    "    var itemsStr = String(data.items || data.note || '');",
-    "",
-    "    var isCollection = data.isCollection || ",
-    "                       data.targetSheet === 'Collection' ||",
-    "                       typeStr === 'Counter Sale / Collection' || ",
-    "                       orderIdStr.indexOf('ORD-CNT') !== -1 ||",
-    "                       orderIdStr.indexOf('COLL') !== -1 ||",
-    "                       partyStr.indexOf('Counter Cash Sale') !== -1 ||",
-    "                       partyStr.indexOf('Counter Online Sale') !== -1 ||",
-    "                       addressStr.indexOf('[MODE:') !== -1;",
-    "",
-    "    if (isCollection) {",
-    "      var collSheet = ss.getSheetByName('Collection');",
-    "      if (!collSheet) {",
-    "        collSheet = ss.insertSheet('Collection');",
-    "      }",
-    "      ",
-    "      if (collSheet.getLastRow() === 0) {",
-    "        collSheet.appendRow([",
-    "          'Timestamp', ",
-    "          'Unique Id', ",
-    "          'Mode (Cash/Online)', ",
-    "          'Person / Party', ",
-    "          'Item / Note', ",
-    "          'Amount (₹)', ",
-    "          'From Date', ",
-    "          'To Date', ",
-    "          'Status', ",
-    "          'Notes'",
-    "        ]);",
-    "        var headerRange = collSheet.getRange(1, 1, 1, 10);",
-    "        headerRange.setFontWeight('bold');",
-    "        headerRange.setBackground('#0d9488');",
-    "        headerRange.setFontColor('#ffffff');",
-    "      }",
-    "      ",
-    "      var timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
-    "      var collId = orderIdStr || ('COLL-' + Date.now());",
-    "      ",
-    "      var mode = data.mode || '';",
-    "      if (!mode) {",
-    "        if (partyStr.indexOf('Online') !== -1 || addressStr.indexOf('ONLINE') !== -1 || addressStr.indexOf('online') !== -1) {",
-    "          mode = 'Online';",
-    "        } else {",
-    "          mode = 'Cash (Offline)';",
-    "        }",
-    "      }",
-    "      ",
-    "      var party = partyStr || (mode === 'Online' ? 'Counter Online Sale' : 'Counter Cash Sale');",
-    "",
-    "      var itemNote = itemsStr;",
-    "      if (!itemNote && addressStr) {",
-    "        var matchNote = addressStr.match(/\\[MODE:[^\\]]+\\]\\s*([^|\\(]+)/);",
-    "        itemNote = matchNote ? matchNote[1].trim() : addressStr;",
-    "      }",
-    "      if (!itemNote) itemNote = 'Counter Collection';",
-    "",
-    "      var amount = Number(data.totalAmount || data.amount || 0);",
-    "      if (amount === 0 && addressStr) {",
-    "        var matchAmt = addressStr.match(/Amt:\\s*₹?\\s*([\\d.]+)/);",
-    "        if (matchAmt) amount = Number(matchAmt[1]);",
-    "      }",
-    "",
-    "      var fromDate = data.fromDate || '';",
-    "      var toDate = data.toDate || '';",
-    "      var status = data.status || 'completed';",
-    "      var notes = addressStr || data.notes || '';",
-    "",
-    "      collSheet.appendRow([",
-    "        timestamp,",
-    "        collId,",
-    "        mode,",
-    "        party,",
-    "        itemNote,",
-    "        amount,",
-    "        fromDate,",
-    "        toDate,",
-    "        status,",
-    "        notes",
-    "      ]);",
-    "",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Collection' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    if (data.action === 'delete') {",
-    "      var sheetsToClean = ['Admin Orders Indent', 'Admin Orders Log'];",
-    "      for (var s = 0; s < sheetsToClean.length; s++) {",
-    "        var sh = ss.getSheetByName(sheetsToClean[s]);",
-    "        if (sh) {",
-    "          var rows = sh.getDataRange().getValues();",
-    "          for (var r = rows.length - 1; r >= 1; r--) {",
-    "            if (String(rows[r][1]) === String(data.orderId)) {",
-    "              sh.deleteRow(r + 1);",
-    "            }",
-    "          }",
-    "        }",
-    "      }",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'delete' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    var isPO = !isCollection && (",
-    "      data.isPO || ",
-    "      data.targetSheet === 'Admin Orders Indent' ||",
-    "      typeStr === 'Supplier Reorder' || ",
-    "      typeStr === 'Supplier Stock Received' ||",
-    "      orderIdStr.indexOf('PO-') === 0",
-    "    );",
-    "",
-    "    if (isPO) {",
-    "      var poSheet = ss.getSheetByName('Admin Orders Indent');",
-    "      if (!poSheet) {",
-    "        poSheet = ss.insertSheet('Admin Orders Indent');",
-    "      }",
-    "",
-    "      if (poSheet.getLastRow() === 0) {",
-    "        poSheet.appendRow([",
-    "          'Timestamp',",
-    "          'Unique Id',",
-    "          'Indent Number',",
-    "          'SKU Code',",
-    "          'Item Name',",
-    "          'Quantity',",
-    "          'Cost/Pack',",
-    "          'Supplier',",
-    "          'Buyer(Perchase Person',",
-    "          'Price (₹)',",
-    "          'Total'",
-    "        ]);",
-    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 11);",
-    "        poHeaderRange.setFontWeight('bold');",
-    "        poHeaderRange.setBackground('#006666');",
-    "        poHeaderRange.setFontColor('#ffffff');",
-    "      }",
-    "",
-    "      var timestampStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
-    "",
-    "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
-    "        var totalItems = data.itemsArray.length;",
-    "        for (var i = 0; i < totalItems; i++) {",
-    "          var item = data.itemsArray[i];",
-    "          var cleanSku = String(item.sku || '0').replace(/^SKU-/i, '').trim();",
-    "          cleanSku = cleanSku.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
-    "          var isLastItem = (i === totalItems - 1);",
-    "          var billTotalVal = isLastItem ? (item.orderTotal || data.totalAmount || data.price || '') : '';",
-    "          poSheet.appendRow([",
-    "            timestampStr,",
-    "            orderIdStr,",
-    "            item.indentNo || (101 + i),",
-    "            cleanSku,",
-    "            item.name || '',",
-    "            item.quantity || 1,",
-    "            item.costPack || item.cost_pack || 0,",
-    "            item.supplier || partyStr || 'N/A',",
-    "            data.buyer || partyStr || item.person || 'Akash sharma',",
-    "            item.price || item.totalPrice || 0,",
-    "            billTotalVal",
-    "          ]);",
-    "        }",
-    "      } else {",
-    "        var cleanSkuSingle = String(data.sku || '0').replace(/^SKU-/i, '').trim();",
-    "        cleanSkuSingle = cleanSkuSingle.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
-    "        poSheet.appendRow([",
-    "          timestampStr,",
-    "          orderIdStr,",
-    "          101,",
-    "          cleanSkuSingle,",
-    "          itemsStr || 'Purchase Order Item',",
-    "          data.quantity || 1,",
-    "          data.costPack || data.cost_pack || 0,",
-    "          partyStr || 'N/A',",
-    "          data.buyer || partyStr || 'Akash sharma',",
-    "          data.totalAmount || data.price || 0,",
-    "          data.totalAmount || data.price || 0",
-    "        ]);",
-    "      }",
-    "",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Indent' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    var logSheet = ss.getSheetByName('Admin Orders Log');",
-    "    if (!logSheet) {",
-    "      logSheet = ss.insertSheet('Admin Orders Log');",
-    "    }",
-    "",
-    "    if (logSheet.getLastRow() === 0) {",
-    "      logSheet.appendRow([",
-    "        'Timestamp',",
-    "        'Order Code',",
-    "        'Customer Name',",
-    "        'Items',",
-    "        'Quantity',",
-    "        'Total Amount (₹)',",
-    "        'Status',",
-    "        'Notes / Contact'",
-    "      ]);",
-    "      var logHeader = logSheet.getRange(1, 1, 1, 8);",
-    "      logHeader.setFontWeight('bold');",
-    "      logHeader.setBackground('#1e293b');",
-    "      logHeader.setFontColor('#ffffff');",
-    "    }",
-    "",
-    "    var logTimestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
-    "    logSheet.appendRow([",
-    "      logTimestamp,",
-    "      orderIdStr,",
-    "      partyStr,",
-    "      itemsStr,",
-    "      data.quantity || 1,",
-    "      data.totalAmount || 0,",
-    "      data.status || 'pending',",
-    "      addressStr || data.notes || ''",
-    "    ]);",
-    "",
-    "    return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Log' }))",
-    "      .setMimeType(ContentService.MimeType.JSON);",
-    "",
-    "  } catch (err) {",
-    "    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))",
-    "      .setMimeType(ContentService.MimeType.JSON);",
-    "  }",
-    "}"
-  ].join("\n");
+  const code = `function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(15000);
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({ status: "error", message: "No data payload received" });
+    }
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // 1. DELETE ACTION
+    if (data.action === "delete") {
+      var sh = ss.getSheetByName("Admin Orders Indent");
+      if (sh) {
+        var rows = sh.getDataRange().getValues();
+        for (var r = rows.length - 1; r >= 1; r--) {
+          if (String(rows[r][1]).trim() === String(data.orderId).trim()) {
+            sh.deleteRow(r + 1);
+          }
+        }
+      }
+      return jsonResponse({ status: "success", action: "delete" });
+    }
+
+    // 2. COLLECTION SHEET SYNC
+    if (data.isCollection || data.targetSheet === "Collection") {
+      var collSheet = ss.getSheetByName("Collection") || ss.insertSheet("Collection");
+      if (collSheet.getLastRow() === 0) {
+        collSheet.appendRow(["Timestamp", "Unique Id", "Mode (Cash/Online)", "Person / Party", "Item / Note", "Amount (₹)", "From Date", "To Date", "Status", "Notes"]);
+      }
+      var timestamp = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd/MM/yyyy, HH:mm:ss");
+      collSheet.appendRow([
+        timestamp,
+        data.orderId || ('COLL-' + Date.now()),
+        data.mode || 'Cash (Offline)',
+        data.partyName || 'Counter Cash Sale',
+        data.items || 'Counter Collection',
+        Number(data.amount || data.totalAmount || 0),
+        data.fromDate || '',
+        data.toDate || '',
+        data.status || 'completed',
+        data.notes || ''
+      ]);
+      return jsonResponse({ status: "success", target: "Collection" });
+    }
+
+    // 3. STRICT STOCK RECEIVED GATEWAY (Admin Orders Indent)
+    var action = String(data.action || "").trim().toLowerCase().replace(/[\\s_-]+/g, "");
+    var status = String(data.status || "").trim().toLowerCase().replace(/[\\s_-]+/g, "");
+    var isStockReceived = (action === "stockreceived" || status === "received");
+
+    if (!isStockReceived) {
+      return jsonResponse({
+        status: "ignored",
+        message: "Google Sheet sync ONLY allowed when Stock is Received."
+      });
+    }
+
+    var sheet = ss.getSheetByName("Admin Orders Indent") || ss.getActiveSheet();
+    var poId = String(data.poId || data.orderId || "").trim();
+    var supplier = String(data.supplierName || data.partyName || data.supplier || "N/A").trim();
+    var buyer = String(data.buyer || "Akash sharma").trim();
+    var items = Array.isArray(data.itemsArray) ? data.itemsArray : (Array.isArray(data.items) ? data.items : []);
+    var grandTotal = data.totalAmount || data.grandTotal || "";
+    var timestampStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd/MM/yyyy, HH:mm:ss");
+    var sheetData = sheet.getDataRange().getValues();
+
+    items.forEach(function (item, index) {
+      var indentNo = item.indentNo || item.indentNumber || (101 + index);
+      var sku = String(item.sku || item.skuCode || "-").trim();
+      var itemName = String(item.name || item.itemName || item.product_name || "Item").trim();
+      var qty = Number(item.quantity || item.qty || 1);
+      var costPack = Number(item.costPack || item.cost_pack || item.purchase_price || item.price || 0);
+      var price = Number(item.price || item.totalPrice || (qty * costPack));
+      var totalColVal = (index === items.length - 1) ? (grandTotal || price) : "";
+
+      var existingRowIndex = -1;
+      for (var r = 1; r < sheetData.length; r++) {
+        var rowPoId = String(sheetData[r][1]).trim();
+        var rowItemName = String(sheetData[r][4]).trim();
+        var rowSku = String(sheetData[r][3]).trim();
+        if (rowPoId === poId && (rowItemName === itemName || (sku !== "-" && rowSku === sku))) {
+          existingRowIndex = r + 1;
+          break;
+        }
+      }
+
+      var rowValues = [
+        timestampStr, poId, indentNo, sku, itemName, qty, costPack, supplier, buyer, price, totalColVal
+      ];
+
+      if (existingRowIndex > 0) {
+        sheet.getRange(existingRowIndex, 1, 1, 11).setValues([rowValues]);
+      } else {
+        sheet.appendRow(rowValues);
+      }
+    });
+
+    return jsonResponse({ status: "success", message: "Stock Received synced successfully." });
+
+  } catch (err) {
+    return jsonResponse({ status: "error", message: err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}`;
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(code).then(() => {
-      alert("Google Apps Script code clipboard me copy ho gaya hai! Google Sheet me paste karke Naya Deployment karein.");
+      alert("Google Apps Script code clipboard me copy ho gaya hai! Google Sheet script editor me paste karke New Deployment karein.");
     }).catch(() => {
-      prompt("Kripya niche se Google Apps Script code copy karein:", code);
+      prompt("Google Apps Script code:", code);
     });
   } else {
-    prompt("Kripya niche se Google Apps Script code copy karein:", code);
+    prompt("Google Apps Script code:", code);
+  }
+}
+
+/* SYNC HELPER FUNCTION */
+async function syncOrderToGoogleSheet(payload) {
+  const syncUrl = localStorage.getItem("googleSheetScriptUrl") || (typeof DEFAULT_SHEET_URL !== "undefined" ? DEFAULT_SHEET_URL : "");
+  if (!syncUrl) return;
+
+  try {
+    const res = await fetch(syncUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    console.log("Sheet Sync Response:", result);
+    return result;
+  } catch (err) {
+    console.error("Sheet Sync Failed:", err);
   }
 }
 
@@ -404,7 +280,10 @@ function toggleCounterCollectionCard() {
   if (!card) return;
   const isHidden = card.style.display === "none" || !card.style.display;
   card.style.display = isHidden ? "block" : "none";
-  if (isHidden) document.getElementById("manualCashAmount")?.focus();
+  if (isHidden) {
+    document.getElementById("manualCashAmount")?.focus();
+    loadCounterCollectionHistory();
+  }
 }
 
 function toggleDropdown(btn) {
@@ -454,17 +333,6 @@ async function saveOfflineCashEntry() {
     document.getElementById("manualCashNote").value = "";
     loadCounterCollectionHistory();
     calculateReports();
-  }
-}
-
-function toggleCounterCollectionCard() {
-  const card = document.getElementById("counterCollectionCard");
-  if (!card) return;
-  const isHidden = card.style.display === "none" || !card.style.display;
-  card.style.display = isHidden ? "block" : "none";
-  if (isHidden) {
-    document.getElementById("manualCashAmount")?.focus();
-    loadCounterCollectionHistory();
   }
 }
 
@@ -1046,11 +914,10 @@ function togglePoRateCalc() { const box = document.getElementById("poRateCalcBox
 function updateTickedItem(id, field, value) { if (tickedProductsMap[id]) { tickedProductsMap[id][field] = Number(value) || 0; renderTickedProductsList(); } }
 function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(); renderProductsTable(); }
 
+/* CREATE REORDER (NO GOOGLE SHEET SYNC HERE) */
 async function submitTickedReorder(sourceModal = false) {
   const supplierSelect = sourceModal ? document.getElementById("modalTickedSupplierSelect") : document.getElementById("tickedSupplierSelect");
   const supplier = supplierSelect ? supplierSelect.value : "";
-  const buyerSelect = sourceModal ? document.getElementById("modalTickedBuyerSelect") : document.getElementById("poBuyerSelect");
-  const buyerName = buyerSelect ? buyerSelect.value || "Akash sharma" : "Akash sharma";
   const keys = Object.keys(tickedProductsMap);
 
   if (!supplier) return alert("Supplier select karein.");
@@ -1080,41 +947,7 @@ async function submitTickedReorder(sourceModal = false) {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
-    await ensureProductsLoaded();
-    const sheetItems = dbItems.map((i, idx) => {
-      const skuCode = getProductSku(i.product_id, i.product_name);
-      const q = Number(i.quantity || 1);
-      const cp = Number(i.purchase_price || 0);
-      const isLast = (idx === dbItems.length - 1);
-      return {
-        indentNo: 101 + idx,
-        sku: skuCode,
-        name: i.product_name,
-        quantity: q,
-        costPack: cp > 0 ? cp.toFixed(2) : "0",
-        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
-        supplier: supplier,
-        location: supplier,
-        person: buyerName,
-        buyer: buyerName,
-        price: (q * cp).toFixed(2),
-        orderTotal: isLast ? totalAmount.toFixed(2) : ""
-      };
-    });
-
-    syncOrderToGoogleSheet({
-      targetSheet: "Admin Orders Indent",
-      isPO: true,
-      orderId: poNumber,
-      orderType: "Supplier Reorder",
-      partyName: supplier,
-      buyer: buyerName,
-      itemsArray: sheetItems,
-      totalAmount: totalAmount,
-      status: "pending",
-      notes: "Ticked Reorder from Admin Dashboard"
-    });
-    alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+    alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
   }
 
   clearAllSelection();
@@ -1598,11 +1431,10 @@ function renderPoCart() {
   document.getElementById("poTotalBill") && (document.getElementById("poTotalBill").textContent = total.toFixed(2));
 }
 
+/* CREATE REORDER (NO GOOGLE SHEET SYNC HERE) */
 async function submitPurchaseOrder() {
   const select = document.getElementById("poSupplierSelect");
   const supplier = select ? select.value : "";
-  const buyerSelect = document.getElementById("poBuyerSelect");
-  const buyerName = buyerSelect ? buyerSelect.value || "Akash sharma" : "Akash sharma";
 
   if (!supplier) return alert("Supplier select karein.");
   if (!poCart.length) return alert("Order me kam se kam 1 item add karein.");
@@ -1623,41 +1455,7 @@ async function submitPurchaseOrder() {
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
-    await ensureProductsLoaded();
-    const sheetItems = items.map((i, idx) => {
-      const skuCode = getProductSku(i.product_id, i.product_name);
-      const q = Number(i.quantity || 1);
-      const cp = Number(i.purchase_price || 0);
-      const isLast = (idx === items.length - 1);
-      return {
-        indentNo: 101 + idx,
-        sku: skuCode,
-        name: i.product_name,
-        quantity: q,
-        costPack: cp > 0 ? cp.toFixed(2) : "0",
-        cost_pack: cp > 0 ? cp.toFixed(2) : "0",
-        supplier: supplier,
-        location: supplier,
-        person: buyerName,
-        buyer: buyerName,
-        price: (q * cp).toFixed(2),
-        orderTotal: isLast ? totalAmount.toFixed(2) : ""
-      };
-    });
-
-    syncOrderToGoogleSheet({
-      targetSheet: "Admin Orders Indent",
-      isPO: true,
-      orderId: poNumber,
-      orderType: "Supplier Reorder",
-      partyName: supplier,
-      buyer: buyerName,
-      itemsArray: sheetItems,
-      totalAmount: totalAmount,
-      status: "pending",
-      notes: "Direct Reorder from Admin Dashboard"
-    });
-    alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
+    alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
   }
 
   poCart = [];
@@ -1738,6 +1536,7 @@ async function changePoNumber(poId) {
     loadPurchaseOrders();
   }
 }
+
 function applyPanelCustomizer() {
   const isOwn = isOwner();
   const config = isOwn ? panelCustomizerConfig : staffPermissions;
@@ -1763,7 +1562,6 @@ function applyPanelCustomizer() {
     }
   });
 
-  // Global Header Search Bar Visibility
   const globalSearchContainer = document.getElementById("globalSmartSearchContainer");
   if (globalSearchContainer) {
     globalSearchContainer.style.setProperty("display", config.globalSearch !== false ? "block" : "none", "important");
@@ -2197,6 +1995,7 @@ async function saveUpdatedPurchaseOrder() {
   closeEditPoModal(); loadPurchaseOrders();
 }
 
+/* MANUAL SYNC TO GOOGLE SHEET */
 async function syncPoToSheet(poId) {
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
@@ -2220,24 +2019,22 @@ async function syncPoToSheet(poId) {
       costPack: cp > 0 ? cp.toFixed(2) : "0",
       cost_pack: cp > 0 ? cp.toFixed(2) : "0",
       supplier: po.supplier_name || 'N/A',
-      location: po.supplier_name || 'N/A',
-      person: po.supplier_name || 'Akash sharma',
-      buyer: po.supplier_name || 'Akash sharma',
+      buyer: 'Akash sharma',
       price: (q * cp).toFixed(2),
       orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
     };
   });
 
   await syncOrderToGoogleSheet({
+    action: "stock_received",
+    status: "received",
     targetSheet: "Admin Orders Indent",
-    isPO: true,
     orderId: po.po_number || ('#' + po.id),
-    orderType: "Supplier Reorder",
-    partyName: po.supplier_name || 'Akash Sharma',
+    poId: po.po_number || ('#' + po.id),
+    supplierName: po.supplier_name || 'Akash Sharma',
     itemsArray: sheetItems,
-    totalAmount: po.total_amount,
-    status: po.status || "pending",
-    notes: "Manual Sync from Admin Dashboard"
+    totalAmount: totalBill,
+    buyer: "Akash sharma"
   });
 
   alert(`Order ${po.po_number || po.id} ka data Google Sheet me sync ho gaya!`);
@@ -2273,6 +2070,9 @@ async function changePoReceivedDate(poId, currentDateStr) {
   }
 }
 
+/* ======================================================
+   RECEIVE STOCK (ONLY HERE GOOGLE SHEET SYNC TRIGGERS)
+   ====================================================== */
 async function receiveStock(poId) {
   const todayStr = new Date().toISOString().split('T')[0];
   const inputDate = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\n(Aaj ki date ke liye OK karein ya pichli date jaise 2026-08-07 enter karein)", todayStr);
@@ -2285,13 +2085,14 @@ async function receiveStock(poId) {
 
   const receivedTimestamp = new Date(`${cleanDate}T12:00:00`).toISOString();
 
-  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty aur Cost Price update ho jayegi.`)) return;
+  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty, Cost Price aur Google Sheet sync update ho jayenge.`)) return;
 
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
   const { data: allItems } = await db.from("purchase_order_items").select("*");
   const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
 
+  // 1. Supabase Stock Update
   if (items?.length) {
     for (let item of items) {
       if (!item.product_id) continue;
@@ -2302,8 +2103,45 @@ async function receiveStock(poId) {
     }
   }
 
+  // 2. Status update in Database
   await db.from("purchase_orders").update({ status: "received", received_at: receivedTimestamp }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-  alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
+
+  // 3. TRIGGER GOOGLE SHEET SYNC STRICTLY HERE
+  await ensureProductsLoaded();
+  const totalBill = po.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
+
+  const sheetItems = items.map((i, idx) => {
+    const skuCode = getProductSku(i.product_id, i.product_name);
+    const q = Number(i.quantity || 1);
+    const cp = Number(i.purchase_price || 0);
+    const isLast = (idx === items.length - 1);
+    return {
+      indentNo: 101 + idx,
+      sku: skuCode,
+      name: i.product_name,
+      quantity: q,
+      costPack: cp > 0 ? cp.toFixed(2) : "0",
+      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
+      supplier: po.supplier_name || 'N/A',
+      buyer: 'Akash sharma',
+      price: (q * cp).toFixed(2),
+      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
+    };
+  });
+
+  await syncOrderToGoogleSheet({
+    action: "stock_received",
+    status: "received",
+    targetSheet: "Admin Orders Indent",
+    orderId: po.po_number || ('#' + po.id),
+    poId: po.po_number || ('#' + po.id),
+    supplierName: po.supplier_name || 'Akash Sharma',
+    itemsArray: sheetItems,
+    totalAmount: totalBill,
+    buyer: "Akash sharma"
+  });
+
+  alert("Stock Receive ho gaya! Stock Qty update ho gayi aur Sheet Sync complete ho gayi.");
   loadPurchaseOrders(); loadProductsForReorder();
 }
 
@@ -2412,26 +2250,6 @@ async function updateOrderStatus(id, newStatus) {
   else {
     alert("Order Status update ho gaya!");
     loadCustomerOrders();
-    try {
-      const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
-      const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
-      if (ord) {
-        const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
-        const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-        syncOrderToGoogleSheet({
-          targetSheet: "Admin Orders Log",
-          isCustomerOrder: true,
-          orderId: ord.order_id || ('#' + ord.id),
-          orderType: "Customer Order",
-          partyName: ord.customer_name || 'Customer',
-          items: itemNames,
-          quantity: (items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
-          totalAmount: totalAmount,
-          status: newStatus,
-          notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
-        });
-      }
-    } catch (e) { console.error("Sheet sync error:", e); }
   }
 }
 
@@ -2498,17 +2316,17 @@ async function generateSupplierPoPdf(poId) {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
-  updateRoleUI();
-  updateSheetStatusUI();
-  updateQueueBadgeUI();
+  if (typeof updateRoleUI === "function") updateRoleUI();
+  if (typeof updateSheetStatusUI === "function") updateSheetStatusUI();
+  if (typeof updateQueueBadgeUI === "function") updateQueueBadgeUI();
   applyPanelCustomizer();
-  processPendingSyncQueue();
+  if (typeof processPendingSyncQueue === "function") processPendingSyncQueue();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
   if (urlInput) {
-    urlInput.value = googleSheetScriptUrl;
-    saveGoogleSheetUrl(googleSheetScriptUrl);
+    urlInput.value = localStorage.getItem("googleSheetScriptUrl") || "";
+    if (typeof saveGoogleSheetUrl === "function") saveGoogleSheetUrl(urlInput.value);
   }
 
   const ts = document.getElementById("tickedSupplierSelect");
