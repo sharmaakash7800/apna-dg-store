@@ -1,142 +1,275 @@
+/* ==========================================
+   APNA DG STORE - COMPLETE ADMIN ENGINE
+   ========================================== */
+
 const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyQ5OJdBIJLWGXzEefiUA26Cdm98RMfZLJbR0NasykpLEWOvDweOUZJ5vF9xTP46eMXbA/exec";
+let googleSheetScriptUrl = localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+localStorage.setItem("googleSheetScriptUrl", googleSheetScriptUrl);
+
 let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedProductsMap = {};
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
-/* ======================================================
-   GOOGLE SHEETS AUTOMATIC SYNC LOGIC (STRICT STOCK RECEIVED)
-   ====================================================== */
+/* ==========================================
+   ROLE-BASED AUTH & SETTINGS MANAGER
+   ========================================== */
 
-function copyAppsScriptCode() {
-  const code = `function doPost(e) {
-  var lock = LockService.getScriptLock();
-  lock.tryLock(15000);
-  try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return jsonResponse({ status: "error", message: "No data payload received" });
-    }
-    var data = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+let currentRole = localStorage.getItem("appUserRole") || "owner";
+let masterPin = localStorage.getItem("appMasterPin") || "1234";
+let staffPassword = localStorage.getItem("appStaffPassword") || "staff123";
+let staffAccessEnabled = localStorage.getItem("appStaffAccessEnabled") !== "false";
 
-    // 1. DELETE ACTION
-    if (data.action === "delete") {
-      var sh = ss.getSheetByName("Admin Orders Indent");
-      if (sh) {
-        var rows = sh.getDataRange().getValues();
-        for (var r = rows.length - 1; r >= 1; r--) {
-          if (String(rows[r][1]).trim() === String(data.orderId).trim()) {
-            sh.deleteRow(r + 1);
-          }
-        }
-      }
-      return jsonResponse({ status: "success", action: "delete" });
-    }
+let staffPermissions = JSON.parse(
+  localStorage.getItem("appStaffPermissions")
+) || {
+  nav_customerOrders: true,
+  nav_supplierHistory: true,
+  nav_supplierReorder: true,
+  nav_productsAdmin: false,
+  nav_salesReport: false,
+  contactPills: true,
+  pdfReport: true,
+  googleSync: true,
+  changeSupplier: false,
+  editItems: false,
+  cancelOrder: false,
+  changeDate: false,
+  deleteOrder: false,
+  globalSearch: true
+};
 
-    // 2. COLLECTION SHEET SYNC
-    if (data.isCollection || data.targetSheet === "Collection") {
-      var collSheet = ss.getSheetByName("Collection") || ss.insertSheet("Collection");
-      if (collSheet.getLastRow() === 0) {
-        collSheet.appendRow(["Timestamp", "Unique Id", "Mode (Cash/Online)", "Person / Party", "Item / Note", "Amount (₹)", "From Date", "To Date", "Status", "Notes"]);
-      }
-      var timestamp = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd/MM/yyyy, HH:mm:ss");
-      collSheet.appendRow([
-        timestamp,
-        data.orderId || ('COLL-' + Date.now()),
-        data.mode || 'Cash (Offline)',
-        data.partyName || 'Counter Cash Sale',
-        data.items || 'Counter Collection',
-        Number(data.amount || data.totalAmount || 0),
-        data.fromDate || '',
-        data.toDate || '',
-        data.status || 'completed',
-        data.notes || ''
-      ]);
-      return jsonResponse({ status: "success", target: "Collection" });
-    }
+let panelCustomizerConfig = JSON.parse(
+  localStorage.getItem("panelCustomizerConfig")
+) || {
+  contactPills: true,
+  pdfReport: true,
+  googleSync: true,
+  changeSupplier: true,
+  editItems: true,
+  cancelOrder: true,
+  changeDate: true,
+  deleteOrder: true,
+  nav_customerOrders: true,
+  nav_supplierHistory: true,
+  nav_supplierReorder: true,
+  nav_productsAdmin: true,
+  nav_salesReport: true,
+  globalSearch: true
+};
 
-    // 3. STRICT STOCK RECEIVED GATEWAY (Admin Orders Indent)
-    var action = String(data.action || "").trim().toLowerCase().replace(/[\\s_-]+/g, "");
-    var status = String(data.status || "").trim().toLowerCase().replace(/[\\s_-]+/g, "");
-    var isStockReceived = (action === "stockreceived" || status === "received");
+function getCurrentRole() { return currentRole; }
+function isOwner() { return currentRole === "owner"; }
 
-    if (!isStockReceived) {
-      return jsonResponse({
-        status: "ignored",
-        message: "Google Sheet sync ONLY allowed when Stock is Received."
-      });
-    }
-
-    var sheet = ss.getSheetByName("Admin Orders Indent") || ss.getActiveSheet();
-    var poId = String(data.poId || data.orderId || "").trim();
-    var supplier = String(data.supplierName || data.partyName || data.supplier || "N/A").trim();
-    var buyer = String(data.buyer || "Akash sharma").trim();
-    var items = Array.isArray(data.itemsArray) ? data.itemsArray : (Array.isArray(data.items) ? data.items : []);
-    var grandTotal = data.totalAmount || data.grandTotal || "";
-    var timestampStr = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd/MM/yyyy, HH:mm:ss");
-    var sheetData = sheet.getDataRange().getValues();
-
-    items.forEach(function (item, index) {
-      var indentNo = item.indentNo || item.indentNumber || (101 + index);
-      var sku = String(item.sku || item.skuCode || "-").trim();
-      var itemName = String(item.name || item.itemName || item.product_name || "Item").trim();
-      var qty = Number(item.quantity || item.qty || 1);
-      var costPack = Number(item.costPack || item.cost_pack || item.purchase_price || item.price || 0);
-      var price = Number(item.price || item.totalPrice || (qty * costPack));
-      var totalColVal = (index === items.length - 1) ? (grandTotal || price) : "";
-
-      var existingRowIndex = -1;
-      for (var r = 1; r < sheetData.length; r++) {
-        var rowPoId = String(sheetData[r][1]).trim();
-        var rowItemName = String(sheetData[r][4]).trim();
-        var rowSku = String(sheetData[r][3]).trim();
-        if (rowPoId === poId && (rowItemName === itemName || (sku !== "-" && rowSku === sku))) {
-          existingRowIndex = r + 1;
-          break;
-        }
-      }
-
-      var rowValues = [
-        timestampStr, poId, indentNo, sku, itemName, qty, costPack, supplier, buyer, price, totalColVal
-      ];
-
-      if (existingRowIndex > 0) {
-        sheet.getRange(existingRowIndex, 1, 1, 11).setValues([rowValues]);
-      } else {
-        sheet.appendRow(rowValues);
-      }
-    });
-
-    return jsonResponse({ status: "success", message: "Stock Received synced successfully." });
-
-  } catch (err) {
-    return jsonResponse({ status: "error", message: err.toString() });
-  } finally {
-    lock.releaseLock();
-  }
+function setRole(role) {
+  if (role !== "owner" && role !== "staff") return;
+  currentRole = role;
+  localStorage.setItem("appUserRole", role);
+  updateRoleUI();
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
 }
 
-function jsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}`;
+function verifyOwnerPin(promptText) {
+  if (isOwner()) return true;
+  const enteredPin = prompt(promptText || "Owner Permission Required! Enter Master PIN:");
+  if (enteredPin === null) return false;
+  if (enteredPin.trim() === masterPin) return true;
+  alert("❌ Galat Master PIN! Action Cancelled.");
+  return false;
+}
 
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(code).then(() => {
-      alert("Google Apps Script code clipboard me copy ho gaya hai! Google Sheet script editor me paste karke New Deployment karein.");
-    }).catch(() => {
-      prompt("Google Apps Script code:", code);
-    });
+function changeMasterPin() {
+  if (!verifyOwnerPin("Purana Master PIN entered karein PIN badalne ke liye:")) return;
+  const newPin = prompt("Naya 4-Digit Owner Master PIN dalein:");
+  if (!newPin || newPin.trim().length < 4) {
+    return alert("❌ PIN kam se kam 4 digits ka hona chahiye.");
+  }
+  masterPin = newPin.trim();
+  localStorage.setItem("appMasterPin", masterPin);
+  alert("✅ Owner Master PIN successfully update ho gaya!");
+}
+
+function switchRoleUI() {
+  if (currentRole === "staff") {
+    const pin = prompt("Owner Mode me switch karne ke liye Master PIN dalein:");
+    if (pin && pin.trim() === masterPin) {
+      setRole("owner");
+      alert("👑 Aap Owner Mode me switch ho gaye hain!");
+    } else if (pin !== null) {
+      alert("❌ Galat PIN!");
+    }
   } else {
-    prompt("Google Apps Script code:", code);
+    if (!staffAccessEnabled) {
+      return alert("⛔ Staff Access is BLOCKED by Owner!");
+    }
+    const staffPass = prompt(`Staff Mode me switch karne ke liye Staff Password dalein:\n(Default Password: ${staffPassword})`);
+    if (staffPass && staffPass.trim() === staffPassword) {
+      setRole("staff");
+      alert("👤 Aap Staff Mode me switch ho gaye hain!");
+    } else if (staffPass !== null) {
+      alert("❌ Galat Staff Password!");
+    }
   }
 }
 
-/* SYNC HELPER FUNCTION */
-async function syncOrderToGoogleSheet(payload) {
-  const syncUrl = localStorage.getItem("googleSheetScriptUrl") || (typeof DEFAULT_SHEET_URL !== "undefined" ? DEFAULT_SHEET_URL : "");
-  if (!syncUrl) return;
+function updateRoleUI() {
+  const roleBadgeHeader = document.getElementById("roleBadgeHeader");
+  const roleBadgeSidebar = document.getElementById("roleBadgeSidebar");
+  const ownerSettingsDiv = document.getElementById("ownerOnlySidebarSettings");
 
+  const isOwn = isOwner();
+  const labelText = isOwn ? "👑 Owner" : "👤 Staff";
+  const bgStyle = isOwn
+    ? "background:rgba(79,70,229,0.15); color:var(--primary); border:1px solid var(--primary);"
+    : "background:rgba(245,158,11,0.15); color:#d97706; border:1px solid #f59e0b;";
+
+  if (roleBadgeHeader) {
+    roleBadgeHeader.textContent = labelText;
+    roleBadgeHeader.style.cssText = `padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; ${bgStyle}`;
+  }
+  if (roleBadgeSidebar) {
+    roleBadgeSidebar.textContent = labelText;
+    roleBadgeSidebar.style.cssText = `padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; ${bgStyle}`;
+  }
+  if (ownerSettingsDiv) {
+    ownerSettingsDiv.style.setProperty("display", isOwn ? "block" : "none", "important");
+  }
+}
+
+function saveGoogleSheetUrl(url) {
+  googleSheetScriptUrl = (url || "").trim() || DEFAULT_SHEET_URL;
+  localStorage.setItem("googleSheetScriptUrl", googleSheetScriptUrl);
+  updateSheetStatusUI();
+}
+
+function updateSheetStatusUI() {
+  const statusEl = document.getElementById("sheetSyncStatus");
+  if (statusEl) {
+    statusEl.textContent = googleSheetScriptUrl ? "✅ Sheet Sync Active" : "⚠️ Sheet URL Not Set";
+    statusEl.style.color = googleSheetScriptUrl ? "var(--success)" : "var(--danger)";
+  }
+}
+
+function openStaffManagerModal() {
+  if (!verifyOwnerPin("Staff Permissions & Passwords manage karne ke liye Owner PIN dalein:")) return;
+  const modal = document.getElementById("staffManagerModal");
+  if (!modal) return;
+
+  const passInput = document.getElementById("staffPassInput");
+  const statusSelect = document.getElementById("staffAccessStatusSelect");
+  if (passInput) passInput.value = staffPassword;
+  if (statusSelect) statusSelect.value = String(staffAccessEnabled);
+
+  Object.keys(staffPermissions).forEach(key => {
+    const chk = document.getElementById(`stf_${key}`);
+    if (chk) chk.checked = staffPermissions[key] === true;
+  });
+  modal.style.display = "flex";
+}
+
+function closeStaffManagerModal() {
+  const modal = document.getElementById("staffManagerModal");
+  if (modal) modal.style.display = "none";
+}
+
+function updateStaffPermission(key, isChecked) { staffPermissions[key] = isChecked; }
+
+function saveStaffAccountSettings() {
+  const passInput = document.getElementById("staffPassInput");
+  const statusSelect = document.getElementById("staffAccessStatusSelect");
+
+  if (passInput && passInput.value.trim()) {
+    staffPassword = passInput.value.trim();
+    localStorage.setItem("appStaffPassword", staffPassword);
+  }
+  if (statusSelect) {
+    staffAccessEnabled = statusSelect.value === "true";
+    localStorage.setItem("appStaffAccessEnabled", String(staffAccessEnabled));
+  }
+  localStorage.setItem("appStaffPermissions", JSON.stringify(staffPermissions));
+  closeStaffManagerModal();
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
+  alert("✅ Staff Credentials aur Permissions update ho gayi!");
+}
+
+function updatePanelCustomizer(key, isChecked) {
+  panelCustomizerConfig[key] = isChecked;
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  if (typeof applyPanelCustomizer === "function") applyPanelCustomizer();
+  if (typeof loadPurchaseOrders === "function") loadPurchaseOrders();
+}
+
+function openPanelCustomizerModal() {
+  if (!verifyOwnerPin("Panel Customizer kholne ke liye Owner PIN dalein:")) return;
+  const modal = document.getElementById("panelCustomizerModal");
+  if (!modal) return;
+  Object.keys(panelCustomizerConfig).forEach(key => {
+    const chk = document.getElementById(`pop_${key}`);
+    if (chk) chk.checked = panelCustomizerConfig[key] !== false;
+  });
+  modal.style.display = "flex";
+}
+
+function closePanelCustomizerModal() {
+  const modal = document.getElementById("panelCustomizerModal");
+  if (modal) modal.style.display = "none";
+  applyPanelCustomizer();
+  loadPurchaseOrders();
+}
+
+function resetPanelCustomizer() {
+  panelCustomizerConfig = {
+    contactPills: true, pdfReport: true, googleSync: true, changeSupplier: true,
+    editItems: true, cancelOrder: true, changeDate: true, deleteOrder: true,
+    nav_customerOrders: true, nav_supplierHistory: true, nav_supplierReorder: true,
+    nav_productsAdmin: true, nav_salesReport: true, globalSearch: true
+  };
+  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
+  openPanelCustomizerModal();
+  applyPanelCustomizer();
+}
+
+function applyPanelCustomizer() {
+  const isOwn = isOwner();
+  const config = isOwn ? panelCustomizerConfig : staffPermissions;
+
+  const navKeys = [
+    { key: 'customerOrders', bId: 'nav-customerOrders' },
+    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
+    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
+    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
+    { key: 'salesReport', bId: 'nav-salesReport' }
+  ];
+
+  navKeys.forEach(item => {
+    const isVisible = config[`nav_${item.key}`] !== false;
+    const bNavBtn = document.getElementById(item.bId);
+    if (bNavBtn) bNavBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
+
+    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
+    if (sidebarBtn) sidebarBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
+  });
+
+  const globalSearchContainer = document.getElementById("globalSmartSearchContainer");
+  if (globalSearchContainer) {
+    globalSearchContainer.style.setProperty("display", config.globalSearch !== false ? "block" : "none", "important");
+  }
+}
+
+/* ==========================================
+   GOOGLE SHEET API SYNC FUNCTION
+   ========================================== */
+
+async function syncOrderToGoogleSheet(payload) {
+  const syncUrl = localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+  if (!syncUrl) {
+    console.warn("⚠️ Google Sheet Script URL is not set.");
+    return;
+  }
   try {
     const res = await fetch(syncUrl, {
       method: "POST",
@@ -144,14 +277,17 @@ async function syncOrderToGoogleSheet(payload) {
       body: JSON.stringify(payload)
     });
     const result = await res.json();
-    console.log("Sheet Sync Response:", result);
+    console.log("Sheet Sync Result:", result);
     return result;
   } catch (err) {
-    console.error("Sheet Sync Failed:", err);
+    console.error("Sheet Sync API Error:", err);
   }
 }
 
-/* SIDEBAR NAVIGATION & PERSIST ACTIVE VIEW */
+/* ==========================================
+   NAVIGATION & THEME
+   ========================================== */
+
 const toggleSidebar = () => ["sidebarDrawer", "sidebarOverlay"].forEach(id => document.getElementById(id)?.classList.toggle("open"));
 const closeSidebar = () => ["sidebarDrawer", "sidebarOverlay"].forEach(id => document.getElementById(id)?.classList.remove("open"));
 
@@ -190,7 +326,6 @@ function switchAdminView(viewId) {
 
 const initActiveTab = () => { switchAdminView(localStorage.getItem("activeAdminView") || "customerOrders"); updateLanguageUI(); };
 
-/* 3-WAY LANGUAGE LOGIC */
 let currentLang = localStorage.getItem("adminLang") || "hinglish";
 const changeLanguage = langVal => { currentLang = langVal; localStorage.setItem("adminLang", currentLang); updateLanguageUI(); };
 
@@ -203,22 +338,6 @@ function updateLanguageUI() {
     lblNavProductsList: { hinglish: "Products List", english: "Products List", hindi: "उत्पाद सूची" },
     lblNavSalesReport: { hinglish: "Sales Report", english: "Sales Report", hindi: "बिक्री रिपोर्ट" },
     lblNavSupplierReport: { hinglish: "Supplier Purchase Report", english: "Supplier Purchase Report", hindi: "सप्लायर खरीदारी रिपोर्ट" },
-    btnMasterAdd: { hinglish: "➕ Master Supplier Add Karein", english: "➕ Add Master Supplier", hindi: "➕ मास्टर सप्लायर जोड़ें" },
-    btnMasterList: { hinglish: "👥 Master Suppliers List", english: "👥 Master Suppliers List", hindi: "👥 मास्टर सप्लायर सूची" },
-    btnMasterAddProd: { hinglish: "➕ Master Supplier Add Karein", english: "➕ Add Master Supplier", hindi: "➕ मास्टर सप्लायर जोड़ें" },
-    btnMasterListProd: { hinglish: "👥 Master Suppliers List", english: "👥 Master Suppliers List", hindi: "👥 मास्टर सप्लायर सूची" },
-    btnAddNewProductToggle: { hinglish: "➕ Naya Product Add Karein", english: "➕ Add New Product", hindi: "➕ नया उत्पाद जोड़ें" },
-    btnCounterCollection: { hinglish: "💵 ➕ Counter Collection Entry Karein", english: "💵 ➕ Enter Counter Collection", hindi: "💵 ➕ काउंटर कलेक्शन प्रविष्टि करें" },
-    btnDateToday: { hinglish: "Today", english: "Today", hindi: "आज" },
-    custDateBtnWeek: { hinglish: "📅 Last 7 Days (Default)", english: "📅 Last 7 Days (Default)", hindi: "📅 पिछले 7 दिन (डिफ़ॉल्ट)" },
-    btnDateMonth: { hinglish: "This Month", english: "This Month", hindi: "इस महीने" },
-    btnDateYear: { hinglish: "This Year", english: "This Year", hindi: "इस वर्ष" },
-    btnFilterOrders: { hinglish: "🔍 Filter Orders", english: "🔍 Filter Orders", hindi: "🔍 ऑर्डर्स फ़िल्टर करें" },
-    btnRefreshCust: { hinglish: "🔄 Refresh", english: "🔄 Refresh", hindi: "🔄 रीफ़्रेश" },
-    btnRefreshHist: { hinglish: "🔄 Refresh", english: "🔄 Refresh", hindi: "🔄 रीफ़्रेश" },
-    btnRefreshProd: { hinglish: "🔄 Refresh", english: "🔄 Refresh", hindi: "🔄 रीफ़्रेश" },
-    calcTabPacketBtn: { hinglish: "📦 Packet / Box Calculator", english: "📦 Packet / Box Calculator", hindi: "📦 पैकेट / बॉक्स कैलकुलेटर" },
-    calcTabBillBtn: { hinglish: "💵 Total Bill Calculator", english: "💵 Total Bill Calculator", hindi: "💵 कुल बिल कैलकुलेटर" },
     headingCustOrders: { hinglish: "🛍 Customer Orders", english: "🛍 Customer Orders", hindi: "🛍 ग्राहक ऑर्डर्स" },
     headingNewReorder: { hinglish: "➕ Naya Supplier Reorder Banayein", english: "➕ Create New Supplier Reorder", hindi: "➕ नया सप्लायर रीऑर्डर बनाएं" },
     headingReorderHistory: { hinglish: "📋 Supplier Reorders History", english: "📋 Supplier Reorders History", hindi: "📋 सप्लायर रीऑर्डर इतिहास" },
@@ -233,370 +352,6 @@ function updateLanguageUI() {
   });
 }
 
-/* CALCULATORS & HELPERS */
-function switchCalcMode(mode, prefix = '') {
-  const isPacket = mode === 'packet';
-  document.getElementById(prefix + 'calcModePacket') && (document.getElementById(prefix + 'calcModePacket').style.display = isPacket ? 'block' : 'none');
-  document.getElementById(prefix + 'calcModeBill') && (document.getElementById(prefix + 'calcModeBill').style.display = isPacket ? 'none' : 'block');
-  document.getElementById(prefix + 'calcTabPacketBtn')?.classList.toggle('active-filter', isPacket);
-  document.getElementById(prefix + 'calcTabBillBtn')?.classList.toggle('active-filter', !isPacket);
-}
-
-function calculatePacketRate(prefix = '') {
-  const cost = parseFloat(document.getElementById(prefix + 'calcPacketCost')?.value || 0);
-  const pouch = parseInt(document.getElementById(prefix + 'calcPouchCount')?.value || 0);
-  const packQty = parseInt(document.getElementById(prefix + 'calcPacketQty')?.value || 1);
-  const resEl = document.getElementById(prefix + 'calcPacketResultRate');
-  const pKey = prefix ? prefix.toLowerCase() : '';
-
-  if (cost > 0 && pouch > 0) {
-    const rate = cost / pouch;
-    if (resEl) resEl.value = `₹${rate.toFixed(2)} / pouch (${packQty * pouch} pouches)`;
-    const poPrice = document.getElementById(pKey ? `${pKey}PoPrice` : 'poPrice');
-    const poQty = document.getElementById(pKey ? `${pKey}PoQty` : 'poQty');
-    if (poPrice) poPrice.value = rate.toFixed(2);
-    if (poQty) poQty.value = packQty * pouch;
-  } else if (resEl) resEl.value = '';
-}
-
-function calculateUnitRate(prefix = '') {
-  const qty = parseInt(document.getElementById(prefix + 'calcTotalQty')?.value || 0);
-  const bill = parseFloat(document.getElementById(prefix + 'calcTotalBill')?.value || 0);
-  const resEl = document.getElementById(prefix + 'calcResultRate');
-  const pKey = prefix ? prefix.toLowerCase() : '';
-
-  if (qty > 0 && bill > 0) {
-    const rate = bill / qty;
-    if (resEl) resEl.value = `₹${rate.toFixed(2)} / item`;
-    const poPrice = document.getElementById(pKey ? `${pKey}PoPrice` : 'poPrice');
-    const poQty = document.getElementById(pKey ? `${pKey}PoQty` : 'poQty');
-    if (poPrice) poPrice.value = rate.toFixed(2);
-    if (poQty) poQty.value = qty;
-  } else if (resEl) resEl.value = '';
-}
-
-function toggleCounterCollectionCard() {
-  const card = document.getElementById("counterCollectionCard");
-  if (!card) return;
-  const isHidden = card.style.display === "none" || !card.style.display;
-  card.style.display = isHidden ? "block" : "none";
-  if (isHidden) {
-    document.getElementById("manualCashAmount")?.focus();
-    loadCounterCollectionHistory();
-  }
-}
-
-function toggleDropdown(btn) {
-  const menu = btn.nextElementSibling;
-  document.querySelectorAll('.dropdown-menu').forEach(m => m !== menu && m.classList.remove('show'));
-  menu?.classList.toggle('show');
-}
-
-document.addEventListener('click', e => !e.target.closest('.dropdown-wrapper') && document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')));
-
-const formatTime = dtStr => dtStr ? new Date(dtStr).toLocaleString("hi-IN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
-
-/* REPORTS & ANALYTICS */
-async function saveOfflineCashEntry() {
-  const [fromDateVal, toDateVal, modeVal, amountVal, noteVal] = [
-    document.getElementById("manualCashFromDate").value,
-    document.getElementById("manualCashToDate").value,
-    document.getElementById("manualCashMode").value,
-    Number(document.getElementById("manualCashAmount").value),
-    document.getElementById("manualCashNote").value || "Counter Sales"
-  ];
-  if (!fromDateVal || !toDateVal || amountVal <= 0) return alert("Sahi Dates aur Amount dalein.");
-
-  const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
-  const { error: collErr } = await db.from("Collections").insert([{ collection_date: toDateVal, amount: amountVal, note: remarkText }]);
-
-  if (collErr) alert("Error saving entry: " + collErr.message);
-  else {
-    syncOrderToGoogleSheet({
-      targetSheet: "Collection",
-      isCollection: true,
-      orderId: "COLL-" + Date.now(),
-      orderType: "Counter Sale / Collection",
-      mode: modeVal === 'online' ? 'Online' : 'Cash (Offline)',
-      partyName: modeVal === 'online' ? "Counter Online Sale" : "Counter Cash Sale",
-      items: noteVal,
-      quantity: 1,
-      totalAmount: amountVal,
-      amount: amountVal,
-      fromDate: fromDateVal,
-      toDate: toDateVal,
-      status: "completed",
-      notes: `Period: ${fromDateVal} to ${toDateVal}`
-    });
-    alert("Collection Entry Successfully Saved!");
-    document.getElementById("manualCashAmount").value = "";
-    document.getElementById("manualCashNote").value = "";
-    loadCounterCollectionHistory();
-    calculateReports();
-  }
-}
-
-function toggleSalesReportSection() {
-  const container = document.getElementById("salesReportFullContainer");
-  if (!container) return;
-  const isHidden = container.style.display === "none" || !container.style.display;
-  container.style.display = isHidden ? "block" : "none";
-
-  const btn = document.getElementById("btnToggleSalesReport");
-  if (btn) {
-    btn.textContent = isHidden ? "📊 Hide Sales Report" : "📊 Sales Report";
-  }
-
-  if (isHidden) {
-    calculateReports();
-    calculateWeeklyReinvestmentComparison();
-    container.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-async function loadCounterCollectionHistory() {
-  const container = document.getElementById("counterCollectionHistoryContainer");
-  if (!container) return;
-
-  container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Collection History load ho rahi hai...</div>`;
-
-  try {
-    const { data, error } = await db
-      .from("Collections")
-      .select("*")
-      .order("id", { ascending: false })
-      .limit(30);
-
-    if (error) {
-      container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:10px; font-size:12px;">Error loading history: ${error.message}</div>`;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      container.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-muted); font-size:12px;">Abhi tak koi Collection Entry save nahi hui hai.</div>`;
-      return;
-    }
-
-    const rowsHTML = data.map(item => {
-      const note = item.note || "";
-      const isOnline = note.toLowerCase().includes("mode:online") || note.toLowerCase().includes("online");
-      const cleanNote = note.replace(/\[MODE:[^\]]+\]\s*/i, "").replace(/\| Period:[^|]+/i, "").trim();
-      const dateStr = item.collection_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN') : '-');
-
-      return `
-        <tr>
-          <td style="font-weight:600; white-space:nowrap;">${dateStr}</td>
-          <td>
-            <span class="badge ${isOnline ? 'badge-info' : 'badge-success'}" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;">
-              ${isOnline ? '💳 Online' : '💵 Cash (Offline)'}
-            </span>
-          </td>
-          <td style="font-weight:700; color:var(--success);">₹${Number(item.amount || 0).toFixed(2)}</td>
-          <td style="font-size:11px; color:var(--text-dark); max-width:200px; word-wrap:break-word;">${cleanNote || 'Counter Collection'}</td>
-          <td style="text-align:center;">
-            <button class="btn-danger" style="padding:3px 8px; font-size:11px; border-radius:6px; cursor:pointer;" onclick="deleteCollectionEntry('${item.id}')">🗑️ Delete</button>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    container.innerHTML = `
-      <div class="table-responsive" style="max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
-        <table class="custom-table" style="font-size:12px; margin:0;">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Payment Mode</th>
-              <th>Amount</th>
-              <th>Note / Remark</th>
-              <th style="text-align:center;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHTML}
-          </tbody>
-        </table>
-      </div>
-    `;
-  } catch (e) {
-    container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:10px; font-size:12px;">Load error: ${e.message}</div>`;
-  }
-}
-
-async function deleteCollectionEntry(id) {
-  if (!id) return alert("Invalid ID");
-  if (!confirm("Kya aap is Collection Entry ko delete karna chahte hain?")) return;
-
-  const numId = Number(id);
-  const searchId = !isNaN(numId) ? numId : id;
-
-  let { error } = await db.from("Collections").delete().eq("id", searchId);
-
-  if (error) {
-    const { error: err2 } = await db.from("Collections").delete().eq("id", String(id));
-    if (err2) {
-      alert("Delete Error: " + (err2.message || error.message));
-      return;
-    }
-  }
-
-  alert("Collection Entry successfully delete ho gayi!");
-  loadCounterCollectionHistory();
-  calculateReports();
-}
-
-function getDateRange(type) {
-  const today = new Date(), from = new Date(), to = new Date();
-  if (type === 'today') from.setHours(0, 0, 0, 0);
-  else if (type === 'week') from.setDate(today.getDate() - (today.getDay() || 7) + 1);
-  else if (type === 'last_week') { from.setDate(today.getDate() - (today.getDay() || 7) - 6); to.setDate(today.getDate() - (today.getDay() || 7)); }
-  else if (type === 'two_weeks' || type === 'last_2_weeks') from.setTime(today.getTime() - 14 * 86400000);
-  else if (type === 'month') from.setDate(1);
-  else if (type === 'year') { from.setMonth(0); from.setDate(1); }
-  return { from, to };
-}
-
-function setDateFilter(type) {
-  const { from, to } = getDateRange(type);
-  document.getElementById("reportFromDate") && (document.getElementById("reportFromDate").value = from.toISOString().split('T')[0]);
-  document.getElementById("reportToDate") && (document.getElementById("reportToDate").value = to.toISOString().split('T')[0]);
-  calculateReports();
-}
-
-async function calculateReports() {
-  const fromVal = document.getElementById("reportFromDate")?.value;
-  const toVal = document.getElementById("reportToDate")?.value;
-  if (!fromVal || !toVal) return alert("Sahi Dates Select Karein.");
-
-  const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
-
-  const [{ data: sales }, { data: offlineData }] = await Promise.all([
-    db.from("orders").select("*, order_items(*)").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()),
-    db.from("Collections").select("*").gte("collection_date", fromVal).lte("collection_date", toVal)
-  ]);
-
-  let offlineTotal = 0, onlineTotal = 0, validOrderCount = 0;
-
-  (sales || []).forEach(ord => {
-    if (ord.status !== 'cancelled') {
-      if (String(ord.order_id || '').startsWith("ORD-CNT-") && offlineData?.length) return;
-      validOrderCount++;
-      let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-      if (itemsTotal === 0 && String(ord.address || '').includes("Amt: ₹")) itemsTotal = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
-      const pMode = `${ord.customer_name || ''} ${ord.address || ''}`.toLowerCase();
-      (pMode.includes('[mode:online]') || pMode.includes('online')) ? onlineTotal += itemsTotal : offlineTotal += itemsTotal;
-    }
-  });
-
-  (offlineData || []).forEach(item => {
-    validOrderCount++;
-    const amt = Number(item.amount || 0);
-    String(item.note || '').toLowerCase().includes('[mode:online]') ? onlineTotal += amt : offlineTotal += amt;
-  });
-
-  const grandTotal = offlineTotal + onlineTotal;
-  document.getElementById("summaryOffline") && (document.getElementById("summaryOffline").textContent = "₹" + offlineTotal.toFixed(2));
-  document.getElementById("summaryOnline") && (document.getElementById("summaryOnline").textContent = "₹" + onlineTotal.toFixed(2));
-  document.getElementById("summaryTotalSales") && (document.getElementById("summaryTotalSales").textContent = "₹" + grandTotal.toFixed(2));
-
-  const breakdownBody = document.getElementById("collectionBreakdownBody");
-  if (breakdownBody) {
-    breakdownBody.innerHTML = `
-      <tr>
-        <td><strong>${fromVal}</strong> to <strong>${toVal}</strong></td>
-        <td style="color:var(--primary); font-weight:bold;">₹${offlineTotal.toFixed(2)}</td>
-        <td style="color:var(--blue); font-weight:bold;">₹${onlineTotal.toFixed(2)}</td>
-        <td style="color:var(--success); font-weight:bold;">₹${grandTotal.toFixed(2)}</td>
-        <td style="font-weight:bold;">${validOrderCount} Entries/Orders</td>
-      </tr>`;
-  }
-}
-
-/* TOGGLES & STATUS */
-const toggleMasterSupplierAddCard = (p = '') => { const c = document.getElementById(p + "masterSupplierAddCard"); if (c) { c.style.display = c.style.display === "none" || !c.style.display ? "block" : "none"; c.style.display === "block" && document.getElementById(p + "newSupplierInput")?.focus(); } };
-const toggleMasterSupplierListCard = (p = '') => { const c = document.getElementById(p + "masterSupplierListCard"); if (c) c.style.display = c.style.display === "none" || !c.style.display ? "block" : "none"; };
-
-async function toggleProductActiveStatus(prodId, newStatus) {
-  const prod = productsList.find(p => String(p.id) === String(prodId));
-  if (prod) prod.active = newStatus;
-  renderProductsTable();
-  const { error } = await db.from("products").update({ active: newStatus }).eq("id", prodId);
-  if (error) { if (prod) prod.active = !newStatus; renderProductsTable(); alert("Status update fail: " + error.message); }
-}
-
-function setSupplierReportDateFilter(type) {
-  const { from, to } = getDateRange(type);
-  document.getElementById("supplierReportFromDate") && (document.getElementById("supplierReportFromDate").value = from.toISOString().split('T')[0]);
-  document.getElementById("supplierReportToDate") && (document.getElementById("supplierReportToDate").value = to.toISOString().split('T')[0]);
-  calculateSupplierPurchaseReport();
-}
-
-async function calculateSupplierPurchaseReport() {
-  const [fromVal, toVal, supplierVal, statusVal] = [
-    document.getElementById("supplierReportFromDate")?.value,
-    document.getElementById("supplierReportToDate")?.value,
-    document.getElementById("supplierReportSupplierSelect")?.value,
-    document.getElementById("supplierReportStatusSelect")?.value
-  ];
-  if (!fromVal || !toVal) return alert("Sahi From aur To dates select karein.");
-
-  const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
-  const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
-
-  let query = db.from("purchase_orders").select("*").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()).order("created_at", { ascending: false });
-  if (supplierVal) query = query.eq("supplier_name", supplierVal);
-  if (statusVal) query = query.eq("status", statusVal);
-
-  const { data: pos, error } = await query;
-  if (error) return alert("Error fetching supplier report: " + error.message);
-
-  const records = pos || [];
-  const { data: allPoItems } = await db.from("purchase_order_items").select("*").in("po_id", records.map(p => p.id));
-  const itemsMap = {};
-  (allPoItems || []).forEach(it => { (itemsMap[String(it.po_id)] ||= []).push(it); });
-  records.forEach(po => po.purchase_order_items = itemsMap[String(po.id)] || []);
-
-  let grandTotal = 0, receivedAmount = 0, pendingAmount = 0;
-  const supplierMap = {};
-
-  records.forEach(po => {
-    const amt = Number(po.total_amount || 0);
-    grandTotal += amt;
-    po.status === 'received' ? receivedAmount += amt : pendingAmount += amt;
-    const s = supplierMap[po.supplier_name || 'Unknown'] ||= { ordersCount: 0, receivedBill: 0, pendingBill: 0, totalBill: 0 };
-    s.ordersCount++; s.totalBill += amt;
-    po.status === 'received' ? s.receivedBill += amt : s.pendingBill += amt;
-  });
-
-  document.getElementById("summarySupplierTotal") && (document.getElementById("summarySupplierTotal").textContent = "₹" + grandTotal.toFixed(2));
-  document.getElementById("summarySupplierOrderCount") && (document.getElementById("summarySupplierOrderCount").textContent = records.length + " Orders");
-  document.getElementById("summarySupplierReceived") && (document.getElementById("summarySupplierReceived").textContent = "₹" + receivedAmount.toFixed(2));
-  document.getElementById("summarySupplierPending") && (document.getElementById("summarySupplierPending").textContent = "₹" + pendingAmount.toFixed(2));
-
-  const tbody = document.getElementById("supplierSummaryTableBody");
-  if (tbody) {
-    tbody.innerHTML = Object.keys(supplierMap).length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Selected dates me koi purchase order nahi mila.</td></tr>' :
-      Object.entries(supplierMap).map(([s, d]) => `<tr><td><strong>${s}</strong></td><td>${d.ordersCount} Orders</td><td style="color:var(--success); font-weight:bold;">₹${d.receivedBill.toFixed(2)}</td><td style="color:var(--danger); font-weight:bold;">₹${d.pendingBill.toFixed(2)}</td><td style="color:var(--primary); font-weight:bold;">₹${d.totalBill.toFixed(2)}</td></tr>`).join('');
-  }
-
-  const detailDiv = document.getElementById("supplierDetailedOrdersList");
-  if (detailDiv) {
-    detailDiv.innerHTML = records.length === 0 ? '<div style="text-align:center; padding:15px; color:var(--text-muted);">Koi orders record nahi hai.</div>' :
-      records.map(po => `
-        <div class="order-card" style="margin-bottom:8px; padding:10px;">
-          <div class="order-header" style="margin-bottom:4px; padding-bottom:4px;">
-            <span><strong>${po.supplier_name}</strong> (${po.po_number || '#' + po.id})</span>
-            <span class="badge ${po.status === 'received' ? 'badge-received' : 'badge-pending'}">${po.status}</span>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">📅 Date: ${formatTime(po.created_at)} ${po.received_at ? ` | Received: ${formatTime(po.received_at)}` : ''}</div>
-          <div>${(po.purchase_order_items || []).map(it => `<div class="item-row" style="font-size:11px; padding:2px 0;"><span>• ${it.product_name} (Qty: ${it.quantity})</span><span>₹${Number(it.purchase_price).toFixed(2)}/unit = ₹${(Number(it.quantity) * Number(it.purchase_price)).toFixed(2)}</span></div>`).join('')}</div>
-          <div style="text-align:right; margin-top:6px; font-weight:bold; font-size:12px; color:var(--text-dark);">Total Order Amount: ₹${Number(po.total_amount).toFixed(2)}</div>
-        </div>`).join('');
-  }
-}
-
-/* THEME */
 function initTheme() {
   const savedTheme = localStorage.getItem("adminTheme") || "light";
   document.documentElement.setAttribute("data-theme", savedTheme);
@@ -610,641 +365,30 @@ function toggleTheme() {
 }
 const updateThemeButtonText = theme => { const b = document.getElementById("themeToggleBtn"); if (b) b.innerHTML = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"; };
 
-/* PRODUCTS LIST VIEW */
-async function loadAllProductsView() {
-  const tbody = document.getElementById("productsTableBody");
-  if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
-  const { data, error } = await db.from("products").select("*").order("name");
-  if (error && tbody) return tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+const formatTime = dtStr => dtStr ? new Date(dtStr).toLocaleString("hi-IN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
-  productsList = data || [];
-  if (document.getElementById("totalProductsCount")) document.getElementById("totalProductsCount").textContent = productsList.length;
-  updateCategoryDropdown();
-  renderProductsTable();
+function getDateRange(type) {
+  const today = new Date(), from = new Date(), to = new Date();
+  if (type === 'today') from.setHours(0, 0, 0, 0);
+  else if (type === 'week') from.setDate(today.getDate() - (today.getDay() || 7) + 1);
+  else if (type === 'last_week') { from.setDate(today.getDate() - (today.getDay() || 7) - 6); to.setDate(today.getDate() - (today.getDay() || 7)); }
+  else if (type === 'two_weeks' || type === 'last_2_weeks') from.setTime(today.getTime() - 14 * 86400000);
+  else if (type === 'month') from.setDate(1);
+  else if (type === 'year') { from.setMonth(0); from.setDate(1); }
+  return { from, to };
 }
 
-function updateCategoryDropdown() {
-  const select = document.getElementById("bulkCategorySelect");
-  if (!select) return;
-  const categories = [...new Set(productsList.map(p => p.category).filter(Boolean))].sort();
-  select.innerHTML = '<option value="">-- All Categories --</option>' + categories.map(c => `<option value="${c}" ${c === select.value ? 'selected' : ''}>${c}</option>`).join('');
+function toggleDropdown(btn) {
+  const menu = btn.nextElementSibling;
+  document.querySelectorAll('.dropdown-menu').forEach(m => m !== menu && m.classList.remove('show'));
+  menu?.classList.toggle('show');
 }
+document.addEventListener('click', e => !e.target.closest('.dropdown-wrapper') && document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')));
 
-const enableRowEditing = prodId => { editingProductIds.add(String(prodId)); renderProductsTable(); };
-const cancelRowEditing = prodId => { lastEditExitTimestamp = Date.now(); editingProductIds.delete(String(prodId)); renderProductsTable(); };
+/* ==========================================
+   REORDERS & RECEIVE STOCK MODULE
+   ========================================== */
 
-async function saveRowEditing(prodId) {
-  const pIdStr = String(prodId);
-  const getVal = id => document.getElementById(id)?.value.trim() || '';
-  const [newName, newCategory, newUnit, newQty, newCost, newSelling] = [
-    getVal(`edit_name_${pIdStr}`), getVal(`edit_cat_${pIdStr}`), getVal(`edit_unit_${pIdStr}`),
-    Number(getVal(`edit_qty_${pIdStr}`)), Number(getVal(`edit_cost_${pIdStr}`)), Number(getVal(`edit_selling_${pIdStr}`))
-  ];
-
-  if (!newName) return alert("Item Name khali nahi ho sakta.");
-  const updateData = { name: newName, category: newCategory, unit: newUnit, stock_qty: newQty, cost_price: newCost, selling_price: newSelling };
-  const idCond = !isNaN(Number(prodId)) ? Number(prodId) : prodId;
-
-  const { error } = await db.from("products").update(updateData).or(`id.eq.${idCond},id.eq.${String(prodId)}`);
-  if (error) alert("Product update karne mein error aaya: " + error.message);
-  else {
-    const prod = productsList.find(p => String(p.id) === String(prodId));
-    if (prod) Object.assign(prod, updateData);
-    editingProductIds.delete(String(prodId));
-    lastEditExitTimestamp = Date.now();
-    updateCategoryDropdown(); renderProductsTable();
-  }
-}
-
-function getPackCountFromUnit(unitStr) {
-  if (!unitStr) return 1;
-  const match = String(unitStr).trim().match(/(?:pack\s*of|pack|\/)\s*(\d+)/i) || String(unitStr).trim().match(/(\d+)\s*(?:pcs|pouch|pouches|pack|nos|items)/i) || String(unitStr).trim().match(/\((\d+)\)/);
-  return match && match[1] && parseInt(match[1], 10) > 0 ? parseInt(match[1], 10) : 1;
-}
-
-function getProductSku(id, name) {
-  const prod = productsList.find(p => String(p.id) === String(id));
-  if (prod && prod.sku) return prod.sku;
-  return name ? name.substring(0, 3).toUpperCase() + "-" + (String(id).slice(-3)) : "000";
-}
-
-function updateLiveUnitCost(prodId) {
-  const pIdStr = String(prodId);
-  const cost = Number(document.getElementById(`edit_cost_${pIdStr}`)?.value) || 0;
-  const packCount = getPackCountFromUnit(document.getElementById(`edit_unit_${pIdStr}`)?.value);
-  const liveSpan = document.getElementById(`edit_live_unit_cost_${pIdStr}`);
-  if (liveSpan) liveSpan.textContent = `₹${(packCount > 0 ? cost / packCount : cost).toFixed(2)}`;
-}
-
-function renderProductsTable() {
-  const tbody = document.getElementById("productsTableBody");
-  if (!tbody) return;
-
-  const searchVal = document.getElementById("adminProductSearchInput")?.value.toLowerCase().trim() || "";
-  const selectedCategory = document.getElementById("bulkCategorySelect")?.value || "";
-
-  const filtered = productsList.filter(p => {
-    const matchesSearch = [p.id, p.name, p.category].some(f => String(f || '').toLowerCase().includes(searchVal));
-    return matchesSearch && (!selectedCategory || p.category === selectedCategory);
-  });
-
-  if (!filtered.length) return tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
-
-  tbody.innerHTML = filtered.map(p => {
-    const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
-    const isEditing = editingProductIds.has(String(p.id));
-    const qtyVal = p.stock_qty ?? 0;
-    const isActive = p.active !== false;
-    const statusBtn = isActive ?
-      `<button class="btn-green" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" onclick="toggleProductActiveStatus('${p.id}', false)">👁️ Show</button>` :
-      `<button class="btn-danger" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" onclick="toggleProductActiveStatus('${p.id}', true)">🙈 Hide</button>`;
-
-    const packCount = getPackCountFromUnit(p.unit);
-    const costPriceNum = Number(p.cost_price || 0);
-    const unitCostNum = packCount > 0 ? (costPriceNum / packCount) : costPriceNum;
-    const sellingPriceVal = Number(p.selling_price ?? p.price ?? 0).toFixed(2);
-    const [escName, escCat, escUnit] = [p.name, p.category, p.unit].map(v => (v || '').replace(/"/g, '&quot;'));
-
-    if (isEditing) {
-      return `
-        <tr style="background: rgba(79, 70, 229, 0.12); border-left: 4px solid var(--primary);">
-          <td style="text-align:center;"><input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" /></td>
-          <td><strong>${p.id}</strong></td>
-          <td><input type="text" id="edit_name_${p.id}" class="name-edit-input" style="min-width:210px; width:100%; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escName}" /></td>
-          <td><input type="text" id="edit_cat_${p.id}" class="name-edit-input" style="min-width:120px; width:100%; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escCat}" /></td>
-          <td><input type="text" id="edit_unit_${p.id}" class="name-edit-input" style="min-width:90px; width:100%; text-align:center; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escUnit}" oninput="updateLiveUnitCost('${p.id}')" /></td>
-          <td><input type="text" inputmode="numeric" id="edit_qty_${p.id}" class="price-edit-input" style="width:60px; text-align:center; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${qtyVal}" onfocus="this.select()" /></td>
-          <td><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:11px; color:var(--text-muted);">₹</span><input type="text" inputmode="decimal" id="edit_cost_${p.id}" class="price-edit-input" style="width:70px; border-color:var(--primary); background:var(--surface); color:var(--blue);" value="${costPriceNum.toFixed(2)}" onfocus="this.select()" oninput="updateLiveUnitCost('${p.id}')" /></div></td>
-          <td><span id="edit_live_unit_cost_${p.id}" style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:4px 6px; border-radius:6px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
-          <td><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:11px; color:var(--text-muted);">₹</span><input type="text" inputmode="decimal" id="edit_selling_${p.id}" class="price-edit-input" style="width:70px; border-color:var(--primary); background:var(--surface); color:var(--success);" value="${sellingPriceVal}" onfocus="this.select()" /></div></td>
-          <td style="text-align:center;">${statusBtn}</td>
-          <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="cancelRowEditing('${p.id}')">✕ Cancel</button><button class="btn-green" style="padding:4px 8px; font-size:8px; border-radius:8px;" onclick="saveRowEditing('${p.id}')">💾 Save</button></div></td>
-        </tr>`;
-    }
-
-    return `
-      <tr>
-        <td style="text-align:center;"><input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" /></td>
-        <td><strong>${p.id}</strong></td>
-        <td><strong style="color:var(--text-dark); font-size:12px;">${escName || 'N/A'}</strong></td>
-        <td><span style="color:var(--text-muted); font-weight:600;">${escCat || 'N/A'}</span></td>
-        <td><span style="background:var(--bg); border:1px solid var(--border); padding:2px 8px; border-radius:10px; font-weight:600; font-size:11px;">${escUnit || '-'}</span></td>
-        <td><strong style="color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${qtyVal}</strong></td>
-        <td><span style="color:var(--blue); font-weight:600;">₹${costPriceNum.toFixed(2)}</span></td>
-        <td><span style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:3px 8px; border-radius:8px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
-        <td><strong style="color:var(--success);">₹${sellingPriceVal}</strong></td>
-        <td style="text-align:center;">${statusBtn}</td>
-        <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="enableRowEditing('${p.id}')">✏️ Edit</button></div></td>
-      </tr>`;
-  }).join('');
-}
-
-async function deleteSingleProduct(prodId) {
-  if (Date.now() - lastEditExitTimestamp < 500) return;
-  const prod = productsList.find(p => String(p.id) === String(prodId));
-  if (!confirm(`Kya aap Product '${prod ? prod.name : prodId}' ko Database se PERMANENT Delete karna chahte hain?`)) return;
-
-  const idCond = !isNaN(Number(prodId)) ? Number(prodId) : prodId;
-  const { error } = await db.from("products").delete().or(`id.eq.${idCond},id.eq.${String(prodId)}`);
-
-  if (error) alert("Product delete karne mein error aaya: " + error.message);
-  else {
-    alert("Product Database se delete ho gaya!");
-    productsList = productsList.filter(p => String(p.id) !== String(prodId));
-    delete tickedProductsMap[prodId];
-    renderTickedProductsList(); updateCategoryDropdown(); renderProductsTable();
-    if (document.getElementById("totalProductsCount")) document.getElementById("totalProductsCount").textContent = productsList.length;
-  }
-}
-
-async function deleteSelectedProducts() {
-  const keys = Object.keys(tickedProductsMap);
-  if (!keys.length) return alert("Kripya pehle kam se kam 1 product ko checkbox se tick karein.");
-  if (!confirm(`⚠️ WARNING: Kya aap in ${keys.length} selected products ko PERMANENT Delete karna chahte hain?`)) return;
-
-  const idsToDel = [];
-  keys.forEach(k => { idsToDel.push(k); !isNaN(Number(k)) && idsToDel.push(Number(k)); idsToDel.push(String(k)); });
-
-  const { error } = await db.from("products").delete().in("id", idsToDel);
-  if (error) alert("Selected products delete karne mein error aaya: " + error.message);
-  else {
-    alert(`${keys.length} Products Database se successfully delete ho gaye!`);
-    const delSet = new Set(keys.map(k => String(k)));
-    productsList = productsList.filter(p => !delSet.has(String(p.id)));
-    tickedProductsMap = {};
-    renderTickedProductsList(); updateCategoryDropdown(); renderProductsTable();
-    if (document.getElementById("totalProductsCount")) document.getElementById("totalProductsCount").textContent = productsList.length;
-  }
-}
-
-function toggleProductSelection(prodId, isChecked) {
-  const prod = productsList.find(p => String(p.id) === String(prodId));
-  if (!prod) return;
-  if (isChecked) {
-    tickedProductsMap[prodId] = { product_id: prod.id, product_name: prod.name, quantity: 1, purchase_price: Number(prod.cost_price ?? prod.price ?? 0) };
-  } else delete tickedProductsMap[prodId];
-  renderTickedProductsList();
-}
-
-const openTickedCartModal = async () => {
-  await loadSuppliers();
-  const m = document.getElementById("tickedCartModal");
-  if (m) m.style.display = "flex";
-};
-const closeTickedCartModal = () => { const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "none"; };
-
-function renderTickedProductsList() {
-  const container = document.getElementById("selectedTickedList");
-  const modalContainer = document.getElementById("modalTickedList");
-  const floatingBar = document.getElementById("floatingTickedBar");
-  const keys = Object.keys(tickedProductsMap);
-  const count = keys.length;
-
-  ['tickedCount', 'floatingTickedCount'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = count));
-
-  if (!count) {
-    if (container) container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>';
-    if (modalContainer) modalContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:12px;">No items ticked yet.</div>';
-    ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = "0.00"));
-    if (floatingBar) floatingBar.style.display = "none";
-    closeTickedCartModal();
-    return;
-  }
-
-  if (floatingBar) floatingBar.style.display = "flex";
-  let total = 0;
-
-  const htmlList = keys.map((k, idx) => {
-    const item = tickedProductsMap[k];
-    const prod = productsList.find(p => String(p.id) === String(k));
-    const packCount = getPackCountFromUnit(prod?.unit);
-    const packetCost = Number(item.purchase_price || prod?.cost_price || 0);
-    const itemTotal = Number(item.quantity) * packetCost;
-    total += itemTotal;
-
-    return `
-      <div class="item-row" style="flex-direction:column; align-items:stretch; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div style="display:flex; gap:2px; align-items:center;">
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveTickedItem(${idx}, -1)" title="Move Up">⬆</button>
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === Object.keys(tickedProductsMap).length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveTickedItem(${idx}, 1)" title="Move Down">⬇</button>
-            </div>
-            <div>
-              <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">📦 Packet Cost: <strong style="color:var(--blue);">₹<span id="ticked_packcost_${k}">${packetCost.toFixed(2)}</span></strong> ${prod?.unit ? `(${prod.unit})` : ''} ${packCount > 1 ? ` | <strong style="color:var(--success);">⚡ Each Pcs: ₹<span id="ticked_pcsrate_${k}">${(packetCost / packCount).toFixed(2)}</span> / pcs</strong>` : ''}</div>
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;"><strong style="font-size:13px; color:var(--primary);" id="ticked_itemtotal_${k}">₹${itemTotal.toFixed(2)}</strong><button class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕</button></div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center; background:var(--bg); padding:6px 10px; border-radius:8px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" id="ticked_qty_${k}" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'qty', this.value)" /></div>
-          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate (₹):</label><input type="text" inputmode="decimal" id="ticked_rate_${k}" value="${packetCost.toFixed(2)}" style="width:65px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'rate', this.value)" /></div>
-          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label><input type="text" inputmode="decimal" id="ticked_total_${k}" value="${itemTotal.toFixed(2)}" style="width:85px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'total', this.value)" /></div>
-          <div style="font-size:10px; color:var(--text-muted);">⚡ Per Unit Rate: <strong style="color:var(--success);">₹<span id="ticked_unitrate_${k}">${packetCost.toFixed(2)}</span></strong></div>
-        </div>
-      </div>`;
-  }).join('');
-
-  if (container) container.innerHTML = htmlList;
-  if (modalContainer) modalContainer.innerHTML = htmlList;
-  ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = total.toFixed(2)));
-}
-
-function updateTickedQtyAndTotal(id, type, value) {
-  if (!tickedProductsMap[id]) return;
-  const prod = productsList.find(p => String(p.id) === String(id));
-  const packCount = getPackCountFromUnit(prod?.unit);
-  const numVal = parseFloat(value);
-  const item = tickedProductsMap[id];
-
-  if (type === 'qty') {
-    const qty = (!isNaN(numVal) && numVal > 0) ? numVal : 1;
-    item.quantity = qty;
-    const rate = Number(item.purchase_price || 0);
-    const total = qty * rate;
-
-    document.querySelectorAll(`#ticked_total_${id}`).forEach(input => {
-      if (document.activeElement !== input) input.value = total.toFixed(2);
-    });
-  } else if (type === 'rate') {
-    const rate = (!isNaN(numVal) && numVal >= 0) ? numVal : 0;
-    item.purchase_price = rate;
-    const qty = Number(item.quantity || 1);
-    const total = qty * rate;
-
-    document.querySelectorAll(`#ticked_total_${id}`).forEach(input => {
-      if (document.activeElement !== input) input.value = total.toFixed(2);
-    });
-  } else if (type === 'total') {
-    const totalVal = (!isNaN(numVal) && numVal >= 0) ? numVal : 0;
-    const qty = Number(item.quantity || 1);
-    const rate = qty > 0 ? (totalVal / qty) : totalVal;
-    item.purchase_price = rate;
-
-    document.querySelectorAll(`#ticked_rate_${id}`).forEach(input => {
-      if (document.activeElement !== input) input.value = rate.toFixed(2);
-    });
-  }
-
-  const rate = Number(item.purchase_price || 0);
-  const qty = Number(item.quantity || 1);
-  const itemTotal = qty * rate;
-
-  document.querySelectorAll(`#ticked_packcost_${id}`).forEach(el => el.textContent = rate.toFixed(2));
-  document.querySelectorAll(`#ticked_unitrate_${id}`).forEach(el => el.textContent = rate.toFixed(2));
-  document.querySelectorAll(`#ticked_itemtotal_${id}`).forEach(el => el.textContent = `₹${itemTotal.toFixed(2)}`);
-  if (packCount > 1) {
-    document.querySelectorAll(`#ticked_pcsrate_${id}`).forEach(el => el.textContent = (rate / packCount).toFixed(2));
-  }
-
-  let totalBill = 0;
-  Object.keys(tickedProductsMap).forEach(k => {
-    const it = tickedProductsMap[k];
-    totalBill += (Number(it.quantity || 1) * Number(it.purchase_price || 0));
-  });
-
-  ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = totalBill.toFixed(2);
-  });
-}
-
-function togglePoRateCalc() { const box = document.getElementById("poRateCalcBox"); if (box) box.style.display = (box.style.display === "none" || !box.style.display) ? "block" : "none"; }
-function updateTickedItem(id, field, value) { if (tickedProductsMap[id]) { tickedProductsMap[id][field] = Number(value) || 0; renderTickedProductsList(); } }
-function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(); renderProductsTable(); }
-
-/* CREATE REORDER (NO GOOGLE SHEET SYNC HERE) */
-async function submitTickedReorder(sourceModal = false) {
-  const supplierSelect = sourceModal ? document.getElementById("modalTickedSupplierSelect") : document.getElementById("tickedSupplierSelect");
-  const supplier = supplierSelect ? supplierSelect.value : "";
-  const keys = Object.keys(tickedProductsMap);
-
-  if (!supplier) return alert("Supplier select karein.");
-  if (keys.length === 0) return alert("Kam se kam 1 product par tick karein.");
-
-  const poNumber = await generateNextPoNumber();
-  const itemsList = keys.map(k => tickedProductsMap[k]);
-  const totalAmount = itemsList.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
-
-  const { data: po, error } = await db.from("purchase_orders").insert([{
-    po_number: poNumber,
-    supplier_name: supplier,
-    total_amount: totalAmount,
-    status: "pending"
-  }]).select("id").single();
-
-  if (error) return alert("Error: " + error.message);
-
-  const dbItems = itemsList.map(i => ({
-    po_id: po.id,
-    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
-    product_name: i.product_name || 'Item',
-    quantity: Math.round(Number(i.quantity) || 1),
-    purchase_price: Number(i.purchase_price) || 0
-  }));
-
-  const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
-  if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
-  else {
-    alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
-  }
-
-  clearAllSelection();
-  ['tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
-  closeTickedCartModal();
-  loadPurchaseOrders();
-}
-
-const submitTickedReorderFromModal = () => submitTickedReorder(true);
-
-/* SUPPLIERS MASTER */
-async function loadSuppliers() {
-  const { data } = await db.from("suppliers").select("*").order("name");
-  suppliersList = data || [];
-
-  const options = '<option value="">-- Select Supplier --</option>' + suppliersList.map(s => `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${s.phone ? ` (${s.phone})` : ' (No No.)'}</option>`).join("");
-  ['poSupplierSelect', 'editPoSupplierSelect', 'tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).innerHTML = options));
-
-  if (document.getElementById("supplierReportSupplierSelect")) {
-    document.getElementById("supplierReportSupplierSelect").innerHTML = '<option value="">-- All Suppliers --</option>' + suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-  }
-
-  [document.getElementById("suppliersMasterList"), document.getElementById("prod_suppliersMasterList")].forEach(mc => {
-    if (!mc) return;
-    if (!suppliersList.length) return mc.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
-    mc.innerHTML = suppliersList.map(s => {
-      const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
-      return `
-        <div class="item-row">
-          <div><strong>${s.name}</strong>${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}</div>
-          <div class="dropdown-wrapper">
-            <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
-            <div class="dropdown-menu">
-              ${s.phone ? `
-                <div class="dropdown-header">📞 Quick Contact</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
-                  <a href="tel:${s.phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
-                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item" style="background:#f0fdf4; color:#16a34a; justify-content:center; padding:6px 8px !important; border-radius:6px;">💬 WhatsApp</a>
-                </div>
-                <div class="dropdown-divider"></div>
-              ` : ''}
-              <div class="dropdown-header">⚡ Manage Supplier</div>
-              <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
-              <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete Supplier</button>
-            </div>
-          </div>
-        </div>`;
-    }).join("");
-  });
-}
-
-function onSupplierChange() {
-  const select = document.getElementById("poSupplierSelect");
-  if (!select) return;
-  const phone = select.options[select.selectedIndex]?.getAttribute("data-phone");
-  const actionsDiv = document.getElementById("selectedSupplierActions");
-  if (phone && actionsDiv) {
-    actionsDiv.style.display = "flex"; actionsDiv.style.gap = "6px";
-    actionsDiv.innerHTML = `<a href="tel:${phone}" class="dropdown-btn" style="text-decoration:none; color:white; background:var(--success);">📞 Call</a><a href="https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(select.value)},%20items%20ka%20rate%20confirm%20karna%20tha." target="_blank" class="dropdown-btn" style="text-decoration:none; color:white; background:#25d366;">💬 WhatsApp Rate Query</a>`;
-  } else if (actionsDiv) actionsDiv.style.display = "none";
-}
-
-async function addNewSupplierMaster(prefix = '') {
-  const nameInput = document.getElementById(prefix + "newSupplierInput") || document.getElementById("newSupplierInput");
-  const phoneInput = document.getElementById(prefix + "newSupplierPhone") || document.getElementById("newSupplierPhone");
-  const name = nameInput?.value.trim();
-  const phone = phoneInput?.value.trim();
-  if (!name) return alert("Supplier ka naam likhein.");
-
-  const { error } = await db.from("suppliers").insert([{ name, phone: phone || null }]);
-  if (error) alert("Error: " + error.message);
-  else {
-    alert("Supplier Successfully Add Ho Gaya!");
-    [nameInput, phoneInput, document.getElementById("newSupplierInput"), document.getElementById("newSupplierPhone")].forEach(inp => inp && (inp.value = ""));
-    loadSuppliers();
-  }
-}
-
-function toggleAddNewProductCard() {
-  const card = document.getElementById("addNewProductCard");
-  if (!card) return;
-  card.style.display = card.style.display === "none" || !card.style.display ? "block" : "none";
-  if (card.style.display === "block") {
-    document.getElementById("existingCategoriesList").innerHTML = [...new Set(productsList.map(p => p.category).filter(Boolean))].map(c => `<option value="${c}">`).join('');
-    document.getElementById("newProdName")?.focus();
-  }
-}
-
-async function saveNewProductToDb() {
-  const name = document.getElementById("newProdName")?.value.trim();
-  const category = document.getElementById("newProdCategory")?.value.trim();
-  if (!name || !category) return alert("Product Name aur Category likhna zaroori hai.");
-
-  const customId = `${name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'PRD')}-${Math.floor(100 + Math.random() * 900)}`;
-  const newProductObj = {
-    id: customId, name, category,
-    unit: document.getElementById("newProdUnit")?.value || "",
-    cost_price: Number(document.getElementById("newProdCostPrice")?.value) || 0,
-    selling_price: Number(document.getElementById("newProdSellingPrice")?.value) || 0,
-    stock_qty: Number(document.getElementById("newProdStockQty")?.value) || 0,
-    active: true
-  };
-
-  const img = document.getElementById("newProdImageUrl")?.value.trim();
-  if (img) newProductObj.image_url = img;
-
-  let { error } = await db.from("products").insert([newProductObj]);
-  if (error?.message?.includes("image_url")) { delete newProductObj.image_url; ({ error } = await db.from("products").insert([newProductObj])); }
-
-  if (error) alert("Product Save Error: " + error.message);
-  else {
-    alert(`Product '${name}' Database me successfully Add ho gaya!`);
-    ['newProdName', 'newProdCategory', 'newProdCostPrice', 'newProdSellingPrice', 'newProdImageUrl'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
-    document.getElementById("newProdStockQty") && (document.getElementById("newProdStockQty").value = "10");
-    toggleAddNewProductCard(); loadAllProductsView();
-  }
-}
-
-async function editSupplier(id, oldName, oldPhone) {
-  const newName = prompt("Supplier ka naya naam:", oldName); if (newName === null) return;
-  const newPhone = prompt("Supplier ka naya phone number:", oldPhone); if (newPhone === null) return;
-  if (!newName.trim()) return alert("Supplier ka naam khaali nahi ho sakta.");
-
-  const { error } = await db.from("suppliers").update({ name: newName.trim(), phone: newPhone.trim() || null }).eq("id", id);
-  if (error) alert("Update error: " + error.message); else { alert("Supplier Update ho gaya!"); loadSuppliers(); }
-}
-
-async function deleteSupplier(id) {
-  if (!confirm("Kya aap sach mein is supplier ko delete karna chahte hain?")) return;
-  const { error } = await db.from("suppliers").delete().eq("id", id);
-  if (error) alert("Error: " + error.message); else { alert("Supplier Delete ho gaya!"); loadSuppliers(); }
-}
-
-function setReinvestmentDateFilter(type) {
-  const { from, to } = getDateRange(type);
-  document.getElementById("reinvestmentFromDate") && (document.getElementById("reinvestmentFromDate").value = from.toISOString().split('T')[0]);
-  document.getElementById("reinvestmentToDate") && (document.getElementById("reinvestmentToDate").value = to.toISOString().split('T')[0]);
-  calculateWeeklyReinvestmentComparison();
-}
-
-async function executeCategoryBulkAction(action) {
-  if (!action) return;
-  const category = document.getElementById("bulkCategorySelect")?.value;
-  const actionSelect = document.getElementById("bulkCategoryActionSelect");
-  if (!category) { alert("Kripya pehle Category select karein."); if (actionSelect) actionSelect.value = ""; return; }
-
-  if (action === 'delete_category') {
-    const catProds = productsList.filter(p => p.category === category);
-    if (!confirm(`⚠️ WARNING: Kya aap Category '${category}' ke SABHI ${catProds.length} products ko PERMANENT Delete karna chahte hain?`)) { if (actionSelect) actionSelect.value = ""; return; }
-    const { error } = await db.from("products").delete().eq("category", category);
-    if (error) alert("Category delete error: " + error.message);
-    else { alert(`Category '${category}' ke sabhi products delete ho gaye!`); loadAllProductsView(); }
-  } else {
-    const newStatus = action === 'show';
-    if (!confirm(`Kya aap Category '${category}' ke SABHI products ko ${newStatus ? 'SHOW' : 'HIDE'} karna chahte hain?`)) { if (actionSelect) actionSelect.value = ""; return; }
-    const { error } = await db.from("products").update({ active: newStatus }).eq("category", category);
-    if (error) alert("Category update error: " + error.message);
-    else { productsList.forEach(p => p.category === category && (p.active = newStatus)); renderProductsTable(); }
-  }
-  if (actionSelect) actionSelect.value = "";
-}
-
-/* REINVESTMENT COMPARISON */
-async function calculateWeeklyReinvestmentComparison() {
-  const container = document.getElementById("reinvestmentComparisonContainer");
-  if (!container) return;
-  container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Calculating Comparison...</div>";
-
-  try {
-    let [fromVal, toVal] = [document.getElementById("reinvestmentFromDate")?.value, document.getElementById("reinvestmentToDate")?.value];
-    if (!fromVal || !toVal) {
-      const { from, to } = getDateRange('week');
-      fromVal = from.toISOString().split('T')[0]; toVal = to.toISOString().split('T')[0];
-      document.getElementById("reinvestmentFromDate") && (document.getElementById("reinvestmentFromDate").value = fromVal);
-      document.getElementById("reinvestmentToDate") && (document.getElementById("reinvestmentToDate").value = toVal);
-    }
-
-    const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
-    const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
-
-    const [{ data: sales }, { data: offlineData }, { data: purchases }] = await Promise.all([
-      db.from("orders").select("*, order_items(*)").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()),
-      db.from("Collections").select("*").gte("collection_date", fromVal).lte("collection_date", toVal),
-      db.from("purchase_orders").select("*").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString())
-    ]);
-
-    let totalCollection = (offlineData || []).reduce((s, i) => s + Number(i.amount || 0), 0);
-    (sales || []).forEach(ord => {
-      if (ord.status !== 'cancelled') {
-        if (String(ord.order_id || '').startsWith("ORD-CNT-") && offlineData?.length) return;
-        let amt = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
-        if (amt === 0 && String(ord.address || '').includes("Amt: ₹")) amt = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
-        totalCollection += amt;
-      }
-    });
-
-    const totalPurchase = (purchases || []).reduce((s, po) => po.status !== 'cancelled' ? s + Number(po.total_amount || 0) : s, 0);
-    const diff = totalCollection - totalPurchase;
-    const maxVal = Math.max(100, totalCollection, totalPurchase);
-    const collHeight = Math.min(100, Math.max(8, Math.round((totalCollection / maxVal) * 100)));
-    const purHeight = Math.min(100, Math.max(8, Math.round((totalPurchase / maxVal) * 100)));
-
-    let recHTML = diff > 0 ?
-      `<div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:10px; margin-bottom:12px;"><div style="font-weight:bold; color:var(--success); font-size:13px; margin-bottom:4px;">🟢 Cash Surplus: ₹${diff.toFixed(2)}</div><div style="font-size:12px; color:var(--text-dark);">Collection ₹${totalCollection.toFixed(2)} | Reinvestment ₹${totalPurchase.toFixed(2)}.<br>💡 Next week में <strong>₹${diff.toFixed(2)} extra invest karna recommended hai!</strong></div></div>` :
-      (diff < 0 ? `<div style="background:#fff1f2; border:1px solid #fecdd3; padding:12px; border-radius:10px; margin-bottom:12px;"><div style="font-weight:bold; color:var(--danger); font-size:13px; margin-bottom:4px;">⚠️ Over-Investment: ₹${Math.abs(diff).toFixed(2)}</div><div style="font-size:12px; color:#881337;">Reinvestment (₹${totalPurchase.toFixed(2)}) Collection (₹${totalCollection.toFixed(2)}) se ₹${Math.abs(diff).toFixed(2)} zyada hai.</div></div>` :
-        `<div style="background:var(--calc-bg); border:1px solid var(--calc-border); padding:12px; border-radius:10px; margin-bottom:12px;"><div style="font-weight:bold; color:var(--blue); font-size:13px; margin-bottom:4px;">⚖️ Balanced Reinvestment</div><div style="font-size:12px; color:var(--text-dark);">Collection aur Reinvestment 100% matched hai.</div></div>`);
-
-    container.innerHTML = `
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;" class="reinvest-grid">
-        <div>${recHTML}<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;"><div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;"><small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL COLLECTION</small><strong style="color:var(--success); font-size:16px; display:block;">₹${totalCollection.toFixed(2)}</strong></div><div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;"><small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL REINVESTMENT</small><strong style="color:var(--blue); font-size:16px; display:block;">₹${totalPurchase.toFixed(2)}</strong></div></div></div>
-        <div style="background:var(--surface); border:1px solid var(--border); padding:14px; border-radius:12px;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><h4 style="margin:0; font-size:12px; color:var(--text-dark);">📊 Comparison Chart</h4><div style="font-size:10px; display:flex; gap:8px;"><span style="color:var(--success); font-weight:bold;">🟢 Collection</span><span style="color:var(--blue); font-weight:bold;">🔵 Purchase</span></div></div><div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; padding:10px 0 0 0; border-bottom:2px solid var(--border); gap:16px;"><div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;"><span style="font-size:10px; font-weight:bold; color:var(--success); margin-bottom:4px;">₹${totalCollection.toFixed(0)}</span><div style="width:100%; max-width:55px; background:var(--success); height:${collHeight}%; border-radius:6px 6px 0 0; min-height:8px;"></div></div><div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;"><span style="font-size:10px; font-weight:bold; color:var(--blue); margin-bottom:4px;">₹${totalPurchase.toFixed(0)}</span><div style="width:100%; max-width:55px; background:var(--blue); height:${purHeight}%; border-radius:6px 6px 0 0; min-height:8px;"></div></div></div><div style="display:flex; justify-content:space-around; text-align:center; font-size:10px; font-weight:bold; color:var(--text-muted); margin-top:6px;"><span style="width:45%;">Collection</span><span style="width:45%;">Purchase</span></div></div>
-      </div>`;
-  } catch (err) {
-    container.innerHTML = `<div style='color:var(--danger); padding:10px;'>Error: ${err.message}</div>`;
-  }
-}
-
-/* DRAG & DROP AND ITEM REORDERING HELPERS */
-function reorderArrayItem(arr, fromIdx, toIdx) {
-  if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length || fromIdx === toIdx) return;
-  const item = arr.splice(fromIdx, 1)[0];
-  arr.splice(toIdx, 0, item);
-}
-
-let draggedEditIdx = null;
-function onEditCartDragStart(e, idx) {
-  draggedEditIdx = idx;
-  e.dataTransfer.effectAllowed = "move";
-  e.dataTransfer.setData("text/plain", idx);
-  e.currentTarget.classList.add("dragging");
-}
-function onEditCartDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
-}
-function onEditCartDrop(e, targetIdx) {
-  e.preventDefault();
-  if (draggedEditIdx !== null && draggedEditIdx !== targetIdx) {
-    reorderArrayItem(editPoCart, draggedEditIdx, targetIdx);
-    renderEditPoCart();
-  }
-}
-function onEditCartDragEnd(e) {
-  draggedEditIdx = null;
-  document.querySelectorAll("#editPoCartItems .item-row").forEach(el => el.classList.remove("dragging"));
-}
-function moveEditCartItem(idx, dir) {
-  const target = idx + dir;
-  if (target >= 0 && target < editPoCart.length) {
-    reorderArrayItem(editPoCart, idx, target);
-    renderEditPoCart();
-  }
-}
-
-let draggedPoIdx = null;
-function onPoCartDragStart(e, idx) {
-  draggedPoIdx = idx;
-  e.dataTransfer.effectAllowed = "move";
-  e.dataTransfer.setData("text/plain", idx);
-  e.currentTarget.classList.add("dragging");
-}
-function onPoCartDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
-}
-function onPoCartDrop(e, targetIdx) {
-  e.preventDefault();
-  if (draggedPoIdx !== null && draggedPoIdx !== targetIdx) {
-    reorderArrayItem(poCart, draggedPoIdx, targetIdx);
-    renderPoCart();
-  }
-}
-function onPoCartDragEnd(e) {
-  draggedPoIdx = null;
-  document.querySelectorAll("#poCartItems .item-row").forEach(el => el.classList.remove("dragging"));
-}
-function movePoCartItem(idx, dir) {
-  const target = idx + dir;
-  if (target >= 0 && target < poCart.length) {
-    reorderArrayItem(poCart, idx, target);
-    renderPoCart();
-  }
-}
-
-function moveTickedItem(idx, dir) {
-  const keys = Object.keys(tickedProductsMap);
-  const target = idx + dir;
-  if (target >= 0 && target < keys.length) {
-    const entries = Object.entries(tickedProductsMap);
-    const item = entries.splice(idx, 1)[0];
-    entries.splice(target, 0, item);
-    tickedProductsMap = Object.fromEntries(entries);
-    renderTickedProductsList();
-  }
-}
-
-/* REORDERS / PURCHASE ORDERS HANDLING */
 async function loadProductsForReorder() {
   if (!productsList.length) {
     const { data } = await db.from("products").select("*").order("name");
@@ -1254,14 +398,16 @@ async function loadProductsForReorder() {
   setupProductSearch("editPoProductSearch", "editPoSearchResults", "editSelectedProductId", "editPoPrice");
 }
 
+async function ensureProductsLoaded() {
+  if (!productsList.length) await loadProductsForReorder();
+}
+
 function getProductSku(productId, productName) {
   const pIdNum = Number(productId || 0);
   const pName = String(productName || '').trim();
-
   let prod = null;
-  if (pIdNum > 0) {
-    prod = productsList.find(p => String(p.id) === String(pIdNum));
-  }
+
+  if (pIdNum > 0) prod = productsList.find(p => String(p.id) === String(pIdNum));
   if (!prod && pName) {
     const lowerName = pName.toLowerCase();
     prod = productsList.find(p => (p.name || '').toLowerCase() === lowerName) ||
@@ -1280,20 +426,12 @@ function getProductSku(productId, productName) {
   if (!clean) {
     const targetName = prod?.name || pName || 'PROD';
     const targetId = prod?.id || pIdNum || 1;
-
     const prefix = targetName.substring(0, 3).toUpperCase();
     const numStr = String(targetId).padStart(5, '0');
     clean = `${prefix}-${numStr}`;
   }
 
-  clean = clean.replace(/^([A-Z0-9]{2,4}-)\1/gi, '$1');
-  return clean;
-}
-
-async function ensureProductsLoaded() {
-  if (!productsList.length) {
-    await loadProductsForReorder();
-  }
+  return clean.replace(/^([A-Z0-9]{2,4}-)\1/gi, '$1');
 }
 
 function setupProductSearch(inputId, resultsId, hiddenId, priceInputId) {
@@ -1325,26 +463,6 @@ function selectSearchProduct(id, name, price, inputId, resultsId, hiddenId, pric
   document.getElementById(resultsId) && (document.getElementById(resultsId).style.display = "none");
 }
 
-function togglePoRateCalc(p = '') {
-  const box = document.getElementById(p + "poRateCalcBox");
-  if (box) box.style.display = box.style.display === "none" || !box.style.display ? "block" : "none";
-}
-
-function updatePoPacketRateCalc(p = '') {
-  const qty = Number(document.getElementById(p + "poQty")?.value || 1);
-  const price = Number(document.getElementById(p + "poPrice")?.value || 0);
-  const badge = document.getElementById(p + "poPacketRateHelperBadge");
-  if (!badge) return;
-
-  if (qty > 0 && price > 0) {
-    const eachPrice = (price / qty).toFixed(2);
-    badge.innerHTML = `<span style="font-size:12px; font-weight:bold; color:var(--primary);">💡 1 Unit / Piece Rate: ₹${eachPrice}</span> <small style="color:var(--text-muted);">(Total Bill ₹${price} ÷ ${qty} Qty)</small>`;
-    badge.style.display = "block";
-  } else {
-    badge.style.display = "none";
-  }
-}
-
 function addPoItem() {
   let prodId = document.getElementById("selectedProductId")?.value;
   const searchInput = document.getElementById("poProductSearch");
@@ -1369,24 +487,7 @@ function addPoItem() {
   document.getElementById("selectedProductId") && (document.getElementById("selectedProductId").value = "");
   document.getElementById("poPrice") && (document.getElementById("poPrice").value = "");
   document.getElementById("poQty") && (document.getElementById("poQty").value = "1");
-  document.getElementById("poPacketRateHelperBadge") && (document.getElementById("poPacketRateHelperBadge").style.display = "none");
   renderPoCart();
-}
-
-function addItemToPoCart() {
-  addPoItem();
-}
-
-function updatePoCartTotal() {
-  let total = 0;
-  poCart.forEach((item, idx) => {
-    const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
-    total += itemTotal;
-    const el = document.getElementById(`poItemTotal_${idx}`);
-    if (el) el.textContent = `₹${itemTotal.toFixed(2)}`;
-  });
-  const totalEl = document.getElementById("poTotalBill");
-  if (totalEl) totalEl.textContent = total.toFixed(2);
 }
 
 function renderPoCart() {
@@ -1404,26 +505,17 @@ function renderPoCart() {
     const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
     total += itemTotal;
     return `
-      <div class="item-row" draggable="true" ondragstart="onPoCartDragStart(event, ${idx})" ondragover="onPoCartDragOver(event)" ondrop="onPoCartDrop(event, ${idx})" ondragend="onPoCartDragEnd(event)" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <div style="display:flex; align-items:center; gap:8px; flex:1;">
-          <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:2px 4px; user-select:none;">⠿</span>
-            <div style="display:flex; gap:2px;">
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="movePoCartItem(${idx}, -1)" title="Move Top / Up">⬆</button>
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === poCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="movePoCartItem(${idx}, 1)" title="Move Bottom / Down">⬇</button>
-            </div>
-          </div>
-          <div style="flex:1;">
-            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-            <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].quantity = Number(this.value)||1; updatePoCartTotal();" />
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; updatePoCartTotal();" />
-            </div>
+      <div class="item-row" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="flex:1;">
+          <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+          <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+            <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].quantity = Number(this.value)||1; renderPoCart();" />
+            <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="poCart[${idx}].purchase_price = Number(this.value)||0; renderPoCart();" />
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <strong id="poItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
-          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="poCart.splice(${idx}, 1); renderPoCart();" title="Delete item">✕</button>
+          <strong style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
+          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="poCart.splice(${idx}, 1); renderPoCart();">✕</button>
         </div>
       </div>`;
   }).join("");
@@ -1431,11 +523,27 @@ function renderPoCart() {
   document.getElementById("poTotalBill") && (document.getElementById("poTotalBill").textContent = total.toFixed(2));
 }
 
-/* CREATE REORDER (NO GOOGLE SHEET SYNC HERE) */
+async function generateNextPoNumber() {
+  try {
+    const { data: pos } = await db.from("purchase_orders").select("po_number, id").order("id", { ascending: false }).limit(100);
+    let maxSeq = 1000;
+    if (pos && pos.length) {
+      pos.forEach(p => {
+        if (p.po_number && p.po_number.startsWith("PO-")) {
+          const num = parseInt(p.po_number.replace(/^PO-/, "").trim(), 10);
+          if (!isNaN(num) && num < 1000000 && num > maxSeq) maxSeq = num;
+        }
+      });
+    }
+    return "PO-" + (maxSeq + 1);
+  } catch (e) {
+    return "PO-" + (1000 + Math.floor(Math.random() * 900));
+  }
+}
+
 async function submitPurchaseOrder() {
   const select = document.getElementById("poSupplierSelect");
   const supplier = select ? select.value : "";
-
   if (!supplier) return alert("Supplier select karein.");
   if (!poCart.length) return alert("Order me kam se kam 1 item add karein.");
 
@@ -1452,306 +560,195 @@ async function submitPurchaseOrder() {
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
   }));
+
   const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
-  else {
-    alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
-  }
+  else alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
 
   poCart = [];
   if (select) select.value = "";
   ['poProductSearch', 'selectedProductId', 'poPrice'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
-  document.getElementById("selectedSupplierActions") && (document.getElementById("selectedSupplierActions").style.display = "none");
-  renderPoCart(); loadPurchaseOrders();
-}
-
-async function cancelPurchaseOrder(poId) {
-  if (!confirm("Kya aap is Supplier Reorder ko Cancel karna chahte hain?\nOrder Status 'CANCELLED' ho jayega.")) return;
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { error } = await db.from("purchase_orders").update({ status: "cancelled" }).or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`);
-  if (error) alert("Order cancel karne me error: " + error.message);
-  else {
-    alert("Reorder successfully Cancel ho gaya!");
-    loadPurchaseOrders();
-  }
-}
-
-async function generateNextPoNumber() {
-  try {
-    const { data: pos } = await db.from("purchase_orders").select("po_number, id").order("id", { ascending: false }).limit(100);
-    let maxSeq = 1000;
-    if (pos && pos.length) {
-      pos.forEach(p => {
-        if (p.po_number && p.po_number.startsWith("PO-")) {
-          const numStr = p.po_number.replace(/^PO-/, "").trim();
-          const num = parseInt(numStr, 10);
-          if (!isNaN(num) && num < 1000000 && num > maxSeq) {
-            maxSeq = num;
-          }
-        }
-      });
-    }
-    return "PO-" + (maxSeq + 1);
-  } catch (e) {
-    return "PO-" + (1000 + Math.floor(Math.random() * 900));
-  }
-}
-
-async function changePoSupplier(poId) {
-  await loadSuppliers();
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("supplier_name").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  if (!po) return alert("Order nahi mila.");
-
-  const currentSupplier = po.supplier_name || '';
-  const supplierNames = suppliersList.map(s => s.name);
-  if (!supplierNames.length) return alert("Koi supplier available nahi hai.");
-
-  const chosen = prompt(`Naya Supplier Name chunein:\n\nAvailable Suppliers:\n${supplierNames.join("\n")}`, currentSupplier);
-  if (!chosen || chosen.trim() === "" || chosen.trim() === currentSupplier) return;
-
-  const newSupplierName = chosen.trim();
-  const { error } = await db.from("purchase_orders").update({ supplier_name: newSupplierName }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-  if (error) alert("Supplier change error: " + error.message);
-  else {
-    alert(`Supplier Name badal kar "${newSupplierName}" kar diya gaya hai!`);
-    loadPurchaseOrders();
-  }
-}
-
-async function changePoNumber(poId) {
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  if (!po) return alert("Order nahi mila.");
-
-  const defaultNext = await generateNextPoNumber();
-  const newPoNum = prompt(`PO Number change / update karein:`, po.po_number || defaultNext);
-  if (!newPoNum || newPoNum.trim() === "" || newPoNum.trim() === po.po_number) return;
-
-  const cleanNum = newPoNum.trim();
-  const { error } = await db.from("purchase_orders").update({ po_number: cleanNum }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-  if (error) alert("PO Number update error: " + error.message);
-  else {
-    alert(`PO Number badal kar "${cleanNum}" kar diya gaya hai!`);
-    loadPurchaseOrders();
-  }
-}
-
-function applyPanelCustomizer() {
-  const isOwn = isOwner();
-  const config = isOwn ? panelCustomizerConfig : staffPermissions;
-
-  const navKeys = [
-    { key: 'customerOrders', bId: 'nav-customerOrders' },
-    { key: 'supplierHistory', bId: 'nav-supplierHistory' },
-    { key: 'supplierReorder', bId: 'nav-supplierReorder' },
-    { key: 'productsAdmin', bId: 'nav-productsAdmin' },
-    { key: 'salesReport', bId: 'nav-salesReport' }
-  ];
-
-  navKeys.forEach(item => {
-    const isVisible = config[`nav_${item.key}`] !== false;
-    const bNavBtn = document.getElementById(item.bId);
-    if (bNavBtn) {
-      bNavBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
-    }
-
-    const sidebarBtn = document.querySelector(`.sidebar-btn[data-view="${item.key}"]`);
-    if (sidebarBtn) {
-      sidebarBtn.style.setProperty("display", isVisible ? "flex" : "none", "important");
-    }
-  });
-
-  const globalSearchContainer = document.getElementById("globalSmartSearchContainer");
-  if (globalSearchContainer) {
-    globalSearchContainer.style.setProperty("display", config.globalSearch !== false ? "block" : "none", "important");
-  }
-}
-
-/* GLOBAL SMART SEARCH BAR SYSTEM */
-async function handleGlobalSmartSearch(query) {
-  const dropdown = document.getElementById("globalSearchResultsDropdown");
-  if (!dropdown) return;
-
-  const q = (query || "").trim().toLowerCase();
-  if (q.length < 2) {
-    dropdown.style.display = "none";
-    dropdown.innerHTML = "";
-    return;
-  }
-
-  dropdown.style.display = "block";
-  dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--text-muted);'>🔍 Searching across store...</div>";
-
-  try {
-    const matchedProducts = (productsList || []).filter(p => 
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.category || '').toLowerCase().includes(q) ||
-      (p.sku || '').toLowerCase().includes(q)
-    ).slice(0, 4);
-
-    const matchedSuppliers = (suppliersList || []).filter(s =>
-      (s.name || '').toLowerCase().includes(q) ||
-      (s.phone || '').includes(q)
-    ).slice(0, 3);
-
-    const [{ data: custOrders }, { data: poOrders }] = await Promise.all([
-      db.from("orders").select("id, order_id, customer_name, mobile, status, total_amount").or(`customer_name.ilike.%${q}%,mobile.ilike.%${q}%,order_id.ilike.%${q}%`).limit(4),
-      db.from("purchase_orders").select("id, po_number, supplier_name, status, total_amount").or(`supplier_name.ilike.%${q}%,po_number.ilike.%${q}%`).limit(4)
-    ]);
-
-    let html = "";
-
-    if (matchedProducts.length > 0) {
-      html += `<div style="font-size:10px; font-weight:800; color:var(--primary); margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">📦 PRODUCTS FOUND (${matchedProducts.length})</div>`;
-      matchedProducts.forEach(p => {
-        html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('product', '${p.id}')">
-            <div>
-              <strong style="display:block;">${p.name}</strong>
-              <small style="color:var(--text-muted);">Stock: ${p.stock_qty || 0} | Price: ₹${p.selling_price || 0}</small>
-            </div>
-            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">View ↗</button>
-          </div>`;
-      });
-    }
-
-    if (custOrders && custOrders.length > 0) {
-      html += `<div style="font-size:10px; font-weight:800; color:#16a34a; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">🛍 CUSTOMER ORDERS (${custOrders.length})</div>`;
-      custOrders.forEach(o => {
-        html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('customerOrder', '${o.id}')">
-            <div>
-              <strong style="display:block;">ID: ${o.order_id || '#' + o.id} (${o.customer_name || 'Customer'})</strong>
-              <small style="color:var(--text-muted);">📞 ${o.mobile || 'N/A'} | Status: ${o.status || 'pending'}</small>
-            </div>
-            <button class="btn-primary" style="padding:2px 6px; font-size:10px;">View Order ↗</button>
-          </div>`;
-      });
-    }
-
-    if (poOrders && poOrders.length > 0) {
-      html += `<div style="font-size:10px; font-weight:800; color:#2563eb; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">📋 REORDERS (${poOrders.length})</div>`;
-      poOrders.forEach(po => {
-        html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('supplierPo', '${po.id}')">
-            <div>
-              <strong style="display:block;">${po.po_number || '#' + po.id} (${po.supplier_name})</strong>
-              <small style="color:var(--text-muted);">Status: ${po.status || 'pending'} | Total: ₹${po.total_amount || 0}</small>
-            </div>
-            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">View PO ↗</button>
-          </div>`;
-      });
-    }
-
-    if (matchedSuppliers.length > 0) {
-      html += `<div style="font-size:10px; font-weight:800; color:#d97706; margin-top:8px; margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">🚚 SUPPLIERS (${matchedSuppliers.length})</div>`;
-      matchedSuppliers.forEach(s => {
-        html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="selectSearchResult('supplier', '${s.name}')">
-            <div>
-              <strong style="display:block;">${s.name}</strong>
-              <small style="color:var(--text-muted);">📞 ${s.phone || 'N/A'}</small>
-            </div>
-            <button class="btn-outline" style="padding:2px 6px; font-size:10px;">Reorder ↗</button>
-          </div>`;
-      });
-    }
-
-    if (!html) {
-      dropdown.innerHTML = "<div style='text-align:center; padding:12px; font-size:11px; color:var(--text-muted);'>❌ Koi result nahi mila.</div>";
-    } else {
-      dropdown.innerHTML = html;
-    }
-  } catch (err) {
-    console.error("Global search error:", err);
-    dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--danger);'>Search error.</div>";
-  }
-}
-
-function selectSearchResult(type, id) {
-  const dropdown = document.getElementById("globalSearchResultsDropdown");
-  if (dropdown) dropdown.style.display = "none";
-
-  if (type === 'customerOrder') {
-    switchAdminView('customerOrders');
-  } else if (type === 'supplierPo') {
-    switchAdminView('supplierHistory');
-  } else if (type === 'product') {
-    switchAdminView('productsAdmin');
-  } else if (type === 'supplier') {
-    switchAdminView('supplierReorder');
-    const ts = document.getElementById("tickedSupplierSelect");
-    if (ts) ts.value = id;
-  }
-}
-
-document.addEventListener("click", (e) => {
-  const container = document.getElementById("globalSmartSearchContainer");
-  const dropdown = document.getElementById("globalSearchResultsDropdown");
-  if (container && dropdown && !container.contains(e.target)) {
-    dropdown.style.display = "none";
-  }
-});
-
-function openPanelCustomizerModal() {
-  if (!verifyOwnerPin("Panel Customizer kholne ke liye Owner PIN dalein:")) return;
-  const modal = document.getElementById("panelCustomizerModal");
-  if (!modal) return;
-  Object.keys(panelCustomizerConfig).forEach(key => {
-    const chk = document.getElementById(`pop_${key}`);
-    if (chk) chk.checked = panelCustomizerConfig[key] !== false;
-  });
-  modal.style.display = "flex";
-}
-
-function closePanelCustomizerModal() {
-  const modal = document.getElementById("panelCustomizerModal");
-  if (modal) modal.style.display = "none";
-  applyPanelCustomizer();
+  renderPoCart();
   loadPurchaseOrders();
 }
 
-function resetPanelCustomizer() {
-  panelCustomizerConfig = {
-    contactPills: true,
-    pdfReport: true,
-    googleSync: true,
-    changeSupplier: true,
-    editItems: true,
-    cancelOrder: true,
-    changeDate: true,
-    deleteOrder: true,
-    nav_customerOrders: true,
-    nav_supplierHistory: true,
-    nav_supplierReorder: true,
-    nav_productsAdmin: true,
-    nav_salesReport: true
-  };
-  localStorage.setItem("panelCustomizerConfig", JSON.stringify(panelCustomizerConfig));
-  openPanelCustomizerModal();
-  applyPanelCustomizer();
+async function submitTickedReorder(sourceModal = false) {
+  const supplierSelect = sourceModal ? document.getElementById("modalTickedSupplierSelect") : document.getElementById("tickedSupplierSelect");
+  const supplier = supplierSelect ? supplierSelect.value : "";
+  const keys = Object.keys(tickedProductsMap);
+
+  if (!supplier) return alert("Supplier select karein.");
+  if (keys.length === 0) return alert("Kam se kam 1 product par tick karein.");
+
+  const poNumber = await generateNextPoNumber();
+  const itemsList = keys.map(k => tickedProductsMap[k]);
+  const totalAmount = itemsList.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
+
+  const { data: po, error } = await db.from("purchase_orders").insert([{
+    po_number: poNumber,
+    supplier_name: supplier,
+    total_amount: totalAmount,
+    status: "pending"
+  }]).select("id").single();
+
+  if (error) return alert("Error: " + error.message);
+
+  const dbItems = itemsList.map(i => ({
+    po_id: po.id,
+    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
+    product_name: i.product_name || 'Item',
+    quantity: Math.round(Number(i.quantity) || 1),
+    purchase_price: Number(i.purchase_price) || 0
+  }));
+
+  const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
+  if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
+  else alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}\n(Sheet sync stock receive hone par hogi)`);
+
+  clearAllSelection();
+  ['tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
+  closeTickedCartModal();
+  loadPurchaseOrders();
 }
 
-async function deletePurchaseOrder(poId) {
-  if (!verifyOwnerPin("Order Delete karne ke liye Owner Master PIN dalein:")) return;
+const submitTickedReorderFromModal = () => submitTickedReorder(true);
+
+/* ======================================================
+   RECEIVE STOCK (EXACT LIVE TIME + STRICT SHEET SYNC)
+   ====================================================== */
+
+async function receiveStock(poId) {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  const inputDate = prompt(
+    "Stock Receive hone ki date dalein (YYYY-MM-DD format):\n(Aaj ke LIVE TIME ke sath receive karne ke liye OK dabayein)",
+    todayStr
+  );
+  if (inputDate === null) return;
+
+  let cleanDate = inputDate.trim();
+  let receivedTimestamp;
+
+  // Agar aaj ki date hai toh LIVE TIME save hoga, varna manual date
+  if (!cleanDate || cleanDate === todayStr) {
+    receivedTimestamp = new Date().toISOString();
+  } else {
+    receivedTimestamp = new Date(`${cleanDate}T${now.toTimeString().split(' ')[0]}`).toISOString();
+  }
+
+  if (!confirm(`Stock Receive confirm karein?\nIsse Stock Qty, Live Time aur Google Sheet sync update ho jayenge.`)) return;
 
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  const poNum = po?.po_number || (typeof poId === 'string' && poId.startsWith('PO-') ? poId : `PO-${poId}`);
 
-  await db.from("purchase_order_items").delete().or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
-  const { error } = await db.from("purchase_orders").delete().or(`id.eq.${idCond},id.eq.${String(poId)}`);
-  if (error) alert("Delete error: " + error.message);
-  else {
-    syncOrderToGoogleSheet({
-      action: "delete",
-      targetSheet: "Admin Orders Indent",
-      orderId: poNum
-    });
-    alert(`Order ${poNum} Database se remove ho gaya!`);
-    loadPurchaseOrders();
+  // 1. Fetch PO & Items
+  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`).single();
+  const { data: allItems } = await db.from("purchase_order_items").select("*");
+  const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
+
+  // 2. Supabase Stock & Cost Update
+  if (items?.length) {
+    for (let item of items) {
+      if (!item.product_id) continue;
+      const pIdCond = !isNaN(Number(item.product_id)) ? Number(item.product_id) : item.product_id;
+      const { data: prod } = await db.from("products").select("stock_qty").or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`).single();
+      const currentQty = Number(prod?.stock_qty || 0);
+      await db.from("products").update({
+        cost_price: item.purchase_price,
+        stock_qty: currentQty + Number(item.quantity || 0)
+      }).or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`);
+    }
   }
+
+  // 3. Database Status Update
+  await db.from("purchase_orders").update({
+    status: "received",
+    received_at: receivedTimestamp
+  }).or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`);
+
+  // 4. PREPARE SHEET PAYLOAD & SYNC STRICTLY HERE
+  await ensureProductsLoaded();
+  const poNum = po?.po_number || ('PO-' + poId);
+  const totalBill = Number(po?.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0));
+
+  const sheetItems = items.map((i, idx) => {
+    const skuCode = getProductSku(i.product_id, i.product_name);
+    const q = Number(i.quantity || 1);
+    const cp = Number(i.purchase_price || 0);
+    const isLast = (idx === items.length - 1);
+    return {
+      indentNo: 101 + idx,
+      sku: skuCode,
+      name: i.product_name || 'Item',
+      quantity: q,
+      costPack: cp > 0 ? cp.toFixed(2) : "0",
+      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
+      supplier: po?.supplier_name || 'N/A',
+      buyer: 'Akash sharma',
+      price: (q * cp).toFixed(2),
+      orderTotal: isLast ? totalBill.toFixed(2) : ""
+    };
+  });
+
+  await syncOrderToGoogleSheet({
+    action: "stock_received",
+    status: "received",
+    targetSheet: "Admin Orders Indent",
+    orderId: poNum,
+    poId: poNum,
+    supplierName: po?.supplier_name || 'Akash Sharma',
+    itemsArray: sheetItems,
+    totalAmount: totalBill,
+    buyer: "Akash sharma"
+  });
+
+  alert(`✅ Stock Receive ho gaya!\nLive Time update ho gaya aur Google Sheet (${poNum}) me entry complete ho gayi.`);
+  loadPurchaseOrders();
+  loadProductsForReorder();
+}
+
+async function syncPoToSheet(poId) {
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
+
+  if (!po || !items?.length) return alert("Order details load nahi ho payi.");
+  await ensureProductsLoaded();
+
+  const totalBill = po.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
+
+  const sheetItems = items.map((i, idx) => {
+    const skuCode = getProductSku(i.product_id, i.product_name);
+    const q = Number(i.quantity || 1);
+    const cp = Number(i.purchase_price || 0);
+    const isLast = (idx === items.length - 1);
+    return {
+      indentNo: 101 + idx,
+      sku: skuCode,
+      name: i.product_name,
+      quantity: q,
+      costPack: cp > 0 ? cp.toFixed(2) : "0",
+      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
+      supplier: po.supplier_name || 'N/A',
+      buyer: 'Akash sharma',
+      price: (q * cp).toFixed(2),
+      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
+    };
+  });
+
+  await syncOrderToGoogleSheet({
+    action: "stock_received",
+    status: "received",
+    targetSheet: "Admin Orders Indent",
+    orderId: po.po_number || ('#' + po.id),
+    poId: po.po_number || ('#' + po.id),
+    supplierName: po.supplier_name || 'Akash Sharma',
+    itemsArray: sheetItems,
+    totalAmount: totalBill,
+    buyer: "Akash sharma"
+  });
+
+  alert(`✅ Order ${po.po_number || po.id} Google Sheet me successfully Sync ho gaya!`);
 }
 
 async function loadPurchaseOrders() {
@@ -1827,7 +824,7 @@ async function loadPurchaseOrders() {
         </div>
         <div style="margin-top:8px;">
           ${items.length > 0 ? `
-            <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:auto; resize:vertical; min-height:auto !important; max-height:320px; height:auto !important; margin-bottom:8px;">
+            <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:auto; resize:vertical; max-height:320px; margin-bottom:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead><tr style="background:var(--bg); color:var(--text-muted); text-align:left;"><th style="padding:6px 10px;">Product Name</th><th style="padding:6px 10px; text-align:center;">Qty</th><th style="padding:6px 10px; text-align:right;">Purchase Price (₹)</th><th style="padding:6px 10px; text-align:right;">Total Amount (₹)</th></tr></thead>
                 <tbody>${items.map(it => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td></tr>`).join("")}</tbody>
@@ -1842,6 +839,72 @@ async function loadPurchaseOrders() {
       </div>`;
   }).join("");
 }
+
+async function cancelPurchaseOrder(poId) {
+  if (!confirm("Kya aap is Supplier Reorder ko Cancel karna chahte hain?")) return;
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { error } = await db.from("purchase_orders").update({ status: "cancelled" }).or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`);
+  if (error) alert("Error: " + error.message);
+  else { alert("Reorder successfully Cancel ho gaya!"); loadPurchaseOrders(); }
+}
+
+async function deletePurchaseOrder(poId) {
+  if (!verifyOwnerPin("Order Delete karne ke liye Owner Master PIN dalein:")) return;
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("po_number").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  const poNum = po?.po_number || (typeof poId === 'string' && poId.startsWith('PO-') ? poId : `PO-${poId}`);
+
+  await db.from("purchase_order_items").delete().or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
+  const { error } = await db.from("purchase_orders").delete().or(`id.eq.${idCond},id.eq.${String(poId)}`);
+  if (error) alert("Delete error: " + error.message);
+  else {
+    syncOrderToGoogleSheet({ action: "delete", targetSheet: "Admin Orders Indent", orderId: poNum });
+    alert(`Order ${poNum} Database se remove ho gaya!`);
+    loadPurchaseOrders();
+  }
+}
+
+async function changePoSupplier(poId) {
+  await loadSuppliers();
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { data: po } = await db.from("purchase_orders").select("supplier_name").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  if (!po) return alert("Order nahi mila.");
+
+  const currentSupplier = po.supplier_name || '';
+  const supplierNames = suppliersList.map(s => s.name);
+  const chosen = prompt(`Naya Supplier Name chunein:\n\nAvailable Suppliers:\n${supplierNames.join("\n")}`, currentSupplier);
+  if (!chosen || chosen.trim() === "" || chosen.trim() === currentSupplier) return;
+
+  const { error } = await db.from("purchase_orders").update({ supplier_name: chosen.trim() }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+  if (error) alert("Error: " + error.message);
+  else { alert(`Supplier Name update ho gaya!`); loadPurchaseOrders(); }
+}
+
+async function changePoReceivedDate(poId, currentDateStr) {
+  let defaultDate = new Date().toISOString().split('T')[0];
+  if (currentDateStr) {
+    try {
+      const d = new Date(currentDateStr);
+      if (!isNaN(d.getTime())) defaultDate = d.toISOString().split('T')[0];
+    } catch (e) { }
+  }
+
+  const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):", defaultDate);
+  if (newDateInput === null) return;
+  const cleanDate = newDateInput.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) return alert("Galat date format! YYYY-MM-DD dalein.");
+
+  const selectedIso = new Date(`${cleanDate}T12:00:00`).toISOString();
+  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+  const { error } = await db.from("purchase_orders").update({ received_at: selectedIso }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+
+  if (error) alert("Date update error: " + error.message);
+  else { alert("Stock Received Date update ho gayi: " + cleanDate); loadPurchaseOrders(); }
+}
+
+/* ==========================================
+   EDIT REORDER CART MODAL
+   ========================================== */
 
 async function openEditPoModal(poId) {
   await Promise.all([ensureProductsLoaded(), loadSuppliers()]);
@@ -1906,16 +969,6 @@ function addItemToEditPoCart() {
   renderEditPoCart();
 }
 
-function updateEditPoTotal() {
-  let total = 0;
-  editPoCart.forEach((item, idx) => {
-    const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
-    total += itemTotal;
-    document.getElementById(`editItemTotal_${idx}`) && (document.getElementById(`editItemTotal_${idx}`).textContent = `₹${itemTotal.toFixed(2)}`);
-  });
-  document.getElementById("editPoTotalBill") && (document.getElementById("editPoTotalBill").textContent = total.toFixed(2));
-}
-
 function renderEditPoCart() {
   const container = document.getElementById("editPoCartItems");
   if (!container) return;
@@ -1931,26 +984,17 @@ function renderEditPoCart() {
     const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
     total += itemTotal;
     return `
-      <div class="item-row" draggable="true" ondragstart="onEditCartDragStart(event, ${idx})" ondragover="onEditCartDragOver(event)" ondrop="onEditCartDrop(event, ${idx})" ondragend="onEditCartDragEnd(event)" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <div style="display:flex; align-items:center; gap:8px; flex:1;">
-          <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:2px 4px; user-select:none;">⠿</span>
-            <div style="display:flex; gap:2px;">
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, -1)" title="Move Top / Up">⬆</button>
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === editPoCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, 1)" title="Move Bottom / Down">⬇</button>
-            </div>
-          </div>
-          <div style="flex:1;">
-            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-            <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" />
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" />
-            </div>
+      <div class="item-row" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="flex:1;">
+          <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+          <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+            <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; renderEditPoCart();" />
+            <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; renderEditPoCart();" />
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <strong id="editItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
-          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();" title="Delete item">✕</button>
+          <strong style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
+          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();">✕</button>
         </div>
       </div>`;
   }).join("");
@@ -1989,168 +1033,21 @@ async function saveUpdatedPurchaseOrder() {
 
   await db.from("purchase_order_items").delete().or(`po_id.eq.${targetPoId},po_id.eq.${targetPoNum}`);
   const { error: insErr } = await db.from("purchase_order_items").insert(itemsToInsert);
-  if (insErr) alert("Items save karne mein error aaya: " + insErr.message);
+  if (insErr) alert("Items save karne mein error: " + insErr.message);
   else alert("Reorder successfully update ho gaya!");
 
-  closeEditPoModal(); loadPurchaseOrders();
+  closeEditPoModal();
+  loadPurchaseOrders();
 }
 
-/* MANUAL SYNC TO GOOGLE SHEET */
-async function syncPoToSheet(poId) {
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  const { data: items } = await db.from("purchase_order_items").select("*").or(`po_id.eq.${idCond},po_id.eq.${String(poId)}`);
+/* ==========================================
+   CUSTOMER ORDERS HANDLING
+   ========================================== */
 
-  if (!po || !items?.length) return alert("Order details loading failed.");
-  await ensureProductsLoaded();
-
-  const totalBill = po.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
-
-  const sheetItems = items.map((i, idx) => {
-    const skuCode = getProductSku(i.product_id, i.product_name);
-    const q = Number(i.quantity || 1);
-    const cp = Number(i.purchase_price || 0);
-    const isLast = (idx === items.length - 1);
-    return {
-      indentNo: 101 + idx,
-      sku: skuCode,
-      name: i.product_name,
-      quantity: q,
-      costPack: cp > 0 ? cp.toFixed(2) : "0",
-      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
-      supplier: po.supplier_name || 'N/A',
-      buyer: 'Akash sharma',
-      price: (q * cp).toFixed(2),
-      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
-    };
-  });
-
-  await syncOrderToGoogleSheet({
-    action: "stock_received",
-    status: "received",
-    targetSheet: "Admin Orders Indent",
-    orderId: po.po_number || ('#' + po.id),
-    poId: po.po_number || ('#' + po.id),
-    supplierName: po.supplier_name || 'Akash Sharma',
-    itemsArray: sheetItems,
-    totalAmount: totalBill,
-    buyer: "Akash sharma"
-  });
-
-  alert(`Order ${po.po_number || po.id} ka data Google Sheet me sync ho gaya!`);
-}
-
-async function changePoReceivedDate(poId, currentDateStr) {
-  let defaultDate = new Date().toISOString().split('T')[0];
-  if (currentDateStr) {
-    try {
-      const d = new Date(currentDateStr);
-      if (!isNaN(d.getTime())) {
-        defaultDate = d.toISOString().split('T')[0];
-      }
-    } catch (e) { }
-  }
-
-  const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\nJaise pichli entry ke liye: 2026-08-07", defaultDate);
-  if (newDateInput === null) return;
-
-  const cleanDate = newDateInput.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-    return alert("Galat date format! Kripya YYYY-MM-DD format me dalein (Jaise: 2026-08-07).");
-  }
-
-  const selectedIso = new Date(`${cleanDate}T12:00:00`).toISOString();
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { error } = await db.from("purchase_orders").update({ received_at: selectedIso }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-
-  if (error) alert("Date update error: " + error.message);
-  else {
-    alert("Stock Received Date update ho gayi: " + cleanDate);
-    loadPurchaseOrders();
-  }
-}
-
-/* ======================================================
-   RECEIVE STOCK (ONLY HERE GOOGLE SHEET SYNC TRIGGERS)
-   ====================================================== */
-async function receiveStock(poId) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const inputDate = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\n(Aaj ki date ke liye OK karein ya pichli date jaise 2026-08-07 enter karein)", todayStr);
-  if (inputDate === null) return;
-
-  let cleanDate = inputDate.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-    cleanDate = todayStr;
-  }
-
-  const receivedTimestamp = new Date(`${cleanDate}T12:00:00`).toISOString();
-
-  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty, Cost Price aur Google Sheet sync update ho jayenge.`)) return;
-
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
-  const { data: allItems } = await db.from("purchase_order_items").select("*");
-  const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
-
-  // 1. Supabase Stock Update
-  if (items?.length) {
-    for (let item of items) {
-      if (!item.product_id) continue;
-      const pIdCond = !isNaN(Number(item.product_id)) ? Number(item.product_id) : item.product_id;
-      const { data: prod } = await db.from("products").select("stock_qty").or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`).single();
-      const currentQty = Number(prod?.stock_qty || 0);
-      await db.from("products").update({ cost_price: item.purchase_price, stock_qty: currentQty + Number(item.quantity || 0) }).or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`);
-    }
-  }
-
-  // 2. Status update in Database
-  await db.from("purchase_orders").update({ status: "received", received_at: receivedTimestamp }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-
-  // 3. TRIGGER GOOGLE SHEET SYNC STRICTLY HERE
-  await ensureProductsLoaded();
-  const totalBill = po.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
-
-  const sheetItems = items.map((i, idx) => {
-    const skuCode = getProductSku(i.product_id, i.product_name);
-    const q = Number(i.quantity || 1);
-    const cp = Number(i.purchase_price || 0);
-    const isLast = (idx === items.length - 1);
-    return {
-      indentNo: 101 + idx,
-      sku: skuCode,
-      name: i.product_name,
-      quantity: q,
-      costPack: cp > 0 ? cp.toFixed(2) : "0",
-      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
-      supplier: po.supplier_name || 'N/A',
-      buyer: 'Akash sharma',
-      price: (q * cp).toFixed(2),
-      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
-    };
-  });
-
-  await syncOrderToGoogleSheet({
-    action: "stock_received",
-    status: "received",
-    targetSheet: "Admin Orders Indent",
-    orderId: po.po_number || ('#' + po.id),
-    poId: po.po_number || ('#' + po.id),
-    supplierName: po.supplier_name || 'Akash Sharma',
-    itemsArray: sheetItems,
-    totalAmount: totalBill,
-    buyer: "Akash sharma"
-  });
-
-  alert("Stock Receive ho gaya! Stock Qty update ho gayi aur Sheet Sync complete ho gayi.");
-  loadPurchaseOrders(); loadProductsForReorder();
-}
-
-/* CUSTOMER ORDERS HANDLING */
 function setCustOrdersDateFilter(type) {
   const fromEl = document.getElementById("custFromDate");
   const toEl = document.getElementById("custToDate");
   if (!fromEl || !toEl) return;
-
   const { from, to } = getDateRange(type);
   fromEl.value = from.toISOString().split("T")[0];
   toEl.value = to.toISOString().split("T")[0];
@@ -2229,16 +1126,8 @@ async function loadCustomerOrders() {
   }
 }
 
-async function deleteCustomerOrder(id) {
-  if (!confirm("Kya aap is Customer Order ko Database se Delete karna chahte hain?")) return;
-  await db.from("order_items").delete().eq("order_id", id);
-  const { error } = await db.from("orders").delete().eq("id", id);
-  if (error) alert("Delete Error: " + error.message);
-  else { alert("Customer Order Remove ho gaya!"); loadCustomerOrders(); }
-}
-
 async function updateOrderStatus(id, newStatus) {
-  const confirmMsg = newStatus === 'processing' ? "Kya order ko 'Under Process' mark karein?" : (newStatus === 'completed' ? "Kya order ko 'Completed' mark karein?" : "Kya aap is order ko CANCEL karna chahte hain?");
+  const confirmMsg = newStatus === 'processing' ? "Order ko 'Under Process' mark karein?" : (newStatus === 'completed' ? "Order ko 'Completed' mark karein?" : "Kya aap is order ko CANCEL karna chahte hain?");
   if (!confirm(confirmMsg)) return;
 
   const updateData = { status: newStatus, updated_at: new Date().toISOString() };
@@ -2250,83 +1139,303 @@ async function updateOrderStatus(id, newStatus) {
   else {
     alert("Order Status update ho gaya!");
     loadCustomerOrders();
+    try {
+      const { data: ord } = await db.from("orders").select("*").eq("id", id).single();
+      const { data: items } = await db.from("order_items").select("*").eq("order_id", id);
+      if (ord) {
+        const itemNames = (items || []).map(i => `${i.product_name} (×${i.quantity || 1})`).join(", ") || "Order Items";
+        const totalAmount = (items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        syncOrderToGoogleSheet({
+          targetSheet: "Admin Orders Log",
+          isCustomerOrder: true,
+          orderId: ord.order_id || ('#' + ord.id),
+          orderType: "Customer Order",
+          partyName: ord.customer_name || 'Customer',
+          items: itemNames,
+          quantity: (items || []).reduce((s, i) => s + (Number(i.quantity) || 1), 0),
+          totalAmount: totalAmount,
+          status: newStatus,
+          notes: `Mobile: ${ord.mobile || ''} | Address: ${ord.address || ''}`
+        });
+      }
+    } catch (e) { console.error("Sheet sync error:", e); }
   }
 }
 
-/* PDF GENERATION */
-async function generateCustomerBillPdf(orderId) {
-  const { data: ord } = await db.from("orders").select("*").eq("id", orderId).single();
-  const { data: items } = await db.from("order_items").select("*").eq("order_id", orderId);
-  if (!ord) return alert("Order Details Not Found!");
-
-  let totalAmount = (items || []).reduce((s, it) => s + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-  if (totalAmount === 0 && String(ord.address || '').includes("Amt: ₹")) totalAmount = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
-
-  const printDiv = document.getElementById("printContainer");
-  printDiv.innerHTML = `
-    <div style="border:1px solid #000; padding:15px; font-size:12px;">
-      <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
-      <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">Customer Invoice Bill</p><hr/>
-      <p><strong>Order ID:</strong> ${ord.order_id || ('#' + ord.id)}</p><p><strong>Customer Name:</strong> ${ord.customer_name || 'N/A'}</p><p><strong>Mobile:</strong> ${ord.mobile || 'N/A'}</p><p><strong>Address:</strong> ${ord.address || 'N/A'}</p><p><strong>Date:</strong> ${formatTime(ord.created_at)}</p><hr/>
-      <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
-        <thead><tr style="background:#f1f5f9;"><th>Item Name</th><th>Qty</th><th>Rate (₹)</th><th>Total (₹)</th></tr></thead>
-        <tbody>${items?.length ? items.map(it => `<tr><td>${it.product_name}</td><td style="text-align:center;">${it.quantity || 1}</td><td style="text-align:right;">${Number(it.price || 0).toFixed(2)}</td><td style="text-align:right;">${(Number(it.price || 0) * Number(it.quantity || 1)).toFixed(2)}</td></tr>`).join('') : `<tr><td colspan="3">Counter Sales Collection</td><td style="text-align:right;">${totalAmount.toFixed(2)}</td></tr>`}</tbody>
-      </table>
-      <h3 style="text-align:right; margin-top:15px;">GRAND TOTAL: ₹${totalAmount.toFixed(2)}</h3>
-    </div>`;
-
-  printDiv.style.display = "block";
-  await html2pdf().set({ margin: 10, filename: `Bill_Order_${ord.order_id || ord.id}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(printDiv).save();
-  printDiv.style.display = "none";
+async function deleteCustomerOrder(id) {
+  if (!confirm("Kya aap is Customer Order ko Database se Delete karna chahte hain?")) return;
+  await db.from("order_items").delete().eq("order_id", id);
+  const { error } = await db.from("orders").delete().eq("id", id);
+  if (error) alert("Delete Error: " + error.message);
+  else { alert("Customer Order Remove ho gaya!"); loadCustomerOrders(); }
 }
 
-async function generateSupplierPoPdf(poId) {
-  const { data: po } = await db.from("purchase_orders").select("*").eq("id", poId).single();
-  if (!po) return alert("Supplier Order Not Found!");
+/* ==========================================
+   SUPPLIERS MASTER & PRODUCTS VIEW
+   ========================================== */
 
-  const { data: poItems } = await db.from("purchase_order_items").select("*").eq("po_id", poId);
-  po.purchase_order_items = poItems || [];
-  const supObj = suppliersList.find(s => s.name === po.supplier_name);
-  const cleanPhone = supObj?.phone ? supObj.phone.replace(/[^0-9]/g, '') : '';
+async function loadSuppliers() {
+  const { data } = await db.from("suppliers").select("*").order("name");
+  suppliersList = data || [];
 
-  const printDiv = document.getElementById("printContainer");
-  printDiv.innerHTML = `
-    <div style="border:1px solid #000; padding:15px; font-size:12px;">
-      <h2 style="text-align:center; margin:0 0 5px 0;">APNA DG STORE</h2>
-      <p style="text-align:center; margin:0 0 15px 0; font-size:11px;">PURCHASE REORDER LIST</p><hr/>
-      <p><strong>PO Number:</strong> ${po.po_number}</p><p><strong>Supplier Name:</strong> ${po.supplier_name}</p><p><strong>Phone:</strong> ${supObj?.phone || 'N/A'}</p><p><strong>Date:</strong> ${formatTime(po.created_at)}</p><hr/>
-      <table style="width:100%; border-collapse:collapse; margin-top:10px;" border="1" cellpadding="5">
-        <thead><tr style="background:#f1f5f9;"><th>Product Name</th><th>Required Qty</th><th>Est. Rate (₹)</th><th>Total (₹)</th></tr></thead>
-        <tbody>${(po.purchase_order_items || []).map(it => `<tr><td>${it.product_name}</td><td style="text-align:center;">${it.quantity}</td><td style="text-align:right;">${Number(it.purchase_price).toFixed(2)}</td><td style="text-align:right;">${(it.quantity * it.purchase_price).toFixed(2)}</td></tr>`).join('')}</tbody>
-      </table>
-      <h3 style="text-align:right; margin-top:15px;">EST. TOTAL BILL: ₹${Number(po.total_amount).toFixed(2)}</h3>
-    </div>`;
+  const options = '<option value="">-- Select Supplier --</option>' + suppliersList.map(s => `<option value="${s.name}" data-phone="${s.phone || ''}">${s.name}${s.phone ? ` (${s.phone})` : ' (No No.)'}</option>`).join("");
+  ['poSupplierSelect', 'editPoSupplierSelect', 'tickedSupplierSelect', 'modalTickedSupplierSelect'].forEach(id => document.getElementById(id) && (document.getElementById(id).innerHTML = options));
 
-  printDiv.style.display = "block";
-  await html2pdf().set({ margin: 10, filename: `Reorder_${po.po_number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(printDiv).save();
-  printDiv.style.display = "none";
+  if (document.getElementById("supplierReportSupplierSelect")) {
+    document.getElementById("supplierReportSupplierSelect").innerHTML = '<option value="">-- All Suppliers --</option>' + suppliersList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  }
 
-  if (cleanPhone) {
-    const waMsg = encodeURIComponent(`Hello ${po.supplier_name},\n\nApna DG Store se Order ${po.po_number} ki PDF generate ho gayi hai.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${waMsg}`, '_blank');
+  [document.getElementById("suppliersMasterList"), document.getElementById("prod_suppliersMasterList")].forEach(mc => {
+    if (!mc) return;
+    if (!suppliersList.length) return mc.innerHTML = "<div style='text-align:center; font-size:12px; color:var(--text-muted); padding:8px;'>Koi supplier added nahi hai.</div>";
+    mc.innerHTML = suppliersList.map(s => {
+      const cleanPhone = s.phone ? s.phone.replace(/[^0-9]/g, '') : '';
+      return `
+        <div class="item-row">
+          <div><strong>${s.name}</strong>${s.phone ? `<br><small style="color:var(--text-muted);">📞 ${s.phone}</small>` : '<br><small style="color:var(--danger);">Phone Missing</small>'}</div>
+          <div class="dropdown-wrapper">
+            <button class="dropdown-btn" onclick="toggleDropdown(this)">⚡ Actions ▾</button>
+            <div class="dropdown-menu">
+              ${s.phone ? `
+                <div class="dropdown-header">📞 Quick Contact</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:4px;">
+                  <a href="tel:${s.phone}" class="dropdown-item" style="background:#eff6ff; color:#2563eb; justify-content:center; padding:6px 8px !important; border-radius:6px;">📞 Call</a>
+                  <a href="https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(s.name)},%20price%20confirm%20karna%20tha." target="_blank" class="dropdown-item" style="background:#f0fdf4; color:#16a34a; justify-content:center; padding:6px 8px !important; border-radius:6px;">💬 WhatsApp</a>
+                </div>
+                <div class="dropdown-divider"></div>
+              ` : ''}
+              <div class="dropdown-header">⚡ Manage Supplier</div>
+              <button class="dropdown-item" onclick="editSupplier(${s.id}, '${s.name}', '${s.phone || ''}')">✏️ Edit Supplier</button>
+              <button class="dropdown-item" style="color:var(--danger);" onclick="deleteSupplier(${s.id})">🗑 Delete Supplier</button>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  });
+}
+
+async function loadAllProductsView() {
+  const tbody = document.getElementById("productsTableBody");
+  if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Products load ho rahe hain...</td></tr>';
+  const { data, error } = await db.from("products").select("*").order("name");
+  if (error && tbody) return tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+
+  productsList = data || [];
+  if (document.getElementById("totalProductsCount")) document.getElementById("totalProductsCount").textContent = productsList.length;
+  updateCategoryDropdown();
+  renderProductsTable();
+}
+
+function updateCategoryDropdown() {
+  const select = document.getElementById("bulkCategorySelect");
+  if (!select) return;
+  const categories = [...new Set(productsList.map(p => p.category).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">-- All Categories --</option>' + categories.map(c => `<option value="${c}" ${c === select.value ? 'selected' : ''}>${c}</option>`).join('');
+}
+
+function getPackCountFromUnit(unitStr) {
+  if (!unitStr) return 1;
+  const match = String(unitStr).trim().match(/(?:pack\s*of|pack|\/)\s*(\d+)/i) || String(unitStr).trim().match(/(\d+)\s*(?:pcs|pouch|pouches|pack|nos|items)/i) || String(unitStr).trim().match(/\((\d+)\)/);
+  return match && match[1] && parseInt(match[1], 10) > 0 ? parseInt(match[1], 10) : 1;
+}
+
+function renderProductsTable() {
+  const tbody = document.getElementById("productsTableBody");
+  if (!tbody) return;
+
+  const searchVal = document.getElementById("adminProductSearchInput")?.value.toLowerCase().trim() || "";
+  const selectedCategory = document.getElementById("bulkCategorySelect")?.value || "";
+
+  const filtered = productsList.filter(p => {
+    const matchesSearch = [p.id, p.name, p.category].some(f => String(f || '').toLowerCase().includes(searchVal));
+    return matchesSearch && (!selectedCategory || p.category === selectedCategory);
+  });
+
+  if (!filtered.length) return tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Koi product nahi mila.</td></tr>';
+
+  tbody.innerHTML = filtered.map(p => {
+    const isChecked = tickedProductsMap[p.id] ? 'checked' : '';
+    const isEditing = editingProductIds.has(String(p.id));
+    const qtyVal = p.stock_qty ?? 0;
+    const isActive = p.active !== false;
+    const statusBtn = isActive ?
+      `<button class="btn-green" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" onclick="toggleProductActiveStatus('${p.id}', false)">👁️ Show</button>` :
+      `<button class="btn-danger" style="padding:4px 10px; font-size:11px; border-radius:12px; font-weight:700; cursor:pointer;" onclick="toggleProductActiveStatus('${p.id}', true)">🙈 Hide</button>`;
+
+    const packCount = getPackCountFromUnit(p.unit);
+    const costPriceNum = Number(p.cost_price || 0);
+    const unitCostNum = packCount > 0 ? (costPriceNum / packCount) : costPriceNum;
+    const sellingPriceVal = Number(p.selling_price ?? p.price ?? 0).toFixed(2);
+    const [escName, escCat, escUnit] = [p.name, p.category, p.unit].map(v => (v || '').replace(/"/g, '&quot;'));
+
+    if (isEditing) {
+      return `
+        <tr style="background: rgba(79, 70, 229, 0.12); border-left: 4px solid var(--primary);">
+          <td style="text-align:center;"><input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" /></td>
+          <td><strong>${p.id}</strong></td>
+          <td><input type="text" id="edit_name_${p.id}" class="name-edit-input" style="min-width:210px; width:100%; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escName}" /></td>
+          <td><input type="text" id="edit_cat_${p.id}" class="name-edit-input" style="min-width:120px; width:100%; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escCat}" /></td>
+          <td><input type="text" id="edit_unit_${p.id}" class="name-edit-input" style="min-width:90px; width:100%; text-align:center; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${escUnit}" /></td>
+          <td><input type="text" inputmode="numeric" id="edit_qty_${p.id}" class="price-edit-input" style="width:60px; text-align:center; border-color:var(--primary); background:var(--surface); color:var(--text-dark);" value="${qtyVal}" onfocus="this.select()" /></td>
+          <td><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:11px; color:var(--text-muted);">₹</span><input type="text" inputmode="decimal" id="edit_cost_${p.id}" class="price-edit-input" style="width:70px; border-color:var(--primary); background:var(--surface); color:var(--blue);" value="${costPriceNum.toFixed(2)}" onfocus="this.select()" /></div></td>
+          <td><span style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:4px 6px; border-radius:6px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
+          <td><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:11px; color:var(--text-muted);">₹</span><input type="text" inputmode="decimal" id="edit_selling_${p.id}" class="price-edit-input" style="width:70px; border-color:var(--primary); background:var(--surface); color:var(--success);" value="${sellingPriceVal}" onfocus="this.select()" /></div></td>
+          <td style="text-align:center;">${statusBtn}</td>
+          <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="cancelRowEditing('${p.id}')">✕ Cancel</button><button class="btn-green" style="padding:4px 8px; font-size:8px; border-radius:8px;" onclick="saveRowEditing('${p.id}')">💾 Save</button></div></td>
+        </tr>`;
+    }
+
+    return `
+      <tr>
+        <td style="text-align:center;"><input type="checkbox" class="chk-box" ${isChecked} onchange="toggleProductSelection('${p.id}', this.checked)" /></td>
+        <td><strong>${p.id}</strong></td>
+        <td><strong style="color:var(--text-dark); font-size:12px;">${escName || 'N/A'}</strong></td>
+        <td><span style="color:var(--text-muted); font-weight:600;">${escCat || 'N/A'}</span></td>
+        <td><span style="background:var(--bg); border:1px solid var(--border); padding:2px 8px; border-radius:10px; font-weight:600; font-size:11px;">${escUnit || '-'}</span></td>
+        <td><strong style="color: ${qtyVal <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${qtyVal}</strong></td>
+        <td><span style="color:var(--blue); font-weight:600;">₹${costPriceNum.toFixed(2)}</span></td>
+        <td><span style="color:#8b5cf6; font-weight:700; background:rgba(139,92,246,0.12); padding:3px 8px; border-radius:8px; font-size:11px;">₹${unitCostNum.toFixed(2)}</span></td>
+        <td><strong style="color:var(--success);">₹${sellingPriceVal}</strong></td>
+        <td style="text-align:center;">${statusBtn}</td>
+        <td style="text-align:center;"><div style="display:flex; gap:4px; justify-content:center;"><button class="btn-outline" style="padding:4px 8px; font-size:11px; border-radius:8px;" onclick="enableRowEditing('${p.id}')">✏️ Edit</button></div></td>
+      </tr>`;
+  }).join('');
+}
+
+const enableRowEditing = prodId => { editingProductIds.add(String(prodId)); renderProductsTable(); };
+const cancelRowEditing = prodId => { editingProductIds.delete(String(prodId)); renderProductsTable(); };
+
+async function saveRowEditing(prodId) {
+  const pIdStr = String(prodId);
+  const getVal = id => document.getElementById(id)?.value.trim() || '';
+  const [newName, newCategory, newUnit, newQty, newCost, newSelling] = [
+    getVal(`edit_name_${pIdStr}`), getVal(`edit_cat_${pIdStr}`), getVal(`edit_unit_${pIdStr}`),
+    Number(getVal(`edit_qty_${pIdStr}`)), Number(getVal(`edit_cost_${pIdStr}`)), Number(getVal(`edit_selling_${pIdStr}`))
+  ];
+
+  if (!newName) return alert("Item Name khali nahi ho sakta.");
+  const updateData = { name: newName, category: newCategory, unit: newUnit, stock_qty: newQty, cost_price: newCost, selling_price: newSelling };
+  const idCond = !isNaN(Number(prodId)) ? Number(prodId) : prodId;
+
+  const { error } = await db.from("products").update(updateData).or(`id.eq.${idCond},id.eq.${String(prodId)}`);
+  if (error) alert("Product update karne mein error: " + error.message);
+  else {
+    const prod = productsList.find(p => String(p.id) === String(prodId));
+    if (prod) Object.assign(prod, updateData);
+    editingProductIds.delete(String(prodId));
+    updateCategoryDropdown();
+    renderProductsTable();
   }
 }
 
-/* INITIALIZATION */
+async function toggleProductActiveStatus(prodId, newStatus) {
+  const prod = productsList.find(p => String(p.id) === String(prodId));
+  if (prod) prod.active = newStatus;
+  renderProductsTable();
+  const { error } = await db.from("products").update({ active: newStatus }).eq("id", prodId);
+  if (error) { if (prod) prod.active = !newStatus; renderProductsTable(); alert("Status update fail: " + error.message); }
+}
+
+function toggleProductSelection(prodId, isChecked) {
+  const prod = productsList.find(p => String(p.id) === String(prodId));
+  if (!prod) return;
+  if (isChecked) {
+    tickedProductsMap[prodId] = { product_id: prod.id, product_name: prod.name, quantity: 1, purchase_price: Number(prod.cost_price ?? prod.price ?? 0) };
+  } else delete tickedProductsMap[prodId];
+  renderTickedProductsList();
+}
+
+function renderTickedProductsList() {
+  const container = document.getElementById("selectedTickedList");
+  const modalContainer = document.getElementById("modalTickedList");
+  const floatingBar = document.getElementById("floatingTickedBar");
+  const keys = Object.keys(tickedProductsMap);
+  const count = keys.length;
+
+  ['tickedCount', 'floatingTickedCount'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = count));
+
+  if (!count) {
+    if (container) container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:8px; font-size:12px;">Niche list me se items par ☑️ Tick mark karein.</div>';
+    if (modalContainer) modalContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:12px;">No items ticked yet.</div>';
+    ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = "0.00"));
+    if (floatingBar) floatingBar.style.display = "none";
+    closeTickedCartModal();
+    return;
+  }
+
+  if (floatingBar) floatingBar.style.display = "flex";
+  let total = 0;
+
+  const htmlList = keys.map((k, idx) => {
+    const item = tickedProductsMap[k];
+    const prod = productsList.find(p => String(p.id) === String(k));
+    const packetCost = Number(item.purchase_price || prod?.cost_price || 0);
+    const itemTotal = Number(item.quantity) * packetCost;
+    total += itemTotal;
+
+    return `
+      <div class="item-row" style="flex-direction:column; align-items:stretch; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
+          <strong style="font-size:13px; color:var(--primary);">₹${itemTotal.toFixed(2)}</strong>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; background:var(--bg); padding:6px 10px; border-radius:8px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700;">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="tickedProductsMap['${k}'].quantity = Number(this.value)||1; renderTickedProductsList();" /></div>
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700;">Rate:</label><input type="text" inputmode="decimal" value="${packetCost.toFixed(2)}" style="width:65px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="tickedProductsMap['${k}'].purchase_price = Number(this.value)||0; renderTickedProductsList();" /></div>
+          <button class="btn-danger" style="padding:3px 8px; border-radius:6px; font-size:11px; margin-left:auto;" onclick="toggleProductSelection('${k}', false); renderProductsTable();">✕ Remove</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (container) container.innerHTML = htmlList;
+  if (modalContainer) modalContainer.innerHTML = htmlList;
+  ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = total.toFixed(2)));
+}
+
+const openTickedCartModal = async () => { await loadSuppliers(); const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "flex"; };
+const closeTickedCartModal = () => { const m = document.getElementById("tickedCartModal"); if (m) m.style.display = "none"; };
+function clearAllSelection() { tickedProductsMap = {}; renderTickedProductsList(); renderProductsTable(); }
+
+/* ==========================================
+   GLOBAL SEARCH & INITIALIZATION
+   ========================================== */
+
+async function handleGlobalSmartSearch(query) {
+  const dropdown = document.getElementById("globalSearchResultsDropdown");
+  if (!dropdown) return;
+  const q = (query || "").trim().toLowerCase();
+  if (q.length < 2) { dropdown.style.display = "none"; dropdown.innerHTML = ""; return; }
+
+  dropdown.style.display = "block";
+  dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--text-muted);'>🔍 Searching store...</div>";
+
+  try {
+    const matchedProducts = (productsList || []).filter(p => (p.name || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)).slice(0, 4);
+    let html = "";
+    if (matchedProducts.length > 0) {
+      html += `<div style="font-size:10px; font-weight:800; color:var(--primary); margin-bottom:4px; padding-bottom:2px; border-bottom:1px solid var(--border);">📦 PRODUCTS (${matchedProducts.length})</div>`;
+      matchedProducts.forEach(p => {
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border); font-size:11px; cursor:pointer;" onclick="switchAdminView('productsAdmin'); document.getElementById('globalSearchResultsDropdown').style.display='none';"><div><strong>${p.name}</strong><br><small style="color:var(--text-muted);">Stock: ${p.stock_qty || 0}</small></div></div>`;
+      });
+    }
+    dropdown.innerHTML = html || "<div style='text-align:center; padding:12px; font-size:11px; color:var(--text-muted);'>❌ Koi result nahi mila.</div>";
+  } catch (e) {
+    dropdown.innerHTML = "<div style='text-align:center; padding:8px; font-size:11px; color:var(--danger);'>Search error.</div>";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initActiveTab();
-  if (typeof updateRoleUI === "function") updateRoleUI();
-  if (typeof updateSheetStatusUI === "function") updateSheetStatusUI();
-  if (typeof updateQueueBadgeUI === "function") updateQueueBadgeUI();
+  updateRoleUI();
+  updateSheetStatusUI();
   applyPanelCustomizer();
-  if (typeof processPendingSyncQueue === "function") processPendingSyncQueue();
   loadProductsForReorder();
 
   const urlInput = document.getElementById("googleSheetUrlInput");
   if (urlInput) {
-    urlInput.value = localStorage.getItem("googleSheetScriptUrl") || "";
-    if (typeof saveGoogleSheetUrl === "function") saveGoogleSheetUrl(urlInput.value);
+    urlInput.value = googleSheetScriptUrl;
+    saveGoogleSheetUrl(googleSheetScriptUrl);
   }
 
   const ts = document.getElementById("tickedSupplierSelect");
