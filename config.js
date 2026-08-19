@@ -7,9 +7,12 @@ const DEFAULT_SHEET_URL =
   "https://script.google.com/macros/s/AKfycbyIOEfIb8J8slIm5_fr3aKrh7vtosC-PSpBjET6pfiRjTJScnvNMVNitumQfa4Bwgsz/exec";
 
 // Google Sheet Script URL
-let googleSheetScriptUrl =
-  localStorage.getItem("googleSheetScriptUrl") || DEFAULT_SHEET_URL;
+let googleSheetScriptUrl = DEFAULT_SHEET_URL;
 
+localStorage.setItem(
+  "googleSheetScriptUrl",
+  DEFAULT_SHEET_URL
+);
 function saveGoogleSheetUrl(url) {
   googleSheetScriptUrl = (url || "").trim() || DEFAULT_SHEET_URL;
   localStorage.setItem("googleSheetScriptUrl", googleSheetScriptUrl);
