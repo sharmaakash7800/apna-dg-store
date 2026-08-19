@@ -174,7 +174,7 @@ function copyAppsScriptCode() {
     "        poHeaderRange.setFontColor('#ffffff');",
     "      }",
     "",
-    "      var timestampStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
+    "      var timestampStr = data.receivedAt || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
     "",
     "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
     "        var totalItems = data.itemsArray.length;",
@@ -404,7 +404,10 @@ function toggleCounterCollectionCard() {
   if (!card) return;
   const isHidden = card.style.display === "none" || !card.style.display;
   card.style.display = isHidden ? "block" : "none";
-  if (isHidden) document.getElementById("manualCashAmount")?.focus();
+  if (isHidden) {
+    document.getElementById("manualCashAmount")?.focus();
+    loadCounterCollectionHistory();
+  }
 }
 
 function toggleDropdown(btn) {
@@ -454,17 +457,6 @@ async function saveOfflineCashEntry() {
     document.getElementById("manualCashNote").value = "";
     loadCounterCollectionHistory();
     calculateReports();
-  }
-}
-
-function toggleCounterCollectionCard() {
-  const card = document.getElementById("counterCollectionCard");
-  if (!card) return;
-  const isHidden = card.style.display === "none" || !card.style.display;
-  card.style.display = isHidden ? "block" : "none";
-  if (isHidden) {
-    document.getElementById("manualCashAmount")?.focus();
-    loadCounterCollectionHistory();
   }
 }
 
@@ -1738,6 +1730,7 @@ async function changePoNumber(poId) {
     loadPurchaseOrders();
   }
 }
+
 function applyPanelCustomizer() {
   const isOwn = isOwner();
   const config = isOwn ? panelCustomizerConfig : staffPermissions;
@@ -2254,28 +2247,36 @@ async function changePoReceivedDate(poId, currentDateStr) {
     } catch (e) { }
   }
 
-  const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\nJaise pichli entry ke liye: 2026-08-07", defaultDate);
+  const newDateInput = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):", defaultDate);
   if (newDateInput === null) return;
 
   const cleanDate = newDateInput.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
-    return alert("Galat date format! Kripya YYYY-MM-DD format me dalein (Jaise: 2026-08-07).");
+    return alert("Galat date format! Kripya YYYY-MM-DD format me dalein (Jaise: 2026-08-16).");
   }
 
-  const selectedIso = new Date(`${cleanDate}T12:00:00`).toISOString();
+  const now = new Date();
+  const [y, m, d] = cleanDate.split('-').map(Number);
+  const updatedDate = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+  const selectedIso = updatedDate.toISOString();
+
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { error } = await db.from("purchase_orders").update({ received_at: selectedIso }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
 
   if (error) alert("Date update error: " + error.message);
   else {
-    alert("Stock Received Date update ho gayi: " + cleanDate);
+    alert("Stock Received Date & Time update ho gayi!");
     loadPurchaseOrders();
   }
 }
 
 async function receiveStock(poId) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const inputDate = prompt("Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\n(Aaj ki date ke liye OK karein ya pichli date jaise 2026-08-07 enter karein)", todayStr);
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const inputDate = prompt(
+    "Stock Receive hone ki actual date dalein (YYYY-MM-DD format):\n(Aaj ke liye OK karein ya pichli date jaise 2026-08-16 dalein)",
+    todayStr
+  );
   if (inputDate === null) return;
 
   let cleanDate = inputDate.trim();
@@ -2283,28 +2284,83 @@ async function receiveStock(poId) {
     cleanDate = todayStr;
   }
 
-  const receivedTimestamp = new Date(`${cleanDate}T12:00:00`).toISOString();
+  // Actual Current Time ke sath ISO Timestamp generate karna
+  const now = new Date();
+  const [y, m, d] = cleanDate.split('-').map(Number);
+  const actualReceivedDate = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+  const receivedTimestamp = actualReceivedDate.toISOString();
 
-  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate}\nIsse Stock Qty aur Cost Price update ho jayegi.`)) return;
+  if (!confirm(`Stock Receive confirm karein?\nReceived Date: ${cleanDate} (${actualReceivedDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })})\nIsse Stock Qty aur Google Sheet dono update ho jayenge.`)) return;
 
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
   const { data: allItems } = await db.from("purchase_order_items").select("*");
   const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
 
+  // 1. Update Product Stock and Cost Price in DB
   if (items?.length) {
     for (let item of items) {
       if (!item.product_id) continue;
       const pIdCond = !isNaN(Number(item.product_id)) ? Number(item.product_id) : item.product_id;
       const { data: prod } = await db.from("products").select("stock_qty").or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`).single();
       const currentQty = Number(prod?.stock_qty || 0);
-      await db.from("products").update({ cost_price: item.purchase_price, stock_qty: currentQty + Number(item.quantity || 0) }).or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`);
+      await db.from("products").update({
+        cost_price: item.purchase_price,
+        stock_qty: currentQty + Number(item.quantity || 0)
+      }).or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`);
     }
   }
 
-  await db.from("purchase_orders").update({ status: "received", received_at: receivedTimestamp }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
-  alert("Stock Receive ho gaya! Stock Qty update ho gayi.");
-  loadPurchaseOrders(); loadProductsForReorder();
+  // 2. Mark PO as Received in Database
+  await db.from("purchase_orders").update({
+    status: "received",
+    received_at: receivedTimestamp
+  }).or(`id.eq.${idCond},id.eq.${String(poId)}`);
+
+  // 3. AUTOMATIC SYNC TO GOOGLE SHEET
+  await ensureProductsLoaded();
+  const totalBill = po?.total_amount || items.reduce((s, i) => s + (Number(i.quantity || 1) * Number(i.purchase_price || 0)), 0);
+  const buyerName = po?.buyer || "Akash sharma";
+
+  const sheetItems = items.map((i, idx) => {
+    const skuCode = getProductSku(i.product_id, i.product_name);
+    const q = Number(i.quantity || 1);
+    const cp = Number(i.purchase_price || 0);
+    const isLast = (idx === items.length - 1);
+    return {
+      indentNo: 101 + idx,
+      sku: skuCode,
+      name: i.product_name,
+      quantity: q,
+      costPack: cp > 0 ? cp.toFixed(2) : "0",
+      cost_pack: cp > 0 ? cp.toFixed(2) : "0",
+      supplier: po?.supplier_name || 'N/A',
+      location: po?.supplier_name || 'N/A',
+      person: buyerName,
+      buyer: buyerName,
+      price: (q * cp).toFixed(2),
+      orderTotal: isLast ? Number(totalBill).toFixed(2) : ""
+    };
+  });
+
+  // Google Sheet Sync Engine Trigger (Timestamp with actual received time)
+  await syncOrderToGoogleSheet({
+    targetSheet: "Admin Orders Indent",
+    isPO: true,
+    orderId: po?.po_number || ('#' + poId),
+    orderType: "Supplier Stock Received",
+    partyName: po?.supplier_name || 'N/A',
+    buyer: buyerName,
+    itemsArray: sheetItems,
+    totalAmount: totalBill,
+    status: "received",
+    receivedAt: actualReceivedDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+    notes: `Stock Received on ${cleanDate}`
+  });
+
+  alert("✅ Stock Receive ho gaya! Data Google Sheet me sync ho gaya aur Stock Qty update ho gayi.");
+  loadPurchaseOrders();
+  loadProductsForReorder();
 }
 
 /* CUSTOMER ORDERS HANDLING */
