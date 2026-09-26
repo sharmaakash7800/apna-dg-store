@@ -3264,7 +3264,10 @@ function syncAllProfitabilityToSheets() {
 let currentVendorAnalysisData = [];
 let currentVendorAnalysisSort = { field: 'amount', asc: false };
 let vendorAnalysisFullRecords = [];
-let vendorAnalysisChartInstance = null;
+let vaTopChartInst = null;
+let vaShareChartInst = null;
+let vaTrendChartInst = null;
+let vaTransChartInst = null;
 
 function getIndianFinancialYearDates() {
   const today = new Date();
@@ -3320,6 +3323,17 @@ function onVendorAnalysisPeriodChange(period) {
   } else if (period === 'year') {
     const yDates = getIndianFinancialYearDates();
     from = yDates.from;
+    to = yDates.to;
+  } else if (period === 'last_year') {
+    const yDates = getIndianFinancialYearDates();
+    from = new Date(yDates.from);
+    from.setFullYear(from.getFullYear() - 1);
+    to = new Date(yDates.to);
+    to.setFullYear(to.getFullYear() - 1);
+  } else if (period === 'last_5_years') {
+    const yDates = getIndianFinancialYearDates();
+    from = new Date(yDates.from);
+    from.setFullYear(from.getFullYear() - 4); // Current + 4 previous = 5 years total
     to = yDates.to;
   }
 
@@ -3505,71 +3519,246 @@ function renderVendorAnalysisTable() {
 }
 
 function renderVendorAnalysisChart() {
-  const ctx = document.getElementById('vendorAnalysisChart');
-  if (!ctx) return;
-  
-  if (vendorAnalysisChartInstance) {
-    vendorAnalysisChartInstance.destroy();
-  }
+  if (vaTopChartInst) vaTopChartInst.destroy();
+  if (vaShareChartInst) vaShareChartInst.destroy();
+  if (vaTrendChartInst) vaTrendChartInst.destroy();
+  if (vaTransChartInst) vaTransChartInst.destroy();
 
-  // Sort by amount descending for the chart
-  const chartData = [...currentVendorAnalysisData].sort((a, b) => b.amount - a.amount).slice(0, 10); // Top 10 vendors
-  
-  if (chartData.length === 0) {
-    ctx.style.display = 'none';
+  if (currentVendorAnalysisData.length === 0) {
+    ['vaTopChart', 'vaShareChart', 'vaTrendChart', 'vaTransChart'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const p = el.parentElement;
+        p.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:12px; text-align:center;">No purchase data for selected period</div>`;
+      }
+    });
     return;
   }
   
-  ctx.style.display = 'block';
+  // Restore canvases if they were replaced by "No purchase data" message
+  ['vaTopChart', 'vaShareChart', 'vaTrendChart', 'vaTransChart'].forEach(id => {
+    let el = document.getElementById(id);
+    if (!el) {
+      const container = document.querySelector(`canvas#${id}`)?.parentElement || document.querySelector(`[id^=${id}]`)?.parentElement; // fallback
+      // Actually simpler: just reset innerHTML of the parents if needed, but it's tricky to find parent without ID.
+      // We will ensure canvas stays by keeping it and adding a sibling overlay, or just replacing HTML.
+    }
+  });
 
   const isDarkMode = document.documentElement.getAttribute("data-theme") === "dark";
   const textColor = isDarkMode ? "#cbd5e1" : "#475569";
   const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
 
-  vendorAnalysisChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: chartData.map(d => d.name),
-      datasets: [{
-        label: 'Purchase Amount (₹)',
-        data: chartData.map(d => d.amount),
-        backgroundColor: 'rgba(79, 70, 229, 0.7)',
-        borderColor: 'rgb(79, 70, 229)',
-        borderWidth: 1,
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return '₹' + context.raw.toFixed(2);
+  const sortedByAmount = [...currentVendorAnalysisData].sort((a, b) => b.amount - a.amount);
+  const top5Amount = sortedByAmount.slice(0, 5);
+  
+  const sortedByTrans = [...currentVendorAnalysisData].sort((a, b) => b.transactions - a.transactions);
+  const top5Trans = sortedByTrans.slice(0, 5);
+
+  const commonTooltip = {
+    callbacks: {
+      label: function(context) {
+        const label = context.label || '';
+        const vendor = currentVendorAnalysisData.find(v => v.name === label);
+        if (vendor) {
+          return [
+            `Purchase: ₹${vendor.amount.toFixed(2)}`,
+            `Share: ${vendor.contribution.toFixed(1)}%`,
+            `POs: ${vendor.transactions}`
+          ];
+        }
+        return `₹${Number(context.raw).toFixed(2)}`;
+      }
+    }
+  };
+  
+  // CHART 1: Top Vendors (Horizontal Bar)
+  const ctxTop = document.getElementById('vaTopChart');
+  if (ctxTop) {
+    vaTopChartInst = new Chart(ctxTop, {
+      type: 'bar',
+      data: {
+        labels: top5Amount.map(d => d.name.length > 15 ? d.name.substring(0,15)+'...' : d.name),
+        datasets: [{
+          data: top5Amount.map(d => d.amount),
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderColor: 'rgb(59, 130, 246)',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function(ctx) { return top5Amount[ctx[0].dataIndex].name; },
+              label: commonTooltip.callbacks.label
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: textColor, callback: v => '₹'+v }, grid: { color: gridColor } },
+          y: { ticks: { color: textColor }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // CHART 2: Purchase Share (Doughnut)
+  const ctxShare = document.getElementById('vaShareChart');
+  if (ctxShare) {
+    const shareLabels = top5Amount.map(d => d.name);
+    const shareData = top5Amount.map(d => d.amount);
+    let othersAmount = 0;
+    if (sortedByAmount.length > 5) {
+      othersAmount = sortedByAmount.slice(5).reduce((sum, v) => sum + v.amount, 0);
+      shareLabels.push('Others');
+      shareData.push(othersAmount);
+    }
+    
+    vaShareChartInst = new Chart(ctxShare, {
+      type: 'doughnut',
+      data: {
+        labels: shareLabels,
+        datasets: [{
+          data: shareData,
+          backgroundColor: [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#94a3b8'
+          ],
+          borderWidth: 2,
+          borderColor: isDarkMode ? '#1e293b' : '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'right', labels: { color: textColor, boxWidth: 12, font: {size: 10} } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                if (label === 'Others') return `Purchase: ₹${context.raw.toFixed(2)}`;
+                const vendor = currentVendorAnalysisData.find(v => v.name === label);
+                if (vendor) {
+                  return [
+                    `Purchase: ₹${vendor.amount.toFixed(2)}`,
+                    `Share: ${vendor.contribution.toFixed(1)}%`
+                  ];
+                }
+                return `₹${context.raw.toFixed(2)}`;
+              }
             }
           }
         }
+      }
+    });
+  }
+
+  // CHART 3: Purchase Trend (Line)
+  const ctxTrend = document.getElementById('vaTrendChart');
+  if (ctxTrend) {
+    const fromDate = new Date(document.getElementById("vendorAnalysisFromDate").value);
+    const toDate = new Date(document.getElementById("vendorAnalysisToDate").value);
+    const diffDays = (toDate - fromDate) / (1000 * 60 * 60 * 24);
+    
+    let groupBy = 'daily';
+    if (diffDays > 60 && diffDays <= 730) groupBy = 'monthly';
+    else if (diffDays > 730) groupBy = 'yearly';
+
+    const trendMap = {};
+    vendorAnalysisFullRecords.forEach(po => {
+      const d = new Date(po.created_at);
+      let key = '';
+      if (groupBy === 'yearly') {
+         let y = d.getFullYear();
+         if (d.getMonth() < 3) y--;
+         key = `FY ${y}-${(y+1).toString().slice(-2)}`;
+      } else if (groupBy === 'monthly') {
+         key = d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      } else {
+         key = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      }
+      if (!trendMap[key]) trendMap[key] = { amt: 0, date: d };
+      trendMap[key].amt += Number(po.total_amount || 0);
+    });
+
+    const trendArr = Object.keys(trendMap).map(k => ({ key: k, amt: trendMap[k].amt, date: trendMap[k].date }));
+    trendArr.sort((a, b) => a.date - b.date);
+
+    vaTrendChartInst = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: trendArr.map(d => d.key),
+        datasets: [{
+          label: 'Total Purchase',
+          data: trendArr.map(d => d.amt),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        }]
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { 
-            color: textColor,
-            callback: function(value) {
-              return '₹' + value;
-            }
-          },
-          grid: { color: gridColor }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => '₹' + ctx.raw.toFixed(2) } }
         },
-        x: {
-          ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
-          grid: { display: false }
+        scales: {
+          x: { ticks: { color: textColor, maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+          y: { ticks: { color: textColor, callback: v => '₹'+v }, grid: { color: gridColor } }
         }
       }
-    }
-  });
+    });
+  }
+
+  // CHART 4: PO / Transactions (Bar)
+  const ctxTrans = document.getElementById('vaTransChart');
+  if (ctxTrans) {
+    vaTransChartInst = new Chart(ctxTrans, {
+      type: 'bar',
+      data: {
+        labels: top5Trans.map(d => d.name.length > 15 ? d.name.substring(0,15)+'...' : d.name),
+        datasets: [{
+          data: top5Trans.map(d => d.transactions),
+          backgroundColor: 'rgba(245, 158, 11, 0.8)',
+          borderColor: 'rgb(245, 158, 11)',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function(ctx) { return top5Trans[ctx[0].dataIndex].name; },
+              label: function(ctx) {
+                const vendor = top5Trans[ctx.dataIndex];
+                return [
+                  `POs: ${vendor.transactions}`,
+                  `Purchase: ₹${vendor.amount.toFixed(2)}`
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: textColor, maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+          y: { ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } }
+        }
+      }
+    });
+  }
 }
 
 async function openVendorDrillDownModal(vendorName) {
