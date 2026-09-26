@@ -1783,7 +1783,10 @@ function applyPanelCustomizer() {
     { key: 'supplierHistory', bId: 'nav-supplierHistory' },
     { key: 'supplierReorder', bId: 'nav-supplierReorder' },
     { key: 'productsAdmin', bId: 'nav-productsAdmin' },
-    { key: 'salesReport', bId: 'nav-salesReport' }
+    { key: 'salesReport', bId: 'nav-salesReport' },
+    { key: 'productProfitability', bId: 'nav-productProfitability' },
+    { key: 'vendorAnalysis', bId: 'nav-vendorAnalysis' },
+    { key: 'vendorPriceComparison', bId: 'nav-vendorPriceComparison' }
   ];
 
   navKeys.forEach(item => {

@@ -207,6 +207,9 @@ let panelCustomizerConfig = JSON.parse(localStorage.getItem("panelCustomizerConf
   nav_supplierReorder: true,
   nav_productsAdmin: true,
   nav_salesReport: true,
+  nav_productProfitability: true,
+  nav_vendorAnalysis: true,
+  nav_vendorPriceComparison: true,
   globalSearch: true
 };
 
