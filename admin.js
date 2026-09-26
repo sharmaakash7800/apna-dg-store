@@ -329,7 +329,14 @@ function switchAdminView(viewId) {
       loadSuppliers();
       if (!document.getElementById("supplierReportFromDate")?.value) setSupplierReportDateFilter('week');
     },
-    productProfitability: loadProductProfitability
+    productProfitability: loadProductProfitability,
+    vendorAnalysis: () => {
+      if (!document.getElementById("vendorAnalysisFromDate")?.value) {
+        onVendorAnalysisPeriodChange('week');
+      } else {
+        loadVendorPurchaseAnalysis();
+      }
+    }
   };
   viewActions[viewId]?.();
 }
@@ -3250,4 +3257,297 @@ function syncAllProfitabilityToSheets() {
     syncProfitabilityToSheet(prodData);
   });
   alert("Sync process started! Check the Sync Queue indicator on the header.");
+}
+
+/* VENDOR PURCHASE ANALYSIS FEATURE */
+
+let currentVendorAnalysisData = [];
+let currentVendorAnalysisSort = { field: 'amount', asc: false };
+let vendorAnalysisFullRecords = [];
+
+function getIndianFinancialYearDates() {
+  const today = new Date();
+  const currentMonth = today.getMonth(); // 0 = Jan, 3 = Apr
+  let startYear = today.getFullYear();
+  if (currentMonth < 3) {
+    startYear--; // If Jan-Mar, FY started last year
+  }
+  const from = new Date(startYear, 3, 1); // Apr 1
+  const to = new Date(startYear + 1, 2, 31); // Mar 31 next year
+  to.setHours(23, 59, 59, 999);
+  return { from, to };
+}
+
+function getIndianQuarterDates() {
+  const today = new Date();
+  const month = today.getMonth();
+  const year = today.getFullYear();
+  let from, to;
+  
+  if (month >= 3 && month <= 5) { // Q1: Apr-Jun
+    from = new Date(year, 3, 1);
+    to = new Date(year, 6, 0);
+  } else if (month >= 6 && month <= 8) { // Q2: Jul-Sep
+    from = new Date(year, 6, 1);
+    to = new Date(year, 9, 0);
+  } else if (month >= 9 && month <= 11) { // Q3: Oct-Dec
+    from = new Date(year, 9, 1);
+    to = new Date(year, 12, 0);
+  } else { // Q4: Jan-Mar
+    from = new Date(year, 0, 1);
+    to = new Date(year, 3, 0);
+  }
+  to.setHours(23, 59, 59, 999);
+  return { from, to };
+}
+
+function onVendorAnalysisPeriodChange(period) {
+  let from, to;
+  const today = new Date();
+  
+  if (period === 'week') {
+    const res = getDateRange('week'); // Reuse existing function
+    from = res.from;
+    to = res.to;
+  } else if (period === 'month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (period === 'quarter') {
+    const qDates = getIndianQuarterDates();
+    from = qDates.from;
+    to = qDates.to;
+  } else if (period === 'year') {
+    const yDates = getIndianFinancialYearDates();
+    from = yDates.from;
+    to = yDates.to;
+  }
+
+  if (from && to) {
+    document.getElementById("vendorAnalysisFromDate").value = from.toISOString().split('T')[0];
+    document.getElementById("vendorAnalysisToDate").value = to.toISOString().split('T')[0];
+    loadVendorPurchaseAnalysis();
+  }
+}
+
+function clearVendorAnalysisPeriodDropdown() {
+  document.getElementById("vendorAnalysisPeriod").value = "";
+}
+
+function resetVendorAnalysisFilter() {
+  document.getElementById("vendorAnalysisPeriod").value = "week";
+  onVendorAnalysisPeriodChange("week");
+}
+
+async function loadVendorPurchaseAnalysis() {
+  const fromVal = document.getElementById("vendorAnalysisFromDate").value;
+  const toVal = document.getElementById("vendorAnalysisToDate").value;
+
+  if (!fromVal || !toVal) {
+    return alert("Please select valid dates.");
+  }
+
+  const fromDate = new Date(fromVal);
+  fromDate.setHours(0, 0, 0, 0);
+  const toDate = new Date(toVal);
+  toDate.setHours(23, 59, 59, 999);
+  
+  const fromStr = fromDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const toStr = toDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  document.getElementById("vendorAnalysisDateDisplay").textContent = `Showing Vendor Purchases: ${fromStr} – ${toStr}`;
+
+  document.getElementById("vendorAnalysisTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading data...</td></tr>`;
+
+  // Fetch purchase orders within range
+  const { data: pos, error } = await db
+    .from("purchase_orders")
+    .select("*")
+    .gte("created_at", fromDate.toISOString())
+    .lte("created_at", toDate.toISOString());
+
+  if (error) {
+    document.getElementById("vendorAnalysisTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+    return;
+  }
+
+  const poRecords = pos || [];
+  
+  // Also fetch items to get quantity
+  let allPoItems = [];
+  if (poRecords.length > 0) {
+    const { data: items, error: itemsError } = await db
+      .from("purchase_order_items")
+      .select("*")
+      .in("po_id", poRecords.map(p => p.id));
+    
+    if (!itemsError && items) {
+      allPoItems = items;
+    }
+  }
+
+  vendorAnalysisFullRecords = poRecords;
+  
+  const vendorMap = {};
+  let grandTotal = 0;
+
+  poRecords.forEach(po => {
+    const vendorName = po.supplier_name || 'Unknown';
+    const amount = Number(po.total_amount || 0);
+    grandTotal += amount;
+    
+    if (!vendorMap[vendorName]) {
+      vendorMap[vendorName] = {
+        name: vendorName,
+        amount: 0,
+        transactions: 0,
+        quantity: 0
+      };
+    }
+    
+    vendorMap[vendorName].amount += amount;
+    vendorMap[vendorName].transactions += 1;
+  });
+
+  // Add quantities
+  allPoItems.forEach(item => {
+    const po = poRecords.find(p => String(p.id) === String(item.po_id));
+    if (po) {
+      const vendorName = po.supplier_name || 'Unknown';
+      if (vendorMap[vendorName]) {
+        vendorMap[vendorName].quantity += Number(item.quantity || 0);
+      }
+    }
+  });
+
+  currentVendorAnalysisData = Object.values(vendorMap).map(v => {
+    v.contribution = grandTotal > 0 ? (v.amount / grandTotal) * 100 : 0;
+    return v;
+  });
+
+  // Calculate Summary
+  const totalVendors = currentVendorAnalysisData.length;
+  const totalTransactions = poRecords.length;
+  let topVendor = "-";
+  
+  if (totalVendors > 0) {
+    const sortedForTop = [...currentVendorAnalysisData].sort((a, b) => b.amount - a.amount);
+    topVendor = sortedForTop[0].name;
+  }
+
+  document.getElementById("vendorAnalysisTotalPurchase").textContent = "₹" + grandTotal.toFixed(2);
+  document.getElementById("vendorAnalysisTotalVendors").textContent = totalVendors;
+  document.getElementById("vendorAnalysisTotalTransactions").textContent = totalTransactions;
+  document.getElementById("vendorAnalysisTopVendor").textContent = topVendor;
+
+  // Default Sort
+  currentVendorAnalysisSort = { field: 'amount', asc: false };
+  renderVendorAnalysisTable();
+}
+
+function sortVendorAnalysis(field) {
+  if (currentVendorAnalysisSort.field === field) {
+    currentVendorAnalysisSort.asc = !currentVendorAnalysisSort.asc;
+  } else {
+    currentVendorAnalysisSort.field = field;
+    currentVendorAnalysisSort.asc = (field === 'name') ? true : false;
+  }
+  renderVendorAnalysisTable();
+}
+
+function renderVendorAnalysisTable() {
+  const tbody = document.getElementById("vendorAnalysisTableBody");
+  
+  if (currentVendorAnalysisData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No purchases found for this period.</td></tr>`;
+    return;
+  }
+
+  const { field, asc } = currentVendorAnalysisSort;
+  currentVendorAnalysisData.sort((a, b) => {
+    let valA = a[field];
+    let valB = b[field];
+    if (typeof valA === 'string') valA = valA.toLowerCase();
+    if (typeof valB === 'string') valB = valB.toLowerCase();
+    if (valA < valB) return asc ? -1 : 1;
+    if (valA > valB) return asc ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = currentVendorAnalysisData.map(v => `
+    <tr style="cursor:pointer;" onclick="openVendorDrillDownModal('${v.name.replace(/'/g, "\\'")}')">
+      <td style="color:var(--primary); font-weight:600;">${v.name}</td>
+      <td style="text-align:right; font-weight:bold; color:var(--text-dark);">₹${v.amount.toFixed(2)}</td>
+      <td style="text-align:right;">${v.transactions}</td>
+      <td style="text-align:right;">${v.quantity}</td>
+      <td style="text-align:right;">${v.contribution.toFixed(2)}%</td>
+    </tr>
+  `).join('');
+}
+
+async function openVendorDrillDownModal(vendorName) {
+  document.getElementById("vendorDrillDownName").textContent = vendorName;
+  document.getElementById("vendorDrillDownPeriodDisplay").textContent = document.getElementById("vendorAnalysisDateDisplay").textContent;
+  
+  document.getElementById("vendorDrillDownTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading drill-down data...</td></tr>`;
+  document.getElementById("vendorDrillDownModal").style.display = "flex";
+
+  const vendorPos = vendorAnalysisFullRecords.filter(po => po.supplier_name === vendorName);
+  
+  if (vendorPos.length === 0) {
+    document.getElementById("vendorDrillDownTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No records found.</td></tr>`;
+    return;
+  }
+  
+  const { data: items, error } = await db
+    .from("purchase_order_items")
+    .select("*")
+    .in("po_id", vendorPos.map(p => p.id));
+    
+  if (error) {
+    document.getElementById("vendorDrillDownTableBody").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error: ${error.message}</td></tr>`;
+    return;
+  }
+  
+  const itemsList = items || [];
+  
+  let rowsHtml = '';
+  
+  // Sort vendor POs by date descending
+  vendorPos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  vendorPos.forEach(po => {
+    const poItems = itemsList.filter(item => String(item.po_id) === String(po.id));
+    const dateStr = new Date(po.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const poRef = po.po_number || '#' + po.id;
+    
+    if (poItems.length > 0) {
+      poItems.forEach(item => {
+        rowsHtml += `
+          <tr>
+            <td>${dateStr}</td>
+            <td style="font-size:11px;">${poRef}</td>
+            <td style="color:var(--text-dark);">${item.product_name}</td>
+            <td style="text-align:right;">${item.quantity}</td>
+            <td style="text-align:right; color:var(--success); font-weight:bold;">₹${(Number(item.quantity) * Number(item.purchase_price)).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    } else {
+      // Show empty item row if no items found but PO exists
+      rowsHtml += `
+          <tr>
+            <td>${dateStr}</td>
+            <td style="font-size:11px;">${poRef}</td>
+            <td style="color:var(--text-muted); font-style:italic;">No items specified</td>
+            <td style="text-align:right;">-</td>
+            <td style="text-align:right; color:var(--success); font-weight:bold;">₹${Number(po.total_amount).toFixed(2)}</td>
+          </tr>
+        `;
+    }
+  });
+  
+  document.getElementById("vendorDrillDownTableBody").innerHTML = rowsHtml;
+}
+
+function closeVendorDrillDownModal() {
+  document.getElementById("vendorDrillDownModal").style.display = "none";
 }

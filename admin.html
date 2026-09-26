@@ -95,6 +95,9 @@
         <button class="sidebar-btn" data-view="supplierReport" onclick="switchAdminView('supplierReport')">
           <span>🏬</span> <span id="lblNavSupplierReport">Supplier Purchase Report</span>
         </button>
+        <button class="sidebar-btn" data-view="vendorAnalysis" onclick="switchAdminView('vendorAnalysis')">
+          <span>🏢</span> <span id="lblNavVendorAnalysis">Vendor Purchase Analysis</span>
+        </button>
 
         <!-- SIDEBAR PREFERENCES & SETTINGS (IMMEDIATELY BELOW MENU ITEMS) -->
         <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
@@ -191,6 +194,10 @@
     <button id="nav-productProfitability" class="bottom-nav-btn" onclick="switchAdminView('productProfitability')">
       <span class="icon">💰</span>
       <span>Profit</span>
+    </button>
+    <button id="nav-vendorAnalysis" class="bottom-nav-btn" onclick="switchAdminView('vendorAnalysis')">
+      <span class="icon">🏢</span>
+      <span>Vendor</span>
     </button>
   </nav>
 
@@ -901,6 +908,119 @@
         </div>
       </div>
     </section>
+
+    <!-- VIEW 8: VENDOR PURCHASE ANALYSIS -->
+    <section id="view-vendorAnalysis" class="admin-view" style="display:none;">
+      <div class="card">
+        <h2>🏢 Vendor Purchase Analysis</h2>
+
+        <!-- PERIOD & DATE FILTERS -->
+        <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Period:</label>
+              <select id="vendorAnalysisPeriod" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;" onchange="onVendorAnalysisPeriodChange(this.value)">
+                <option value="week" selected>Week</option>
+                <option value="month">Month</option>
+                <option value="quarter">Quarter</option>
+                <option value="year">Year</option>
+              </select>
+            </div>
+
+            <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
+              <div>
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date:</label>
+                <input type="date" id="vendorAnalysisFromDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
+              </div>
+              <div>
+                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date:</label>
+                <input type="date" id="vendorAnalysisToDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <button class="btn-primary" onclick="loadVendorPurchaseAnalysis()" style="padding:10px 14px; justify-content:center;">🔍 Apply Filter</button>
+              <button class="btn-outline" onclick="resetVendorAnalysisFilter()" style="padding:10px 14px; justify-content:center;">🔄 Reset Filter</button>
+            </div>
+            
+            <div id="vendorAnalysisDateDisplay" style="font-size:12px; font-weight:bold; color:var(--primary); text-align:center; margin-top:5px;"></div>
+          </div>
+        </div>
+
+        <!-- SUMMARY SECTION -->
+        <div class="summary-grid" style="margin-bottom:20px;">
+          <div class="summary-card">
+            <small>TOTAL PURCHASE</small>
+            <strong style="color:var(--primary);" id="vendorAnalysisTotalPurchase">₹0.00</strong>
+          </div>
+          <div class="summary-card">
+            <small>TOTAL VENDORS</small>
+            <strong style="color:var(--text-dark);" id="vendorAnalysisTotalVendors">0</strong>
+          </div>
+          <div class="summary-card">
+            <small>TRANSACTIONS / POS</small>
+            <strong style="color:var(--blue);" id="vendorAnalysisTotalTransactions">0</strong>
+          </div>
+          <div class="summary-card">
+            <small>TOP VENDOR</small>
+            <strong style="color:var(--success);" id="vendorAnalysisTopVendor">-</strong>
+          </div>
+        </div>
+
+        <!-- VENDOR-WISE TABLE -->
+        <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
+          <h3 style="margin:0 0 10px 0; font-size:14px;">👥 Vendor-Wise Purchase Table</h3>
+          <div class="table-responsive">
+            <table class="custom-table" id="vendorAnalysisTable">
+              <thead>
+                <tr>
+                  <th onclick="sortVendorAnalysis('name')" style="cursor:pointer;">Vendor Name ↕️</th>
+                  <th onclick="sortVendorAnalysis('amount')" style="cursor:pointer; text-align:right;">Purchase Amount (₹) ↕️</th>
+                  <th onclick="sortVendorAnalysis('transactions')" style="cursor:pointer; text-align:right;">Transactions / POs ↕️</th>
+                  <th onclick="sortVendorAnalysis('quantity')" style="cursor:pointer; text-align:right;">Total Quantity ↕️</th>
+                  <th onclick="sortVendorAnalysis('contribution')" style="cursor:pointer; text-align:right;">Contribution % ↕️</th>
+                </tr>
+              </thead>
+              <tbody id="vendorAnalysisTableBody">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--text-muted);">Loading data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- VENDOR DRILL-DOWN MODAL -->
+    <div id="vendorDrillDownModal" class="modal-overlay">
+      <div class="modal-card" style="max-width:800px; width:95%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:12px;">
+          <h3 style="margin:0; color:var(--primary); font-size:16px;">Vendor Details: <span id="vendorDrillDownName"></span></h3>
+          <button onclick="closeVendorDrillDownModal()" style="border:0; background:var(--bg); padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">✕ Close</button>
+        </div>
+        
+        <div style="font-size:12px; font-weight:bold; color:var(--text-dark); margin-bottom:10px;" id="vendorDrillDownPeriodDisplay"></div>
+
+        <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+          <table class="profit-list-table">
+            <thead>
+              <tr>
+                <th>Purchase Date</th>
+                <th>PO Reference No</th>
+                <th>Material / Item</th>
+                <th style="text-align:right;">Quantity</th>
+                <th style="text-align:right;">Purchase Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="vendorDrillDownTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
 
     <!-- VIEW 7: PRODUCT PROFITABILITY -->
     <section id="view-productProfitability" class="admin-view" style="display:none;">
