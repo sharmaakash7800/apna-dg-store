@@ -36,7 +36,7 @@
 <body>
 
   <!-- HEADER -->
-  <header>
+  <header style="position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: var(--surface);">
     <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
       <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
         <button class="menu-toggle-btn" onclick="toggleSidebar()">
@@ -201,7 +201,7 @@
     </button>
   </nav>
 
-  <div class="container" style="width:100%; max-width:1380px; margin:0 auto; padding:16px 24px;">
+  <div class="container" style="width:100%; max-width:1380px; margin:0 auto; padding:16px 24px; padding-bottom:100px;">
 
     <!-- VIEW 1: CUSTOMER ORDERS -->
     <section id="view-customerOrders" class="admin-view">
@@ -918,36 +918,35 @@
         </div>
         <!-- PERIOD & DATE FILTERS -->
         <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+            <div style="flex: 1 1 150px; min-width:120px;">
               <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Period:</label>
               <select id="vendorAnalysisPeriod" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;" onchange="onVendorAnalysisPeriodChange(this.value)">
                 <option value="week" selected>Week</option>
                 <option value="month">Month</option>
                 <option value="quarter">Quarter</option>
                 <option value="year">Year</option>
+                <option value="custom">Custom Date</option>
               </select>
             </div>
-
-            <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date:</label>
-                <input type="date" id="vendorAnalysisFromDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
-              </div>
-              <div>
-                <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date:</label>
-                <input type="date" id="vendorAnalysisToDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
-              </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-              <button class="btn-primary" onclick="loadVendorPurchaseAnalysis()" style="padding:10px 14px; justify-content:center;">🔍 Apply Filter</button>
-              <button class="btn-outline" onclick="resetVendorAnalysisFilter()" style="padding:10px 14px; justify-content:center;">🔄 Reset Filter</button>
+            
+            <div style="flex: 1 1 150px; min-width:120px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From Date:</label>
+              <input type="date" id="vendorAnalysisFromDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
             </div>
             
-            <div id="vendorAnalysisDateDisplay" style="font-size:12px; font-weight:bold; color:var(--primary); text-align:center; margin-top:5px;"></div>
+            <div style="flex: 1 1 150px; min-width:120px;">
+              <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To Date:</label>
+              <input type="date" id="vendorAnalysisToDate" style="width:100%; padding:8px;" onchange="clearVendorAnalysisPeriodDropdown()" />
+            </div>
+            
+            <div style="display:flex; gap:8px; flex: 1 1 200px; min-width:200px;">
+              <button class="btn-primary" onclick="loadVendorPurchaseAnalysis()" style="padding:9px 14px; flex:1; justify-content:center;">🔍 Apply Filter</button>
+              <button class="btn-outline" onclick="resetVendorAnalysisFilter()" style="padding:9px 14px; flex:1; justify-content:center;">🔄 Reset</button>
+            </div>
           </div>
+          
+          <div id="vendorAnalysisDateDisplay" style="font-size:12px; font-weight:bold; color:var(--primary); text-align:center; margin-top:10px;"></div>
         </div>
 
         <!-- SUMMARY SECTION -->
@@ -967,6 +966,7 @@
           <div class="summary-card">
             <small>TOP VENDOR</small>
             <strong style="color:var(--success);" id="vendorAnalysisTopVendor">-</strong>
+            <span style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-top:2px;" id="vendorAnalysisTopVendorAmt"></span>
           </div>
         </div>
 
@@ -980,10 +980,14 @@
 
         <!-- VENDOR-WISE TABLE -->
         <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
-          <h3 style="margin:0 0 10px 0; font-size:14px;">👥 Vendor-Wise Purchase Table</h3>
-          <div class="table-responsive">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:14px;">👥 Vendor-Wise Purchase Table</h3>
+            <input type="text" id="vendorAnalysisSearch" onkeyup="renderVendorAnalysisTable()" placeholder="🔍 Search Vendor..." style="padding:6px 10px; font-size:12px; border-radius:8px; border:1px solid var(--border); width:200px;" />
+          </div>
+          
+          <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
             <table class="custom-table" id="vendorAnalysisTable">
-              <thead>
+              <thead style="position:sticky; top:0; background:var(--bg); z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <tr>
                   <th onclick="sortVendorAnalysis('name')" style="cursor:pointer;">Vendor Name ↕️</th>
                   <th onclick="sortVendorAnalysis('amount')" style="cursor:pointer; text-align:right;">Purchase Amount (₹) ↕️</th>
@@ -1691,9 +1695,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=34.2"></script>
-  <script src="sync-engine.js?v=34.2"></script>
-  <script src="admin.js?v=34.2"></script>
+  <script src="config.js?v=34.3"></script>
+  <script src="sync-engine.js?v=34.3"></script>
+  <script src="admin.js?v=34.3"></script>
 </body>
 
 </html>

@@ -3323,6 +3323,11 @@ function onVendorAnalysisPeriodChange(period) {
     to = yDates.to;
   }
 
+  if (period === 'custom') {
+    // Leave dates as is, user can pick them
+    return;
+  }
+
   if (from && to) {
     document.getElementById("vendorAnalysisFromDate").value = from.toISOString().split('T')[0];
     document.getElementById("vendorAnalysisToDate").value = to.toISOString().split('T')[0];
@@ -3331,7 +3336,7 @@ function onVendorAnalysisPeriodChange(period) {
 }
 
 function clearVendorAnalysisPeriodDropdown() {
-  document.getElementById("vendorAnalysisPeriod").value = "";
+  document.getElementById("vendorAnalysisPeriod").value = "custom";
 }
 
 function resetVendorAnalysisFilter() {
@@ -3428,16 +3433,19 @@ async function loadVendorPurchaseAnalysis() {
   const totalVendors = currentVendorAnalysisData.length;
   const totalTransactions = poRecords.length;
   let topVendor = "-";
+  let topVendorAmtStr = "";
   
   if (totalVendors > 0) {
     const sortedForTop = [...currentVendorAnalysisData].sort((a, b) => b.amount - a.amount);
     topVendor = sortedForTop[0].name;
+    topVendorAmtStr = "₹" + sortedForTop[0].amount.toFixed(2);
   }
 
   document.getElementById("vendorAnalysisTotalPurchase").textContent = "₹" + grandTotal.toFixed(2);
   document.getElementById("vendorAnalysisTotalVendors").textContent = totalVendors;
   document.getElementById("vendorAnalysisTotalTransactions").textContent = totalTransactions;
   document.getElementById("vendorAnalysisTopVendor").textContent = topVendor;
+  document.getElementById("vendorAnalysisTopVendorAmt").textContent = topVendorAmtStr;
 
   // Default Sort
   currentVendorAnalysisSort = { field: 'amount', asc: false };
@@ -3474,7 +3482,18 @@ function renderVendorAnalysisTable() {
     return 0;
   });
 
-  tbody.innerHTML = currentVendorAnalysisData.map(v => `
+  const searchVal = (document.getElementById("vendorAnalysisSearch")?.value || "").toLowerCase();
+
+  const filteredData = currentVendorAnalysisData.filter(v => {
+    return v.name.toLowerCase().includes(searchVal);
+  });
+  
+  if (filteredData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No vendors match the search.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filteredData.map(v => `
     <tr style="cursor:pointer;" onclick="openVendorDrillDownModal('${v.name.replace(/'/g, "\\'")}')">
       <td style="color:var(--primary); font-weight:600;">${v.name}</td>
       <td style="text-align:right; font-weight:bold; color:var(--text-dark);">₹${v.amount.toFixed(2)}</td>
@@ -3536,7 +3555,12 @@ function renderVendorAnalysisChart() {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { color: textColor },
+          ticks: { 
+            color: textColor,
+            callback: function(value) {
+              return '₹' + value;
+            }
+          },
           grid: { color: gridColor }
         },
         x: {
