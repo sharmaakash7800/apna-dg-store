@@ -336,7 +336,8 @@ function switchAdminView(viewId) {
       } else {
         loadVendorPurchaseAnalysis();
       }
-    }
+    },
+    vendorPriceComparison: loadVendorPriceComparison
   };
   viewActions[viewId]?.();
 }
@@ -3828,4 +3829,110 @@ async function openVendorDrillDownModal(vendorName) {
 
 function closeVendorDrillDownModal() {
   document.getElementById("vendorDrillDownModal").style.display = "none";
+}
+
+/* VENDOR PRICE COMPARISON FEATURE */
+let currentVendorPriceData = [];
+
+async function loadVendorPriceComparison() {
+  const tbody = document.getElementById("vendorPriceTableBody");
+  tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>`;
+
+  // Fetch all POs (limit to recent to avoid huge payloads, or all if small db)
+  const { data: pos, error: poErr } = await db.from("purchase_orders").select("id, supplier_name, created_at").order('created_at', { ascending: false });
+  if (poErr) return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading orders</td></tr>`;
+
+  // Fetch items
+  const { data: items, error: itemErr } = await db.from("purchase_order_items").select("po_id, product_name, purchase_price");
+  if (itemErr) return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading items</td></tr>`;
+
+  const poMap = {};
+  (pos || []).forEach(po => poMap[po.id] = po);
+
+  const productMap = {}; 
+
+  (items || []).forEach(item => {
+    if (!item.product_name || !item.purchase_price) return;
+    const po = poMap[item.po_id];
+    if (!po || !po.supplier_name) return;
+
+    const prodName = item.product_name.trim();
+    const vendorName = po.supplier_name.trim();
+    const price = Number(item.purchase_price);
+    const date = new Date(po.created_at);
+
+    if (!productMap[prodName]) productMap[prodName] = {};
+    if (!productMap[prodName][vendorName]) {
+      productMap[prodName][vendorName] = { price: price, date: date };
+    } else {
+      if (date > productMap[prodName][vendorName].date) {
+        productMap[prodName][vendorName] = { price: price, date: date };
+      }
+    }
+  });
+
+  const processedData = [];
+
+  for (const [prodName, vendors] of Object.entries(productMap)) {
+    const vendorList = [];
+    for (const [vName, vData] of Object.entries(vendors)) {
+      vendorList.push({ name: vName, price: vData.price, date: vData.date });
+    }
+    
+    vendorList.sort((a, b) => a.price - b.price);
+
+    const bestVendor = vendorList[0];
+    const highestVendor = vendorList[vendorList.length - 1];
+    const maxDiff = highestVendor.price - bestVendor.price;
+
+    processedData.push({
+      productName: prodName,
+      bestVendor: bestVendor.name,
+      lowestPrice: bestVendor.price,
+      otherVendors: vendorList.slice(1),
+      maxDiff: maxDiff
+    });
+  }
+
+  processedData.sort((a, b) => a.productName.localeCompare(b.productName));
+  
+  currentVendorPriceData = processedData;
+  renderVendorPriceTable();
+}
+
+function filterVendorPriceTable() {
+  renderVendorPriceTable();
+}
+
+function renderVendorPriceTable() {
+  const searchVal = (document.getElementById("vendorPriceSearch")?.value || "").toLowerCase();
+  const tbody = document.getElementById("vendorPriceTableBody");
+  
+  const filtered = currentVendorPriceData.filter(d => d.productName.toLowerCase().includes(searchVal));
+  
+  if (filtered.length === 0) {
+    return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No products found matching "${searchVal}".</td></tr>`;
+  }
+
+  let html = '';
+  filtered.forEach(d => {
+    let othersHtml = '<span style="color:var(--text-muted); font-size:11px;">-</span>';
+    if (d.otherVendors.length > 0) {
+      othersHtml = d.otherVendors.map(v => `<div style="font-size:11px; margin-bottom:2px;">${v.name}: <strong style="color:var(--danger);">₹${v.price.toFixed(2)}</strong></div>`).join('');
+    }
+
+    html += `
+      <tr>
+        <td style="font-weight:600; color:var(--text-dark);">${d.productName}</td>
+        <td style="color:var(--success); font-weight:bold;">${d.bestVendor}</td>
+        <td style="text-align:right; font-weight:bold;">₹${d.lowestPrice.toFixed(2)}</td>
+        <td>${othersHtml}</td>
+        <td style="text-align:right; font-weight:bold; color:${d.maxDiff > 0 ? 'var(--danger)' : 'var(--text-muted)'};">
+          ${d.maxDiff > 0 ? '₹' + d.maxDiff.toFixed(2) : '-'}
+        </td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
 }

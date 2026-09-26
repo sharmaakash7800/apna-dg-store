@@ -98,6 +98,9 @@
         <button class="sidebar-btn" data-view="vendorAnalysis" onclick="switchAdminView('vendorAnalysis')">
           <span>🏢</span> <span id="lblNavVendorAnalysis">Vendor Purchase Analysis</span>
         </button>
+        <button class="sidebar-btn" data-view="vendorPriceComparison" onclick="switchAdminView('vendorPriceComparison')">
+          <span>⚖️</span> <span id="lblNavVendorPriceComparison">Vendor Price Comparison</span>
+        </button>
 
         <!-- SIDEBAR PREFERENCES & SETTINGS (IMMEDIATELY BELOW MENU ITEMS) -->
         <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
@@ -1041,6 +1044,39 @@
         </div>
       </div>
     </section>
+
+    <!-- VIEW 9: VENDOR PRICE COMPARISON -->
+    <section id="view-vendorPriceComparison" class="admin-view" style="display:none;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <h2 style="margin:0;">⚖️ Vendor Price Comparison</h2>
+          <button class="btn-primary" onclick="loadVendorPriceComparison()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+        </div>
+        
+        <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
+          <input type="text" id="vendorPriceSearch" onkeyup="filterVendorPriceTable()" placeholder="🔍 Search Product Name..." style="width:100%; padding:10px; font-size:13px; font-weight:600; border-radius:10px; border:1px solid var(--border);" />
+        </div>
+
+        <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
+          <div class="table-responsive" style="max-height:600px; overflow-y:auto;">
+            <table class="custom-table" id="vendorPriceTable">
+              <thead style="position:sticky; top:0; background:var(--bg); z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <tr>
+                  <th>Product / Material</th>
+                  <th style="color:var(--success);">🏆 Best Vendor (Lowest Price)</th>
+                  <th style="text-align:right;">Lowest Rate (₹)</th>
+                  <th>Other Vendors & Rates</th>
+                  <th style="text-align:right;">Max Difference</th>
+                </tr>
+              </thead>
+              <tbody id="vendorPriceTableBody">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
     
     <!-- VENDOR DRILL-DOWN MODAL -->
     <div id="vendorDrillDownModal" class="modal-overlay">
@@ -1730,9 +1766,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=34.4"></script>
-  <script src="sync-engine.js?v=34.4"></script>
-  <script src="admin.js?v=34.4"></script>
+  <script src="config.js?v=34.5"></script>
+  <script src="sync-engine.js?v=34.5"></script>
+  <script src="admin.js?v=34.5"></script>
 </body>
 
 </html>
