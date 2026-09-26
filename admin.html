@@ -912,8 +912,10 @@
     <!-- VIEW 8: VENDOR PURCHASE ANALYSIS -->
     <section id="view-vendorAnalysis" class="admin-view" style="display:none;">
       <div class="card">
-        <h2>🏢 Vendor Purchase Analysis</h2>
-
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <h2 style="margin:0;">🏢 Vendor Purchase Analysis</h2>
+          <button class="btn-primary" onclick="loadVendorPurchaseAnalysis()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+        </div>
         <!-- PERIOD & DATE FILTERS -->
         <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
           <div style="display:flex; flex-direction:column; gap:10px;">
@@ -965,6 +967,14 @@
           <div class="summary-card">
             <small>TOP VENDOR</small>
             <strong style="color:var(--success);" id="vendorAnalysisTopVendor">-</strong>
+          </div>
+        </div>
+
+        <!-- CHART SECTION -->
+        <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
+          <h3 style="margin:0 0 10px 0; font-size:14px;">📊 Vendor Purchase Distribution</h3>
+          <div style="position:relative; height:300px; width:100%;">
+            <canvas id="vendorAnalysisChart"></canvas>
           </div>
         </div>
 
@@ -1681,9 +1691,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=34.1"></script>
-  <script src="sync-engine.js?v=34.1"></script>
-  <script src="admin.js?v=34.1"></script>
+  <script src="config.js?v=34.2"></script>
+  <script src="sync-engine.js?v=34.2"></script>
+  <script src="admin.js?v=34.2"></script>
 </body>
 
 </html>

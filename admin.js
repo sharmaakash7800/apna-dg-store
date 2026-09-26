@@ -3264,6 +3264,7 @@ function syncAllProfitabilityToSheets() {
 let currentVendorAnalysisData = [];
 let currentVendorAnalysisSort = { field: 'amount', asc: false };
 let vendorAnalysisFullRecords = [];
+let vendorAnalysisChartInstance = null;
 
 function getIndianFinancialYearDates() {
   const today = new Date();
@@ -3441,6 +3442,7 @@ async function loadVendorPurchaseAnalysis() {
   // Default Sort
   currentVendorAnalysisSort = { field: 'amount', asc: false };
   renderVendorAnalysisTable();
+  renderVendorAnalysisChart();
 }
 
 function sortVendorAnalysis(field) {
@@ -3481,6 +3483,69 @@ function renderVendorAnalysisTable() {
       <td style="text-align:right;">${v.contribution.toFixed(2)}%</td>
     </tr>
   `).join('');
+}
+
+function renderVendorAnalysisChart() {
+  const ctx = document.getElementById('vendorAnalysisChart');
+  if (!ctx) return;
+  
+  if (vendorAnalysisChartInstance) {
+    vendorAnalysisChartInstance.destroy();
+  }
+
+  // Sort by amount descending for the chart
+  const chartData = [...currentVendorAnalysisData].sort((a, b) => b.amount - a.amount).slice(0, 10); // Top 10 vendors
+  
+  if (chartData.length === 0) {
+    ctx.style.display = 'none';
+    return;
+  }
+  
+  ctx.style.display = 'block';
+
+  const isDarkMode = document.documentElement.getAttribute("data-theme") === "dark";
+  const textColor = isDarkMode ? "#cbd5e1" : "#475569";
+  const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+
+  vendorAnalysisChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.map(d => d.name),
+      datasets: [{
+        label: 'Purchase Amount (₹)',
+        data: chartData.map(d => d.amount),
+        backgroundColor: 'rgba(79, 70, 229, 0.7)',
+        borderColor: 'rgb(79, 70, 229)',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return '₹' + context.raw.toFixed(2);
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: textColor },
+          grid: { color: gridColor }
+        },
+        x: {
+          ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
+          grid: { display: false }
+        }
+      }
+    }
+  });
 }
 
 async function openVendorDrillDownModal(vendorName) {
