@@ -531,8 +531,9 @@ async function loadCounterCollectionHistory() {
     const { data, error } = await db
       .from("Collections")
       .select("*")
+      .order("collection_date", { ascending: false })
       .order("id", { ascending: false })
-      .limit(30);
+      .limit(50);
 
     if (error) {
       container.innerHTML = `<div style="text-align:center; color:var(--danger); padding:10px; font-size:12px;">Error loading history: ${error.message}</div>`;
@@ -544,13 +545,31 @@ async function loadCounterCollectionHistory() {
       return;
     }
 
-    const rowsHTML = data.map(item => {
+    let rowsHTML = "";
+    let currentDate = null;
+    let currentTotal = 0;
+
+    data.forEach((item, index) => {
       const note = item.note || "";
       const isOnline = note.toLowerCase().includes("mode:online") || note.toLowerCase().includes("online");
       const cleanNote = note.replace(/\[MODE:[^\]]+\]\s*/i, "").replace(/\| Period:[^|]+/i, "").trim();
       const dateStr = item.collection_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN') : '-');
+      const amt = Number(item.amount || 0);
 
-      return `
+      if (currentDate !== null && currentDate !== dateStr) {
+        rowsHTML += `
+          <tr style="background:var(--surface); font-weight:bold; border-top:2px solid var(--border);">
+            <td colspan="2" style="text-align:right;">Total for ${currentDate}:</td>
+            <td style="color:var(--primary);">₹${currentTotal.toFixed(2)}</td>
+            <td colspan="2"></td>
+          </tr>`;
+        currentTotal = 0;
+      }
+
+      currentDate = dateStr;
+      currentTotal += amt;
+
+      rowsHTML += `
         <tr>
           <td style="font-weight:600; white-space:nowrap;">${dateStr}</td>
           <td>
@@ -558,14 +577,23 @@ async function loadCounterCollectionHistory() {
               ${isOnline ? '💳 Online' : '💵 Cash (Offline)'}
             </span>
           </td>
-          <td style="font-weight:700; color:var(--success);">₹${Number(item.amount || 0).toFixed(2)}</td>
+          <td style="font-weight:700; color:var(--success);">₹${amt.toFixed(2)}</td>
           <td style="font-size:11px; color:var(--text-dark); max-width:200px; word-wrap:break-word;">${cleanNote || 'Counter Collection'}</td>
           <td style="text-align:center;">
             <button class="btn-danger" style="padding:3px 8px; font-size:11px; border-radius:6px; cursor:pointer;" onclick="deleteCollectionEntry('${item.id}')">🗑️ Delete</button>
           </td>
         </tr>
       `;
-    }).join("");
+
+      if (index === data.length - 1) {
+        rowsHTML += `
+          <tr style="background:var(--surface); font-weight:bold; border-top:2px solid var(--border);">
+            <td colspan="2" style="text-align:right;">Total for ${currentDate}:</td>
+            <td style="color:var(--primary);">₹${currentTotal.toFixed(2)}</td>
+            <td colspan="2"></td>
+          </tr>`;
+      }
+    });
 
     container.innerHTML = `
       <div class="table-responsive" style="max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
