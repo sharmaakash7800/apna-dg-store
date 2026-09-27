@@ -755,6 +755,37 @@ async function calculateReports() {
         <td style="font-weight:bold;">${validOrderCount} Entries/Orders</td>
       </tr>`;
   }
+
+  if (window.paymentModeChartInstance) {
+    window.paymentModeChartInstance.destroy();
+  }
+  const ctx = document.getElementById('paymentModeChart');
+  if (ctx) {
+    if (offlineTotal > 0 || onlineTotal > 0) {
+      window.paymentModeChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Offline Cash', 'Online (UPI/Cards)'],
+          datasets: [{
+            data: [offlineTotal, onlineTotal],
+            backgroundColor: ['#28a745', '#007bff'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+      ctx.parentElement.style.display = "block";
+      ctx.parentElement.style.height = "250px";
+    } else {
+      ctx.parentElement.style.display = "none";
+    }
+  }
 }
 
 /* TOGGLES & STATUS */
