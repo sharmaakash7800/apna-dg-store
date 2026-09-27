@@ -453,6 +453,8 @@ document.addEventListener('click', e => !e.target.closest('.dropdown-wrapper') &
 const formatTime = dtStr => dtStr ? new Date(dtStr).toLocaleString("hi-IN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
 /* REPORTS & ANALYTICS */
+window.editingCollectionId = null;
+
 async function saveOfflineCashEntry() {
   const fromDateVal = document.getElementById("manualCashFromDate")?.value;
   const toDateVal = document.getElementById("manualCashToDate")?.value;
@@ -466,14 +468,28 @@ async function saveOfflineCashEntry() {
 
   const remarkText = `[MODE:${modeVal.toUpperCase()}] ${noteVal} (Amt: ₹${amountVal}) | Period: ${fromDateVal} to ${toDateVal}`;
   
-  const { error: collErr } = await db.from("Collections").insert([{ 
-    collection_date: toDateVal, 
-    amount: amountVal, 
-    note: remarkText 
-  }]);
+  if (window.editingCollectionId) {
+    const { error: updateErr } = await db.from("Collections").update({ 
+      collection_date: toDateVal, 
+      amount: amountVal, 
+      note: remarkText 
+    }).eq('id', window.editingCollectionId);
 
-  if (collErr) {
-    return alert("Error saving entry in DB: " + collErr.message);
+    if (updateErr) return alert("Error updating entry in DB: " + updateErr.message);
+    
+    window.editingCollectionId = null;
+    const btn = document.querySelector('button[onclick="saveOfflineCashEntry()"]');
+    if (btn) btn.innerHTML = '📥 Save Collection Entry';
+    alert("✅ Counter Collection Entry Update ho gayi!");
+  } else {
+    const { error: collErr } = await db.from("Collections").insert([{ 
+      collection_date: toDateVal, 
+      amount: amountVal, 
+      note: remarkText 
+    }]);
+  
+    if (collErr) return alert("Error saving entry in DB: " + collErr.message);
+    alert("✅ Counter Collection Entry Save ho gayi aur Google Sheet me bhej di gayi!");
   }
 
   const now = new Date();
@@ -579,7 +595,8 @@ async function loadCounterCollectionHistory() {
           </td>
           <td style="font-weight:700; color:var(--success);">₹${amt.toFixed(2)}</td>
           <td style="font-size:11px; color:var(--text-dark); max-width:200px; word-wrap:break-word;">${cleanNote || 'Counter Collection'}</td>
-          <td style="text-align:center;">
+          <td style="text-align:center; white-space:nowrap;">
+            <button class="btn-primary" style="padding:3px 8px; font-size:11px; border-radius:6px; cursor:pointer; margin-right:4px;" onclick="editCollectionEntry('${item.id}', '${item.collection_date || dateStr}', '${isOnline ? 'online' : 'offline'}', ${amt}, '${encodeURIComponent(cleanNote)}')">✏️ Edit</button>
             <button class="btn-danger" style="padding:3px 8px; font-size:11px; border-radius:6px; cursor:pointer;" onclick="deleteCollectionEntry('${item.id}')">🗑️ Delete</button>
           </td>
         </tr>
@@ -638,6 +655,38 @@ async function deleteCollectionEntry(id) {
   alert("Collection Entry successfully delete ho gayi!");
   loadCounterCollectionHistory();
   calculateReports();
+}
+
+function editCollectionEntry(id, date, mode, amount, noteEncoded) {
+  window.editingCollectionId = id;
+  
+  let isoDate = date;
+  if (date.includes('/')) {
+    const parts = date.split('/');
+    if (parts.length === 3) isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+
+  const fromDateEl = document.getElementById("manualCashFromDate");
+  const toDateEl = document.getElementById("manualCashToDate");
+  
+  if (fromDateEl) fromDateEl.value = isoDate;
+  if (toDateEl) toDateEl.value = isoDate;
+  
+  const modeEl = document.getElementById("manualCashMode");
+  if (modeEl) modeEl.value = mode;
+  
+  const amountEl = document.getElementById("manualCashAmount");
+  if (amountEl) amountEl.value = amount;
+  
+  const noteEl = document.getElementById("manualCashNote");
+  if (noteEl) noteEl.value = decodeURIComponent(noteEncoded);
+  
+  const btn = document.querySelector('button[onclick="saveOfflineCashEntry()"]');
+  if (btn) btn.innerHTML = '💾 Update Collection Entry';
+  
+  if (fromDateEl) {
+    fromDateEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function getDateRange(type) {
