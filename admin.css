@@ -766,9 +766,10 @@ select option {
   white-space: nowrap;
 }
 
-#productsTableBody td:nth-child(3) { white-space: normal; min-width: 220px; }
-#vendorPriceTableBody td:nth-child(1) { white-space: normal; min-width: 220px; }
-#vendorPriceTableBody td:nth-child(4) { white-space: normal; min-width: 180px; }
+#productsTableBody td:nth-child(3) { white-space: normal; min-width: 220px; max-width: 350px; word-wrap: break-word; }
+#vendorPriceTableBody td:nth-child(1) { white-space: normal; min-width: 220px; max-width: 350px; word-wrap: break-word; }
+#vendorPriceTableBody td:nth-child(4) { white-space: normal; min-width: 180px; max-width: 300px; word-wrap: break-word; }
+#profitabilityTableBody td:nth-child(1) { white-space: normal; min-width: 200px; max-width: 300px; word-wrap: break-word; }
 
 .custom-table th {
   background: var(--bg);
