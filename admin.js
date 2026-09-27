@@ -567,7 +567,17 @@ async function loadCounterCollectionHistory() {
 
     data.forEach((item, index) => {
       const note = item.note || "";
-      const isOnline = note.toLowerCase().includes("mode:online") || note.toLowerCase().includes("online");
+      
+      let isOnline = false;
+      const lowerNote = note.toLowerCase();
+      if (lowerNote.includes("[mode:online]")) {
+        isOnline = true;
+      } else if (lowerNote.includes("[mode:offline]")) {
+        isOnline = false;
+      } else {
+        isOnline = lowerNote.includes("online");
+      }
+      
       const cleanNote = note.replace(/\[MODE:[^\]]+\]\s*/i, "").replace(/\| Period:[^|]+/i, "").trim();
       const dateStr = item.collection_date || (item.created_at ? new Date(item.created_at).toLocaleDateString('en-IN') : '-');
       const amt = Number(item.amount || 0);
