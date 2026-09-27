@@ -754,7 +754,6 @@ select option {
 
 .custom-table {
   width: 100%;
-  min-width: 1150px;
   border-collapse: collapse;
   font-size: 12px;
 }
