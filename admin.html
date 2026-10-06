@@ -35,7 +35,24 @@
 
 <body>
 
-  <!-- HEADER -->
+  <!-- SUPABASE LOGIN OVERLAY -->
+  <div id="loginOverlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 10000; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease;">
+    <div style="background: var(--surface); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; border: 1px solid var(--border);">
+      <h2 style="text-align: center; margin-bottom: 1.5rem; color: var(--text-dark);">Admin Login</h2>
+      <div id="loginError" style="color: var(--danger); font-size: 14px; text-align: center; margin-bottom: 1rem; display: none;"></div>
+      <form id="loginForm" onsubmit="handleSupabaseLogin(event)">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 14px;">Email</label>
+          <input type="email" id="loginEmail" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-dark);" />
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 14px;">Password</label>
+          <input type="password" id="loginPassword" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-dark);" />
+        </div>
+        <button type="submit" id="loginBtn" style="width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Log In</button>
+      </form>
+    </div>
+  </div>  <!-- HEADER -->
   <header style="position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: var(--surface);">
     <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
       <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
@@ -53,6 +70,7 @@
       </div>
 
       <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <button onclick="handleLogout()" style="padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; background:#ef4444; color:white; border:none; cursor:pointer;" title="Log out">Log Out</button>
         <span id="pendingSyncBadgeHeader" style="display:none; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:bold; background:rgba(245,158,11,0.15); color:#d97706; border:1px solid #f59e0b; cursor:pointer;" onclick="processPendingSyncQueue()" title="Click to process pending sync queue">🔄 Sync Queue (0)</span>
         <span id="roleBadgeHeader" onclick="switchRoleUI()" title="Click to switch between Owner & Staff Mode">👑 Owner</span>
       </div>

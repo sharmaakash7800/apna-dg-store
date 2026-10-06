@@ -2,6 +2,56 @@ const SUPABASE_URL = "https://xbzvnhhyataeciiysbhh.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_aevPjOJgExRRlhUA9-iAYg_tpIk03it";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// SUPABASE AUTHENTICATION LOGIC
+async function handleSupabaseLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errDiv = document.getElementById('loginError');
+  
+  btn.textContent = 'Logging in...';
+  btn.disabled = true;
+  errDiv.style.display = 'none';
+
+  const { data, error } = await db.auth.signInWithPassword({
+    email: email,
+    password: password,
+  });
+
+  if (error) {
+    errDiv.textContent = error.message;
+    errDiv.style.display = 'block';
+    btn.textContent = 'Log In';
+    btn.disabled = false;
+  } else {
+    document.getElementById('loginOverlay').style.display = 'none';
+    // Fetch data after successful login just to be sure
+    fetchProducts(); 
+  }
+}
+
+async function handleLogout() {
+  await db.auth.signOut();
+  window.location.reload(); // Refresh the page to clear state
+}
+
+// Check session on load
+db.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    document.getElementById('loginOverlay').style.display = 'none';
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+});
+
+// Listen for auth changes
+db.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+});
+
 let productsList = [], suppliersList = [], poCart = [], editPoCart = [], tickedProductsMap = {};
 let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
