@@ -4317,12 +4317,12 @@ function renderVendorPriceTable(filtered) {
          <tbody>`;
     
     d.allVendorsList.forEach((v, vIdx) => {
-       let medal = vIdx === 0 ? '🏆 ' : \`\${vIdx+1}. \`;
+       let medal = vIdx === 0 ? '🏆 ' : `${vIdx+1}. `;
        let rateColor = vIdx === 0 ? 'var(--success)' : 'var(--text-dark)';
        detailsHtml += `<tr>
-         <td style="font-weight:bold;">\${medal}\${v.name}</td>
-         <td style="text-align:right; font-weight:bold; color:\${rateColor};">₹\${v.price.toFixed(2)}</td>
-         <td>\${v.date.toLocaleDateString()}</td>
+         <td style="font-weight:bold;">${medal}${v.name}</td>
+         <td style="text-align:right; font-weight:bold; color:${rateColor};">₹${v.price.toFixed(2)}</td>
+         <td>${v.date.toLocaleDateString()}</td>
        </tr>`;
     });
     
@@ -4330,8 +4330,8 @@ function renderVendorPriceTable(filtered) {
       let trendHtml = d.allVendorsList.slice().reverse().map(v => '₹'+v.price.toFixed(2)).join(' → ');
       detailsHtml += `</tbody></table>
         <div style="margin-top:10px; font-size:11px;">
-           <div style="color:var(--success); font-weight:bold;">Potential Saving: ₹\${(d.allVendorsList[d.allVendorsList.length-1].price - d.allVendorsList[0].price).toFixed(2)}/unit vs highest vendor</div>
-           <div style="margin-top:4px; color:var(--text-muted);">Price Trend: \${trendHtml}</div>
+           <div style="color:var(--success); font-weight:bold;">Potential Saving: ₹${(d.allVendorsList[d.allVendorsList.length-1].price - d.allVendorsList[0].price).toFixed(2)}/unit vs highest vendor</div>
+           <div style="margin-top:4px; color:var(--text-muted);">Price Trend: ${trendHtml}</div>
         </div>
       </div>`;
     } else {
@@ -4339,8 +4339,8 @@ function renderVendorPriceTable(filtered) {
     }
 
     html += `
-      <tr id="vendor-details-row-\${index}" style="display:none; border-bottom:2px solid var(--border);">
-         <td colspan="9" style="padding:0;">\${detailsHtml}</td>
+      <tr id="vendor-details-row-${index}" style="display:none; border-bottom:2px solid var(--border);">
+         <td colspan="9" style="padding:0;">${detailsHtml}</td>
       </tr>
     `;
   });
