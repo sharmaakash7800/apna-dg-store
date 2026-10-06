@@ -831,3 +831,12 @@ html[data-theme="dark"] .custom-table th { background: #1e293b; color: #f8fafc; 
     min-width: 100% !important;
   }
 }
+
+/* Hide scrollbar for elements with .no-scrollbar class */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
