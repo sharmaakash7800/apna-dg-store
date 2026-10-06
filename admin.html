@@ -1078,6 +1078,10 @@
           <div style="flex: 1 1 150px;">
             <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Period:</label>
             <select id="vendorPricePeriodFilter" onchange="loadVendorPriceComparison()" style="width:100%; padding:8px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+               <option value="this_week">This Week</option>
+               <option value="this_month">This Month</option>
+               <option value="this_quarter">This Quarter</option>
+               <option value="this_year">This Year</option>
                <option value="3" selected>Last 3 Months</option>
                <option value="6">Last 6 Months</option>
                <option value="12">Last 12 Months</option>
@@ -1091,9 +1095,16 @@
                <option value="multiple" selected>Multiple Vendors Only</option>
             </select>
           </div>
+          <div style="flex: 1 1 150px;">
+            <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">👁️ View Mode:</label>
+            <select id="vendorPriceViewMode" onchange="toggleVendorPriceViewMode()" style="width:100%; padding:8px; font-size:12px; font-weight:bold; border-radius:8px; border:1px solid var(--border); background:var(--primary); color:white;">
+               <option value="comparison">⚖️ Price Comparison</option>
+               <option value="hero">🦸‍♂️ Hero Products</option>
+            </select>
+          </div>
         </div>
 
-        <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div id="vendorPriceTableContainer" style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
           <div class="table-responsive" style="max-height:600px; overflow-y:auto;">
             <table class="custom-table" id="vendorPriceTable">
               <thead style="position:sticky; top:0; background:var(--bg); z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
@@ -1111,6 +1122,31 @@
               </thead>
               <tbody id="vendorPriceTableBody">
                 <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="heroProductsTableContainer" style="display:none; margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
+          <div class="table-responsive" style="max-height:600px; overflow-y:auto;">
+            <table class="custom-table" id="heroProductsTable">
+              <thead style="position:sticky; top:0; background:var(--bg); z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <tr>
+                  <th>Rank</th>
+                  <th>Product</th>
+                  <th style="text-align:right;">Total Purchase</th>
+                  <th style="text-align:center;">Count</th>
+                  <th style="text-align:center;">Qty</th>
+                  <th style="text-align:right;">Avg Buy Rate</th>
+                  <th style="text-align:right;">Avg Sell Rate</th>
+                  <th style="text-align:right;">Total Profit</th>
+                  <th style="text-align:right;">Margin %</th>
+                  <th style="text-align:center;">Last Purchase Date</th>
+                  <th style="text-align:center;">Hero Score</th>
+                </tr>
+              </thead>
+              <tbody id="heroProductsTableBody">
+                <tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Loading hero products data...</td></tr>
               </tbody>
             </table>
           </div>

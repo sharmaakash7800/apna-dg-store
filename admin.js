@@ -3954,17 +3954,42 @@ function closeVendorDrillDownModal() {
 
 /* VENDOR PRICE COMPARISON FEATURE */
 let currentVendorPriceData = [];
+let currentHeroProductsData = [];
 let currentSortColumn = 'savingAmt';
 let currentSortDirection = -1; // -1 for descending
 
+function toggleVendorPriceViewMode() {
+  const mode = document.getElementById("vendorPriceViewMode").value;
+  if (mode === 'comparison') {
+    document.getElementById("vendorPriceTableContainer").style.display = 'block';
+    document.getElementById("heroProductsTableContainer").style.display = 'none';
+  } else {
+    document.getElementById("vendorPriceTableContainer").style.display = 'none';
+    document.getElementById("heroProductsTableContainer").style.display = 'block';
+  }
+}
+
 async function loadVendorPriceComparison() {
   const tbody = document.getElementById("vendorPriceTableBody");
+  const heroTbody = document.getElementById("heroProductsTableBody");
   tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>`;
+  heroTbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Loading hero products data...</td></tr>`;
 
   // Period Filter
   const periodVal = document.getElementById("vendorPricePeriodFilter").value;
   let dateFilter = null;
-  if (periodVal !== "all") {
+  const today = new Date();
+  
+  if (periodVal === "this_week") {
+    dateFilter = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+  } else if (periodVal === "this_month") {
+    dateFilter = new Date(today.getFullYear(), today.getMonth(), 1);
+  } else if (periodVal === "this_quarter") {
+    const q = Math.floor(today.getMonth() / 3);
+    dateFilter = new Date(today.getFullYear(), q * 3, 1);
+  } else if (periodVal === "this_year") {
+    dateFilter = new Date(today.getFullYear(), 0, 1);
+  } else if (!isNaN(parseInt(periodVal))) {
     const months = parseInt(periodVal);
     dateFilter = new Date();
     dateFilter.setMonth(dateFilter.getMonth() - months);
@@ -3977,16 +4002,30 @@ async function loadVendorPriceComparison() {
   }
 
   const { data: pos, error: poErr } = await query;
-  if (poErr) return tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading orders</td></tr>`;
+  if (poErr) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading orders</td></tr>`;
+    return;
+  }
 
   // Fetch items
-  const { data: items, error: itemErr } = await db.from("purchase_order_items").select("po_id, product_name, purchase_price");
-  if (itemErr) return tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading items</td></tr>`;
+  const { data: items, error: itemErr } = await db.from("purchase_order_items").select("po_id, product_name, purchase_price, quantity");
+  if (itemErr) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading items</td></tr>`;
+    return;
+  }
+
+  // Fetch products for selling price
+  const { data: productsData } = await db.from("products").select("name, selling_price");
+  const sellingPriceMap = {};
+  (productsData || []).forEach(p => {
+    sellingPriceMap[p.name.trim().toLowerCase()] = Number(p.selling_price) || 0;
+  });
 
   const poMap = {};
   (pos || []).forEach(po => poMap[po.id] = po);
 
   const productMap = {}; 
+  const heroMap = {};
   const allVendors = new Set();
 
   (items || []).forEach(item => {
@@ -3997,10 +4036,12 @@ async function loadVendorPriceComparison() {
     const prodName = item.product_name.trim();
     const vendorName = po.supplier_name.trim();
     const price = Number(item.purchase_price);
+    const qty = Number(item.quantity) || 1;
     const date = new Date(po.created_at);
     
     allVendors.add(vendorName);
 
+    // For Vendor Price Comparison
     if (!productMap[prodName]) productMap[prodName] = {};
     if (!productMap[prodName][vendorName]) {
       productMap[prodName][vendorName] = { price: price, date: date };
@@ -4009,7 +4050,71 @@ async function loadVendorPriceComparison() {
         productMap[prodName][vendorName] = { price: price, date: date };
       }
     }
+
+    // For Hero Products
+    if (!heroMap[prodName]) {
+      heroMap[prodName] = {
+        productName: prodName,
+        totalPurchaseValue: 0,
+        purchaseCount: 0,
+        totalQty: 0,
+        sumPurchasePrice: 0,
+        itemCountForAvg: 0,
+        lastPurchaseDate: new Date(0),
+        totalProfit: 0,
+        sellingPrice: sellingPriceMap[prodName.toLowerCase()] || 0
+      };
+    }
+
+    heroMap[prodName].totalPurchaseValue += (price * qty);
+    heroMap[prodName].purchaseCount += 1;
+    heroMap[prodName].totalQty += qty;
+    heroMap[prodName].sumPurchasePrice += price;
+    heroMap[prodName].itemCountForAvg += 1;
+    if (date > heroMap[prodName].lastPurchaseDate) {
+      heroMap[prodName].lastPurchaseDate = date;
+    }
   });
+
+  // Calculate Hero metrics
+  let maxProfit = 0, maxFreq = 0, maxMargin = 0, maxQty = 0;
+  const processedHero = [];
+
+  for (const h of Object.values(heroMap)) {
+    h.avgBuyRate = h.sumPurchasePrice / h.itemCountForAvg;
+    h.avgSellRate = h.sellingPrice;
+    
+    // Profit Calculation (using selling price - avg buy rate) * total Qty
+    let unitProfit = h.avgSellRate - h.avgBuyRate;
+    if (unitProfit < 0) unitProfit = 0;
+    
+    h.totalProfit = unitProfit * h.totalQty;
+    h.marginPct = h.avgSellRate > 0 ? (unitProfit / h.avgSellRate) * 100 : 0;
+
+    if (h.totalProfit > maxProfit) maxProfit = h.totalProfit;
+    if (h.purchaseCount > maxFreq) maxFreq = h.purchaseCount;
+    if (h.marginPct > maxMargin) maxMargin = h.marginPct;
+    if (h.totalQty > maxQty) maxQty = h.totalQty;
+
+    processedHero.push(h);
+  }
+
+  // Calculate Hero Scores
+  processedHero.forEach(h => {
+    const profitScore = maxProfit ? (h.totalProfit / maxProfit) * 100 * 0.35 : 0;
+    const freqScore = maxFreq ? (h.purchaseCount / maxFreq) * 100 * 0.30 : 0;
+    const marginScore = maxMargin ? (h.marginPct / maxMargin) * 100 * 0.20 : 0;
+    const qtyScore = maxQty ? (h.totalQty / maxQty) * 100 * 0.10 : 0;
+    
+    const daysAgo = Math.floor((today - h.lastPurchaseDate) / (1000 * 60 * 60 * 24));
+    let recencyScore = Math.max(0, (1 - daysAgo / 90)) * 100 * 0.05;
+    
+    h.heroScore = Math.round(profitScore + freqScore + marginScore + qtyScore + recencyScore);
+  });
+
+  // Sort Hero Products by Hero Score Desc
+  processedHero.sort((a, b) => b.heroScore - a.heroScore);
+  currentHeroProductsData = processedHero;
 
   // Populate vendor dropdown
   const vendorSelect = document.getElementById("vendorPriceVendorFilter");
@@ -4092,6 +4197,48 @@ function filterVendorPriceTable() {
   });
 
   renderVendorPriceTable(filtered);
+  renderHeroProductsTable();
+}
+
+function renderHeroProductsTable() {
+  const tbody = document.getElementById("heroProductsTableBody");
+  
+  const searchVal = (document.getElementById("vendorPriceSearch")?.value || "").toLowerCase();
+  const filtered = currentHeroProductsData.filter(d => d.productName.toLowerCase().includes(searchVal));
+
+  if (filtered.length === 0) {
+    return tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No hero products found.</td></tr>`;
+  }
+
+  let html = '';
+  filtered.forEach((d, i) => {
+    let rank = i + 1;
+    let medal = rank === 1 ? '🏆 1' : rank;
+    let rankColor = rank === 1 ? 'color:var(--primary); font-weight:bold; font-size:14px;' : 'color:var(--text-dark); font-weight:bold;';
+    
+    let badge = '';
+    if (d.heroScore >= 80) badge = `<span style="background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; margin-left:6px;">Hero</span>`;
+    else if (d.heroScore >= 50) badge = `<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; margin-left:6px;">Strong</span>`;
+    else badge = `<span style="background:#fef9c3; color:#a16207; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; margin-left:6px;">Watch</span>`;
+
+    html += `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="text-align:center; ${rankColor}">${medal}</td>
+        <td style="font-weight:600; color:var(--text-dark);">${d.productName} ${badge}</td>
+        <td style="text-align:right; font-weight:bold;">₹${d.totalPurchaseValue.toFixed(2)}</td>
+        <td style="text-align:center;">${d.purchaseCount}</td>
+        <td style="text-align:center;">${d.totalQty}</td>
+        <td style="text-align:right;">₹${d.avgBuyRate.toFixed(2)}</td>
+        <td style="text-align:right;">₹${d.avgSellRate.toFixed(2)}</td>
+        <td style="text-align:right; font-weight:bold; color:var(--success);">₹${d.totalProfit.toFixed(2)}</td>
+        <td style="text-align:right; font-weight:bold; color:var(--success);">${d.marginPct.toFixed(1)}%</td>
+        <td style="text-align:center; font-size:11px; color:var(--text-muted);">${d.lastPurchaseDate.toLocaleDateString()}</td>
+        <td style="text-align:center; font-weight:bold; font-size:13px; color:var(--primary);">${d.heroScore}</td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
 }
 
 function sortVendorComparison(col) {
