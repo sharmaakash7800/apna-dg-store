@@ -196,6 +196,7 @@ header {
   transform: translateX(-100%);
   transition: transform 0.28s ease;
   z-index: 1050;
+  overflow-y: auto;
 }
 
 .sidebar-drawer.open { transform: translateX(0); }
