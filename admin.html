@@ -84,8 +84,8 @@
   <div class="admin-container-wrapper">
 
     <!-- SIDEBAR DRAWER MENU -->
-    <aside id="sidebarDrawer" class="sidebar-drawer">
-      <div>
+    <aside id="sidebarDrawer" class="sidebar-drawer" style="display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0;">
+      <div style="flex-shrink: 0;">
         <div
           style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
           <span class="sidebar-title" style="padding:0;">NAVIGATION MENU</span>
@@ -121,7 +121,9 @@
         </button>
 
         <!-- SIDEBAR PREFERENCES & SETTINGS (IMMEDIATELY BELOW MENU ITEMS) -->
-        <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+      </div>
+      <div style="flex: 1; overflow-y: auto; margin-top:16px; padding-top:14px; border-top:1px solid var(--border); padding-bottom: 20px;">
+        <div>
           <div
             style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">
             PREFERENCES & SETTINGS</div>
@@ -186,9 +188,7 @@
           </div>
         </div>
       </div>
-  </div>
-  </div>
-  </aside>
+    </aside>
 
   <!-- FLOATING BOTTOM NAVIGATION BAR (MOBILE) -->
   <nav class="bottom-nav">
