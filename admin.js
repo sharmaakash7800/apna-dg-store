@@ -3954,23 +3954,40 @@ function closeVendorDrillDownModal() {
 
 /* VENDOR PRICE COMPARISON FEATURE */
 let currentVendorPriceData = [];
+let currentSortColumn = 'savingAmt';
+let currentSortDirection = -1; // -1 for descending
 
 async function loadVendorPriceComparison() {
   const tbody = document.getElementById("vendorPriceTableBody");
-  tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>`;
 
-  // Fetch all POs (limit to recent to avoid huge payloads, or all if small db)
-  const { data: pos, error: poErr } = await db.from("purchase_orders").select("id, supplier_name, created_at").order('created_at', { ascending: false });
-  if (poErr) return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading orders</td></tr>`;
+  // Period Filter
+  const periodVal = document.getElementById("vendorPricePeriodFilter").value;
+  let dateFilter = null;
+  if (periodVal !== "all") {
+    const months = parseInt(periodVal);
+    dateFilter = new Date();
+    dateFilter.setMonth(dateFilter.getMonth() - months);
+  }
+
+  // Fetch all POs
+  let query = db.from("purchase_orders").select("id, supplier_name, created_at").order('created_at', { ascending: false });
+  if (dateFilter) {
+    query = query.gte('created_at', dateFilter.toISOString());
+  }
+
+  const { data: pos, error: poErr } = await query;
+  if (poErr) return tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading orders</td></tr>`;
 
   // Fetch items
   const { data: items, error: itemErr } = await db.from("purchase_order_items").select("po_id, product_name, purchase_price");
-  if (itemErr) return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading items</td></tr>`;
+  if (itemErr) return tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error loading items</td></tr>`;
 
   const poMap = {};
   (pos || []).forEach(po => poMap[po.id] = po);
 
   const productMap = {}; 
+  const allVendors = new Set();
 
   (items || []).forEach(item => {
     if (!item.product_name || !item.purchase_price) return;
@@ -3981,6 +3998,8 @@ async function loadVendorPriceComparison() {
     const vendorName = po.supplier_name.trim();
     const price = Number(item.purchase_price);
     const date = new Date(po.created_at);
+    
+    allVendors.add(vendorName);
 
     if (!productMap[prodName]) productMap[prodName] = {};
     if (!productMap[prodName][vendorName]) {
@@ -3991,6 +4010,15 @@ async function loadVendorPriceComparison() {
       }
     }
   });
+
+  // Populate vendor dropdown
+  const vendorSelect = document.getElementById("vendorPriceVendorFilter");
+  const currentVendor = vendorSelect.value;
+  vendorSelect.innerHTML = '<option value="all">All Vendors</option>';
+  Array.from(allVendors).sort().forEach(v => {
+    vendorSelect.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+  vendorSelect.value = allVendors.has(currentVendor) ? currentVendor : "all";
 
   const processedData = [];
 
@@ -4003,54 +4031,169 @@ async function loadVendorPriceComparison() {
     vendorList.sort((a, b) => a.price - b.price);
 
     const bestVendor = vendorList[0];
-    const highestVendor = vendorList[vendorList.length - 1];
-    const maxDiff = highestVendor.price - bestVendor.price;
+    const secondBestVendor = vendorList.length > 1 ? vendorList[1] : null;
+    
+    let savingAmt = 0;
+    let savingPct = 0;
+    
+    if (secondBestVendor) {
+      savingAmt = secondBestVendor.price - bestVendor.price;
+      savingPct = (savingAmt / secondBestVendor.price) * 100;
+    }
 
     processedData.push({
       productName: prodName,
       bestVendor: bestVendor.name,
       lowestPrice: bestVendor.price,
-      otherVendors: vendorList.slice(1),
-      maxDiff: maxDiff
+      secondVendor: secondBestVendor ? secondBestVendor.name : "-",
+      secondPrice: secondBestVendor ? secondBestVendor.price : null,
+      savingAmt: savingAmt,
+      savingPct: savingPct,
+      lastPurchase: bestVendor.date,
+      allVendorsList: vendorList,
+      hasMultiple: vendorList.length > 1
     });
   }
 
-  processedData.sort((a, b) => a.productName.localeCompare(b.productName));
-  
   currentVendorPriceData = processedData;
-  renderVendorPriceTable();
+  filterVendorPriceTable();
 }
 
 function filterVendorPriceTable() {
-  renderVendorPriceTable();
+  const searchVal = (document.getElementById("vendorPriceSearch")?.value || "").toLowerCase();
+  const vendorVal = document.getElementById("vendorPriceVendorFilter").value;
+  const compVal = document.getElementById("vendorPriceComparisonFilter").value;
+  
+  let filtered = currentVendorPriceData.filter(d => d.productName.toLowerCase().includes(searchVal));
+  
+  if (compVal === 'multiple') {
+    filtered = filtered.filter(d => d.hasMultiple);
+  }
+  
+  if (vendorVal !== 'all') {
+    filtered = filtered.filter(d => d.allVendorsList.some(v => v.name === vendorVal));
+  }
+  
+  // Apply sorting
+  filtered.sort((a, b) => {
+    let valA, valB;
+    switch(currentSortColumn) {
+      case 'lowestRate': valA = a.bestVendor; valB = b.bestVendor; break;
+      case 'lowestRateVal': valA = a.lowestPrice; valB = b.lowestPrice; break;
+      case 'savingAmt': valA = a.savingAmt; valB = b.savingAmt; break;
+      case 'savingPct': valA = a.savingPct; valB = b.savingPct; break;
+      case 'lastPurchase': valA = a.lastPurchase; valB = b.lastPurchase; break;
+      default: valA = a.savingAmt; valB = b.savingAmt;
+    }
+    
+    if (valA < valB) return -1 * currentSortDirection;
+    if (valA > valB) return 1 * currentSortDirection;
+    return 0;
+  });
+
+  renderVendorPriceTable(filtered);
 }
 
-function renderVendorPriceTable() {
-  const searchVal = (document.getElementById("vendorPriceSearch")?.value || "").toLowerCase();
+function sortVendorComparison(col) {
+  if (currentSortColumn === col) {
+    currentSortDirection *= -1;
+  } else {
+    currentSortColumn = col;
+    currentSortDirection = -1;
+  }
+  filterVendorPriceTable();
+}
+
+function toggleVendorDetails(index) {
+  const row = document.getElementById(`vendor-details-row-${index}`);
+  if (row.style.display === 'none') {
+    row.style.display = 'table-row';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+function renderVendorPriceTable(filtered) {
   const tbody = document.getElementById("vendorPriceTableBody");
   
-  const filtered = currentVendorPriceData.filter(d => d.productName.toLowerCase().includes(searchVal));
+  let totalSaving = 0;
+  let multipleCount = 0;
+  
+  currentVendorPriceData.forEach(d => {
+    if (d.hasMultiple) {
+      totalSaving += d.savingAmt;
+      multipleCount++;
+    }
+  });
+  
+  document.getElementById("vendorComparisonStats").innerText = `[ ${currentVendorPriceData.length} Products ] [ ₹${totalSaving.toFixed(2)} Saving Opportunity ] [ ${multipleCount} Products with Multiple Vendor Rates ]`;
   
   if (filtered.length === 0) {
-    return tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No products found matching "${searchVal}".</td></tr>`;
+    return tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No products found matching filters.</td></tr>`;
   }
 
   let html = '';
-  filtered.forEach(d => {
-    let othersHtml = '<span style="color:var(--text-muted); font-size:11px;">-</span>';
-    if (d.otherVendors.length > 0) {
-      othersHtml = d.otherVendors.map(v => `<div style="font-size:11px; margin-bottom:2px;">${v.name}: <strong style="color:var(--danger);">₹${v.price.toFixed(2)}</strong></div>`).join('');
+  filtered.forEach((d, index) => {
+    if (!d.hasMultiple) {
+       html += `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="font-weight:600; color:var(--text-dark);">${d.productName}</td>
+          <td colspan="7" style="text-align:center; color:var(--text-muted); font-style:italic;">Single Vendor – Comparison Not Available</td>
+          <td style="text-align:center;">
+             <button class="btn-outline" style="padding:4px 8px; font-size:10px;" onclick="toggleVendorDetails(${index})">View Details ▾</button>
+          </td>
+        </tr>
+      `;
+    } else {
+       html += `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="font-weight:600; color:var(--text-dark);">${d.productName}</td>
+          <td style="color:var(--success); font-weight:bold;">${d.bestVendor}</td>
+          <td style="text-align:right; font-weight:bold; color:var(--success);">₹${d.lowestPrice.toFixed(2)}</td>
+          <td>${d.secondVendor}</td>
+          <td style="text-align:right; color:var(--danger);">₹${d.secondPrice.toFixed(2)}</td>
+          <td style="text-align:right; font-weight:bold; color:var(--success);">₹${d.savingAmt.toFixed(2)}</td>
+          <td style="text-align:right; font-weight:bold; color:var(--success);">${d.savingPct.toFixed(2)}%</td>
+          <td style="text-align:center; font-size:11px; color:var(--text-muted);">${d.lastPurchase.toLocaleDateString()}</td>
+          <td style="text-align:center;">
+             <button class="btn-outline" style="padding:4px 8px; font-size:10px;" onclick="toggleVendorDetails(${index})">View Details ▾</button>
+          </td>
+        </tr>
+      `;
+    }
+    
+    // Details Row (Hidden by default)
+    let detailsHtml = `<div style="padding:10px; background:var(--bg); border-radius:8px; margin:4px 0;">
+       <div style="margin-bottom:8px; font-weight:bold; font-size:12px;">All Vendor Rates for ${d.productName}:</div>
+       <table class="profit-list-table" style="width:100%; max-width:600px;">
+         <thead><tr><th>Vendor Name</th><th style="text-align:right;">Rate (₹)</th><th>Last Purchase Date</th></tr></thead>
+         <tbody>`;
+    
+    d.allVendorsList.forEach((v, vIdx) => {
+       let medal = vIdx === 0 ? '🏆 ' : \`\${vIdx+1}. \`;
+       let rateColor = vIdx === 0 ? 'var(--success)' : 'var(--text-dark)';
+       detailsHtml += `<tr>
+         <td style="font-weight:bold;">\${medal}\${v.name}</td>
+         <td style="text-align:right; font-weight:bold; color:\${rateColor};">₹\${v.price.toFixed(2)}</td>
+         <td>\${v.date.toLocaleDateString()}</td>
+       </tr>`;
+    });
+    
+    if (d.hasMultiple) {
+      let trendHtml = d.allVendorsList.slice().reverse().map(v => '₹'+v.price.toFixed(2)).join(' → ');
+      detailsHtml += `</tbody></table>
+        <div style="margin-top:10px; font-size:11px;">
+           <div style="color:var(--success); font-weight:bold;">Potential Saving: ₹\${(d.allVendorsList[d.allVendorsList.length-1].price - d.allVendorsList[0].price).toFixed(2)}/unit vs highest vendor</div>
+           <div style="margin-top:4px; color:var(--text-muted);">Price Trend: \${trendHtml}</div>
+        </div>
+      </div>`;
+    } else {
+       detailsHtml += `</tbody></table></div>`;
     }
 
     html += `
-      <tr>
-        <td style="font-weight:600; color:var(--text-dark);">${d.productName}</td>
-        <td style="color:var(--success); font-weight:bold;">${d.bestVendor}</td>
-        <td style="text-align:right; font-weight:bold;">₹${d.lowestPrice.toFixed(2)}</td>
-        <td>${othersHtml}</td>
-        <td style="text-align:right; font-weight:bold; color:${d.maxDiff > 0 ? 'var(--danger)' : 'var(--text-muted)'};">
-          ${d.maxDiff > 0 ? '₹' + d.maxDiff.toFixed(2) : '-'}
-        </td>
+      <tr id="vendor-details-row-\${index}" style="display:none; border-bottom:2px solid var(--border);">
+         <td colspan="9" style="padding:0;">\${detailsHtml}</td>
       </tr>
     `;
   });

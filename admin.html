@@ -1058,11 +1058,39 @@
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
           <h2 style="margin:0;">⚖️ Vendor Price Comparison</h2>
-          <button class="btn-primary" onclick="loadVendorPriceComparison()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+             <span id="vendorComparisonStats" style="font-size:11px; font-weight:bold; color:var(--text-muted);"></span>
+             <button class="btn-primary" onclick="loadVendorPriceComparison()" style="padding:6px 12px; font-size:11px;">🔄 Refresh</button>
+          </div>
         </div>
         
-        <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">
-          <input type="text" id="vendorPriceSearch" onkeyup="filterVendorPriceTable()" placeholder="🔍 Search Product Name..." style="width:100%; padding:10px; font-size:13px; font-weight:600; border-radius:10px; border:1px solid var(--border);" />
+        <div style="background:var(--bg); padding:10px 12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px; display:flex; flex-wrap:wrap; gap:10px;">
+          <div style="flex: 1 1 200px;">
+            <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">🔍 Product Search:</label>
+            <input type="text" id="vendorPriceSearch" onkeyup="filterVendorPriceTable()" placeholder="Search Product Name..." style="width:100%; padding:8px; font-size:12px; font-weight:600; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);" />
+          </div>
+          <div style="flex: 1 1 150px;">
+            <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">🏢 Vendor:</label>
+            <select id="vendorPriceVendorFilter" onchange="filterVendorPriceTable()" style="width:100%; padding:8px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+               <option value="all">All Vendors</option>
+            </select>
+          </div>
+          <div style="flex: 1 1 150px;">
+            <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">📅 Period:</label>
+            <select id="vendorPricePeriodFilter" onchange="loadVendorPriceComparison()" style="width:100%; padding:8px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+               <option value="3" selected>Last 3 Months</option>
+               <option value="6">Last 6 Months</option>
+               <option value="12">Last 12 Months</option>
+               <option value="all">All Time</option>
+            </select>
+          </div>
+          <div style="flex: 1 1 150px;">
+            <label style="font-size:10px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">⚖️ Comparison:</label>
+            <select id="vendorPriceComparisonFilter" onchange="filterVendorPriceTable()" style="width:100%; padding:8px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dark);">
+               <option value="all">All Products</option>
+               <option value="multiple" selected>Multiple Vendors Only</option>
+            </select>
+          </div>
         </div>
 
         <div style="margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px;">
@@ -1071,14 +1099,18 @@
               <thead style="position:sticky; top:0; background:var(--bg); z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <tr>
                   <th>Product / Material</th>
-                  <th style="color:var(--success);">🏆 Best Vendor (Lowest Price)</th>
-                  <th style="text-align:right;">Lowest Rate (₹)</th>
-                  <th>Other Vendors & Rates</th>
-                  <th style="text-align:right;">Max Difference</th>
+                  <th style="color:var(--success); cursor:pointer;" onclick="sortVendorComparison('lowestRate')">🏆 Lowest Price Vendor ⇅</th>
+                  <th style="text-align:right; color:var(--success); cursor:pointer;" onclick="sortVendorComparison('lowestRateVal')">Lowest Rate ⇅</th>
+                  <th>Second Lowest Vendor</th>
+                  <th style="text-align:right;">Second Lowest Rate</th>
+                  <th style="text-align:right; cursor:pointer;" onclick="sortVendorComparison('savingAmt')">Saving (₹) ⇅</th>
+                  <th style="text-align:right; cursor:pointer;" onclick="sortVendorComparison('savingPct')">Saving (%) ⇅</th>
+                  <th style="text-align:center; cursor:pointer;" onclick="sortVendorComparison('lastPurchase')">Last Purchase ⇅</th>
+                  <th style="text-align:center;">Action</th>
                 </tr>
               </thead>
               <tbody id="vendorPriceTableBody">
-                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>
+                <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Loading price comparison data...</td></tr>
               </tbody>
             </table>
           </div>
