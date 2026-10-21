@@ -156,7 +156,21 @@
         let rows = await fetchDataset(ds, fromVal, toVal);
         if (key === "orders") rows = flattenOrders(rows);
         if (!rows.length) { empty.push(ds.label); continue; }
-        const clean = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { o[k] = fmtVal(r[k]); }); return o; });
+        const clean = rows.map(r => {
+          const o = {}; Object.keys(r).forEach(k => { o[k] = fmtVal(r[k]); });
+          const qk = Object.keys(r).find(k => /^(item_)?(qty|quantity)$/.test(k));
+          const pk = Object.keys(r).find(k => /^(item_)?(purchase_price|unit_price|price|selling_price)$/.test(k));
+          if (qk && pk) {
+            const t = Math.round((Number(r[qk]) || 0) * (Number(r[pk]) || 0) * 100) / 100;
+            o[key === "orders" ? "item_total_amount" : "total_amount"] = t;
+          }
+          return o;
+        });
+        if (key === "purchase_items" && clean.length && clean[0].total_amount !== undefined) {
+          const sum = Math.round(clean.reduce((s, o) => s + (o.total_amount || 0), 0) * 100) / 100;
+          clean.push({ [Object.keys(clean[0])[0]]: "" });
+          clean.push({ [Object.keys(clean[0])[0]]: "GRAND TOTAL", total_amount: sum });
+        }
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clean), ds.sheet);
         done++;
       }
