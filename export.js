@@ -9,6 +9,21 @@
     { key: "suppliers", label: "🏬 Suppliers List (all)", sheet: "Suppliers", table: "suppliers", dateCol: null, select: "*" }
   ];
 
+  function fmtVal(v) {
+    if (v === null || v === undefined) return v;
+    if (typeof v === "object") return JSON.stringify(v);
+    if (typeof v !== "string") return v;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { const [y, m, d] = v.split("-"); return `${d}-${m}-${y}`; }
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) || /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}.*(\+|Z)/.test(v)) {
+      const dt = new Date(v.replace(" ", "T"));
+      if (isNaN(dt)) return v;
+      const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).formatToParts(dt);
+      const g = t => p.find(x => x.type === t).value;
+      return `${g("day")}-${g("month")}-${g("year")} ${g("hour")}:${g("minute")} ${g("dayPeriod").toUpperCase()}`;
+    }
+    return v;
+  }
+
   function csvCell(v) {
     if (v === null || v === undefined) return "";
     if (typeof v === "object") v = JSON.stringify(v);
@@ -106,9 +121,12 @@
             <input type="date" id="exportToDate" value="${today}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border,#ccc);background:var(--bg,#fff);color:inherit;"></label>
         </div>
         <div style="font-size:12px;font-weight:800;margin-bottom:6px;">Konsa data chahiye? (What data do you need?)</div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;font-weight:800;padding:6px 8px;cursor:pointer;">
+          <input type="checkbox" id="exportSelectAll" style="width:18px;height:18px;flex:none;margin:0;padding:0;" onchange="document.querySelectorAll('.exportChk').forEach(c=>c.checked=this.checked)"> Select All
+        </label>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">
           ${DATASETS.map(d => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:8px;border:1px solid var(--border,#ddd);border-radius:10px;cursor:pointer;">
-            <input type="checkbox" class="exportChk" style="width:18px;height:18px;flex:none;margin:0;padding:0;" value="${d.key}" ${d.key === "orders" ? "checked" : ""}> ${d.label}</label>`).join("")}
+            <input type="checkbox" class="exportChk" style="width:18px;height:18px;flex:none;margin:0;padding:0;" onchange="document.getElementById('exportSelectAll').checked=document.querySelectorAll('.exportChk:checked').length===document.querySelectorAll('.exportChk').length" value="${d.key}" ${d.key === "orders" ? "checked" : ""}> ${d.label}</label>`).join("")}
         </div>
         <div style="font-size:10px;color:var(--text-muted,#777);margin-bottom:10px;">Products &amp; Suppliers list me date filter nahi lagta (poori list export hoti hai).</div>
         <div id="exportStatus" style="font-size:12px;font-weight:700;min-height:16px;margin-bottom:8px;"></div>
@@ -138,7 +156,7 @@
         let rows = await fetchDataset(ds, fromVal, toVal);
         if (key === "orders") rows = flattenOrders(rows);
         if (!rows.length) { empty.push(ds.label); continue; }
-        const clean = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { const v = r[k]; o[k] = (v !== null && typeof v === "object") ? JSON.stringify(v) : v; }); return o; });
+        const clean = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { o[k] = fmtVal(r[k]); }); return o; });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clean), ds.sheet);
         done++;
       }
