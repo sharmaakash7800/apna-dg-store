@@ -253,6 +253,7 @@
             if (key === "purchase_items") {
               const pr = prodById[String(r.product_id)] || prodByName[String(r.product_name || "").trim().toLowerCase()];
               const sp = pr ? NUM(pr.selling_price) : 0;
+              o.product_code = pr ? pr.id : (r.product_id && String(r.product_id) !== "0" ? r.product_id : "");
               o.selling_price = R2(sp);
               o.total_selling_price = R2(NUM(r[qk]) * sp);
               o.total_profit = sp ? R2(NUM(r[qk]) * (sp - NUM(r[pk]))) : 0;
