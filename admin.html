@@ -119,6 +119,9 @@
         <button class="sidebar-btn" data-view="vendorPriceComparison" onclick="switchAdminView('vendorPriceComparison')">
           <span>⚖️</span> <span id="lblNavVendorPriceComparison">Vendor Price Comparison</span>
         </button>
+        <button class="sidebar-btn" onclick="openExportModal()">
+          <span>⬇️</span> <span>Export Data</span>
+        </button>
 
         <!-- SIDEBAR PREFERENCES & SETTINGS (IMMEDIATELY BELOW MENU ITEMS) -->
       </div>
@@ -710,6 +713,53 @@
         </div>
       </div>
 
+      <!-- ONLINE VS OFFLINE COLLECTION COMPARISON CARD & VERTICAL BAR CHART -->
+      <div class="card" id="onlineVsOfflineComparisonCard">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <h2 style="margin:0;">📊 💵 Offline vs 💳 Online Collection Comparison</h2>
+          <button class="btn-primary" style="padding:4px 10px; font-size:11px;"
+            onclick="calculateOnlineVsOfflineComparison()">📈 Calculate Comparison</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+          <div>
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">📅
+              Date Preset:</label>
+            <select id="onlineOfflineDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;"
+              onchange="setOnlineOfflineDateFilter(this.value)">
+              <option value="today">Today</option>
+              <option value="week" selected>📅 This Week (Default)</option>
+              <option value="last_week">Last Week</option>
+              <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+
+          <!-- FROM DATE & TO DATE IN 1 ROW SIDE-BY-SIDE -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; width:100%;">
+            <div>
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">From
+                Date (Start):</label>
+              <input type="date" id="onlineOfflineFromDate" style="width:100%; padding:8px;" />
+            </div>
+            <div>
+              <label
+                style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">To
+                Date (End):</label>
+              <input type="date" id="onlineOfflineToDate" style="width:100%; padding:8px;" />
+            </div>
+          </div>
+        </div>
+
+        <div id="onlineVsOfflineComparisonContainer">
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
+        </div>
+      </div>
+
       <!-- COLLECTION VS REINVESTMENT (PURCHASE) COMPARISON & VERTICAL BAR CHART (ALWAYS VISIBLE BY DEFAULT) -->
       <div class="card" id="reinvestmentComparisonCard">
         <div
@@ -727,10 +777,12 @@
             <select id="reinvestmentDatePresetSelect" style="font-weight:700; padding:8px 10px; cursor:pointer; width:100%;"
               onchange="setReinvestmentDateFilter(this.value)">
               <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
               <option value="week" selected>📅 This Week (Default)</option>
               <option value="last_week">Last Week</option>
               <option value="two_weeks">🗓️ Last 2 Weeks (14 Days)</option>
               <option value="month">This Month</option>
+              <option value="last_month">Last Month</option>
               <option value="year">This Year</option>
             </select>
           </div>
@@ -754,6 +806,71 @@
 
         <div id="reinvestmentComparisonContainer">
           <div style="text-align:center; padding:15px; color:var(--text-muted);">Comparison load ho raha hai...</div>
+        </div>
+
+        <!-- ADVANCED INTERACTIVE BAR + MULTI-LINE COMBO ANALYTICS CHART -->
+        <div id="reinvestAnalyticsSection" style="margin-top:24px; padding-top:20px; border-top:2px solid var(--border);">
+          <!-- HEADER & CONTROLS -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+            <div>
+              <h3 style="margin:0; font-size:16px; color:var(--text-dark); display:flex; align-items:center; gap:8px;">
+                <span>📈 Collection vs Purchase Analytics (Combo Chart)</span>
+              </h3>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">
+                Mixed Bar (Cash, Online, Purchase) + Zigzag Continuous Trend Lines
+              </p>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <!-- View Mode (Daily / Weekly / Monthly) -->
+              <div style="display:flex; background:var(--bg); padding:3px; border-radius:8px; border:1px solid var(--border);">
+                <button type="button" id="comboViewDailyBtn" onclick="setComboGroupingMode('daily')" style="border:0; padding:5px 10px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-muted);">Daily</button>
+                <button type="button" id="comboViewWeeklyBtn" onclick="setComboGroupingMode('weekly')" style="border:0; padding:5px 10px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:var(--surface); color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,0.1);">Weekly</button>
+                <button type="button" id="comboViewMonthlyBtn" onclick="setComboGroupingMode('monthly')" style="border:0; padding:5px 10px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-muted);">Monthly</button>
+              </div>
+
+              <!-- Back to Weekly View (Drilldown) -->
+              <button type="button" id="comboDrilldownBackBtn" onclick="exitComboDrilldown()" style="display:none; padding:6px 12px; font-size:11px; font-weight:700; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; align-items:center; gap:4px;">
+                ⬅️ Back to Weekly View
+              </button>
+
+              <!-- Refresh Button -->
+              <button type="button" class="btn-outline" onclick="refreshComboAnalyticsData()" style="padding:6px 12px; font-size:11px; font-weight:700;">
+                🔄 Refresh Chart
+              </button>
+            </div>
+          </div>
+
+          <!-- PERFORMANCE INSIGHT CARDS -->
+          <div id="comboInsightsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:14px;">
+            <!-- Generated dynamically -->
+          </div>
+
+          <!-- CHART CONTAINER -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 12px 12px; position:relative; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px; flex-wrap:wrap; gap:8px;">
+              <span id="comboChartSubtitle" style="font-size:12px; font-weight:700; color:#334155;">
+                📅 Showing: Weekly Comparison
+              </span>
+              <div style="font-size:11px; color:#64748b; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#22c55e; border-radius:2px;"></span> Cash Bar</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#f97316; border-radius:2px;"></span> Online Bar</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#94a3b8; border-radius:2px;"></span> Purchase Bar</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:14px; height:3px; background:#15803d; border-radius:2px;"></span> Collection Line</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:14px; height:3px; background:#2563eb; border-radius:2px;"></span> Purchase Line</span>
+                <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:14px; height:3px; background:#eab308; border-radius:2px;"></span> Diff Line</span>
+              </div>
+            </div>
+
+            <!-- Canvas wrapper -->
+            <div style="position:relative; width:100%; height:380px;">
+              <canvas id="reinvestComboChartCanvas"></canvas>
+            </div>
+            
+            <div style="text-align:right; margin-top:8px; font-size:10px; color:#94a3b8;">
+              💡 <em>Weekly View me kisi bhi bar/point par click karke us hafte ka Monday-Sunday daily view khol sakte hain.</em>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1873,6 +1990,7 @@
   <script src="config.js?v=34.6"></script>
   <script src="sync-engine.js?v=34.6"></script>
   <script src="admin.js?v=34.6"></script>
+  <script src="export.js?v=1"></script>
 </body>
 
 </html>
