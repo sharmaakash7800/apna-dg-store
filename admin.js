@@ -36,6 +36,28 @@ async function handleLogout() {
   window.location.reload(); // Refresh the page to clear state
 }
 
+// Returns the real product id (text, e.g. "IOH-556") for purchase_order_items.product_id.
+// Falls back to name match; "0" only if the product is not found / custom item.
+function cleanPoProductId(id, name) {
+  const ok = v => v !== null && v !== undefined && String(v).trim() !== "" && String(v) !== "0" && !String(v).startsWith("custom_");
+  if (ok(id)) return String(id);
+  if (name && typeof productsList !== "undefined") {
+    const m = productsList.find(p => (p.name || "").trim().toLowerCase() === String(name).trim().toLowerCase());
+    if (m) return String(m.id);
+  }
+  return "0";
+}
+
+// Safe insert: works whether purchase_order_items.product_id is text (new) or still integer (old).
+async function insertPoItemsSafe(items) {
+  let res = await db.from("purchase_order_items").insert(items);
+  if (res.error && /integer|invalid input syntax/i.test(res.error.message || "")) {
+    const numeric = items.map(i => ({ ...i, product_id: (!isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0 }));
+    res = await db.from("purchase_order_items").insert(numeric);
+  }
+  return res;
+}
+
 // Check session on load
 db.auth.getSession().then(({ data: { session } }) => {
   if (session) {
@@ -226,15 +248,30 @@ function copyAppsScriptCode() {
     "",
     "      var timestampStr = data.receivedAt || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
     "",
+    "      var idVals = poSheet.getRange(1, 2, Math.max(poSheet.getMaxRows(), 1), 1).getValues();",
+    "      var lastDataRow = 1;",
+    "      for (var k = idVals.length - 1; k >= 1; k--) {",
+    "        if (String(idVals[k][0]).trim() !== '') { lastDataRow = k + 1; break; }",
+    "      }",
+    "      var existingKeys = {};",
+    "      if (lastDataRow > 1) {",
+    "        var exVals = poSheet.getRange(2, 2, lastDataRow - 1, 3).getValues();",
+    "        for (var e = 0; e < exVals.length; e++) {",
+    "          existingKeys[String(exVals[e][0]).trim() + '|' + String(exVals[e][2]).trim()] = true;",
+    "        }",
+    "      }",
+    "      var newRows = [];",
+    "",
     "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
     "        var totalItems = data.itemsArray.length;",
     "        for (var i = 0; i < totalItems; i++) {",
     "          var item = data.itemsArray[i];",
     "          var cleanSku = String(item.sku || '0').replace(/^SKU-/i, '').trim();",
     "          cleanSku = cleanSku.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
+    "          if (existingKeys[orderIdStr.trim() + '|' + cleanSku]) continue;",
     "          var isLastItem = (i === totalItems - 1);",
     "          var billTotalVal = isLastItem ? (item.orderTotal || data.totalAmount || data.price || '') : '';",
-    "          poSheet.appendRow([",
+    "          newRows.push([",
     "            timestampStr,",
     "            orderIdStr,",
     "            item.indentNo || (101 + i),",
@@ -251,19 +288,28 @@ function copyAppsScriptCode() {
     "      } else {",
     "        var cleanSkuSingle = String(data.sku || '0').replace(/^SKU-/i, '').trim();",
     "        cleanSkuSingle = cleanSkuSingle.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
-    "        poSheet.appendRow([",
-    "          timestampStr,",
-    "          orderIdStr,",
-    "          101,",
-    "          cleanSkuSingle,",
-    "          itemsStr || 'Purchase Order Item',",
-    "          data.quantity || 1,",
-    "          data.costPack || data.cost_pack || 0,",
-    "          partyStr || 'N/A',",
-    "          data.buyer || partyStr || 'Akash sharma',",
-    "          data.totalAmount || data.price || 0,",
-    "          data.totalAmount || data.price || 0",
-    "        ]);",
+    "        if (!existingKeys[orderIdStr.trim() + '|' + cleanSkuSingle]) {",
+    "          newRows.push([",
+    "            timestampStr,",
+    "            orderIdStr,",
+    "            101,",
+    "            cleanSkuSingle,",
+    "            itemsStr || 'Purchase Order Item',",
+    "            data.quantity || 1,",
+    "            data.costPack || data.cost_pack || 0,",
+    "            partyStr || 'N/A',",
+    "            data.buyer || partyStr || 'Akash sharma',",
+    "            data.totalAmount || data.price || 0,",
+    "            data.totalAmount || data.price || 0",
+    "          ]);",
+    "        }",
+    "      }",
+    "",
+    "      if (newRows.length > 0) {",
+    "        if (lastDataRow + newRows.length > poSheet.getMaxRows()) {",
+    "          poSheet.insertRowsAfter(poSheet.getMaxRows(), newRows.length);",
+    "        }",
+    "        poSheet.getRange(lastDataRow + 1, 1, newRows.length, 11).setValues(newRows);",
     "      }",
     "",
     "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Indent' }))",
@@ -373,6 +419,7 @@ function switchAdminView(viewId) {
       ['manualCashFromDate', 'manualCashToDate'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = todayStr));
       if (!document.getElementById("reportFromDate")?.value) setDateFilter('week');
       calculateWeeklyReinvestmentComparison();
+      calculateOnlineVsOfflineComparison();
       loadCounterCollectionHistory();
     },
     supplierReport: () => {
@@ -567,6 +614,8 @@ async function saveOfflineCashEntry() {
   document.getElementById("manualCashNote").value = "";
   loadCounterCollectionHistory();
   calculateReports();
+  calculateOnlineVsOfflineComparison();
+  calculateWeeklyReinvestmentComparison();
 }
 
 function toggleSalesReportSection() {
@@ -715,6 +764,8 @@ async function deleteCollectionEntry(id) {
   alert("Collection Entry successfully delete ho gayi!");
   loadCounterCollectionHistory();
   calculateReports();
+  calculateOnlineVsOfflineComparison();
+  calculateWeeklyReinvestmentComparison();
 }
 
 function editCollectionEntry(id, date, mode, amount, noteEncoded) {
@@ -751,12 +802,26 @@ function editCollectionEntry(id, date, mode, amount, noteEncoded) {
 
 function getDateRange(type) {
   const today = new Date(), from = new Date(), to = new Date();
-  if (type === 'today') from.setHours(0, 0, 0, 0);
-  else if (type === 'week') from.setDate(today.getDate() - (today.getDay() || 7) + 1);
-  else if (type === 'last_week') { from.setDate(today.getDate() - (today.getDay() || 7) - 6); to.setDate(today.getDate() - (today.getDay() || 7)); }
-  else if (type === 'two_weeks' || type === 'last_2_weeks') from.setTime(today.getTime() - 14 * 86400000);
-  else if (type === 'month') from.setDate(1);
-  else if (type === 'year') { from.setMonth(0); from.setDate(1); }
+  if (type === 'today') {
+    from.setHours(0, 0, 0, 0);
+  } else if (type === 'yesterday') {
+    from.setDate(today.getDate() - 1); from.setHours(0, 0, 0, 0);
+    to.setDate(today.getDate() - 1); to.setHours(23, 59, 59, 999);
+  } else if (type === 'week') {
+    from.setDate(today.getDate() - (today.getDay() || 7) + 1);
+  } else if (type === 'last_week') {
+    from.setDate(today.getDate() - (today.getDay() || 7) - 6);
+    to.setDate(today.getDate() - (today.getDay() || 7));
+  } else if (type === 'two_weeks' || type === 'last_2_weeks') {
+    from.setTime(today.getTime() - 14 * 86400000);
+  } else if (type === 'month') {
+    from.setDate(1);
+  } else if (type === 'last_month') {
+    from.setMonth(today.getMonth() - 1); from.setDate(1);
+    to.setDate(0); // last day of previous month
+  } else if (type === 'year') {
+    from.setMonth(0); from.setDate(1);
+  }
   return { from, to };
 }
 
@@ -845,6 +910,10 @@ async function calculateReports() {
     } else {
       ctx.parentElement.style.display = "none";
     }
+  }
+
+  if (document.getElementById("onlineVsOfflineComparisonContainer")) {
+    calculateOnlineVsOfflineComparison();
   }
 }
 
@@ -1274,13 +1343,13 @@ async function submitTickedReorder(sourceModal = false) {
 
   const dbItems = itemsList.map(i => ({
     po_id: po.id,
-    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
+    product_id: cleanPoProductId(i.product_id, i.product_name),
     product_name: i.product_name || 'Item',
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
   }));
 
-  const { error: itemsErr } = await db.from("purchase_order_items").insert(dbItems);
+  const { error: itemsErr } = await insertPoItemsSafe(dbItems);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
     await ensureProductsLoaded();
@@ -1305,18 +1374,7 @@ async function submitTickedReorder(sourceModal = false) {
       };
     });
 
-    syncOrderToGoogleSheet({
-      targetSheet: "Admin Orders Indent",
-      isPO: true,
-      orderId: poNumber,
-      orderType: "Supplier Reorder",
-      partyName: supplier,
-      buyer: buyerName,
-      itemsArray: sheetItems,
-      totalAmount: totalAmount,
-      status: "pending",
-      notes: "Ticked Reorder from Admin Dashboard"
-    });
+    // Google Sheet sync intentionally happens only when stock is received (see receiveStock).
     alert(`Reorder ${poNumber} successfully save ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
   }
 
@@ -1480,6 +1538,234 @@ async function executeCategoryBulkAction(action) {
   if (actionSelect) actionSelect.value = "";
 }
 
+/* ONLINE VS OFFLINE COLLECTION COMPARISON */
+function setOnlineOfflineDateFilter(type) {
+  const { from, to } = getDateRange(type);
+  document.getElementById("onlineOfflineFromDate") && (document.getElementById("onlineOfflineFromDate").value = from.toISOString().split('T')[0]);
+  document.getElementById("onlineOfflineToDate") && (document.getElementById("onlineOfflineToDate").value = to.toISOString().split('T')[0]);
+  calculateOnlineVsOfflineComparison();
+}
+
+async function calculateOnlineVsOfflineComparison() {
+  const container = document.getElementById("onlineVsOfflineComparisonContainer");
+  if (!container) return;
+  container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Calculating Online vs Offline Comparison...</div>";
+
+  try {
+    let [fromVal, toVal] = [
+      document.getElementById("onlineOfflineFromDate")?.value,
+      document.getElementById("onlineOfflineToDate")?.value
+    ];
+    if (!fromVal || !toVal) {
+      const { from, to } = getDateRange('week');
+      fromVal = from.toISOString().split('T')[0];
+      toVal = to.toISOString().split('T')[0];
+      document.getElementById("onlineOfflineFromDate") && (document.getElementById("onlineOfflineFromDate").value = fromVal);
+      document.getElementById("onlineOfflineToDate") && (document.getElementById("onlineOfflineToDate").value = toVal);
+    }
+
+    const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
+
+    const [{ data: sales }, { data: offlineData }] = await Promise.all([
+      db.from("orders").select("*, order_items(*)").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()),
+      db.from("Collections").select("*").gte("collection_date", fromVal).lte("collection_date", toVal)
+    ]);
+
+    let offlineTotal = 0, onlineTotal = 0;
+    let offlineCount = 0, onlineCount = 0;
+
+    (sales || []).forEach(ord => {
+      if (ord.status !== 'cancelled') {
+        if (String(ord.order_id || '').startsWith("ORD-CNT-") && offlineData?.length) return;
+        let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        if (itemsTotal === 0 && String(ord.address || '').includes("Amt: ₹")) {
+          itemsTotal = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
+        }
+        if (itemsTotal === 0 && ord.total_amount) {
+          itemsTotal = Number(ord.total_amount || 0);
+        }
+        const pMode = `${ord.payment_mode || ''} ${ord.payment_method || ''} ${ord.customer_name || ''} ${ord.address || ''}`.toLowerCase();
+        const isOnline = pMode.includes('[mode:online]') || pMode.includes('online') || pMode.includes('upi') || pMode.includes('card') || pMode.includes('netbanking');
+        if (isOnline) {
+          onlineTotal += itemsTotal;
+          onlineCount++;
+        } else {
+          offlineTotal += itemsTotal;
+          offlineCount++;
+        }
+      }
+    });
+
+    (offlineData || []).forEach(item => {
+      const amt = Number(item.amount || 0);
+      const note = String(item.note || '').toLowerCase();
+      let isOnline = false;
+      if (note.includes("[mode:online]")) {
+        isOnline = true;
+      } else if (note.includes("[mode:offline]")) {
+        isOnline = false;
+      } else {
+        isOnline = note.includes("online");
+      }
+      if (isOnline) {
+        onlineTotal += amt;
+        onlineCount++;
+      } else {
+        offlineTotal += amt;
+        offlineCount++;
+      }
+    });
+
+    const grandTotal = offlineTotal + onlineTotal;
+    const diff = Math.abs(offlineTotal - onlineTotal);
+    const countDiff = Math.abs(offlineCount - onlineCount);
+
+    const offlineShare = grandTotal > 0 ? ((offlineTotal / grandTotal) * 100).toFixed(1) : '0';
+    const onlineShare = grandTotal > 0 ? ((onlineTotal / grandTotal) * 100).toFixed(1) : '0';
+
+    const maxVal = Math.max(100, offlineTotal, onlineTotal);
+    const offlineHeight = Math.min(100, Math.max(10, Math.round((offlineTotal / maxVal) * 100)));
+    const onlineHeight = Math.min(100, Math.max(10, Math.round((onlineTotal / maxVal) * 100)));
+
+    let winnerHTML = "";
+    if (grandTotal === 0) {
+      winnerHTML = `
+        <div style="background:var(--calc-bg); border:1px solid var(--border); padding:12px; border-radius:10px; margin-bottom:12px; text-align:center;">
+          <div style="font-weight:bold; color:var(--text-muted); font-size:13px;">ℹ️ Is duration me koi transaction record nahi mila (${fromVal} se ${toVal})</div>
+        </div>`;
+    } else if (offlineTotal > onlineTotal) {
+      const pctLead = onlineTotal > 0 ? ((diff / onlineTotal) * 100).toFixed(1) : '100';
+      winnerHTML = `
+        <div style="background:rgba(40, 167, 69, 0.1); border:1.5px solid var(--success); padding:12px 14px; border-radius:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <div style="font-weight:800; color:var(--success); font-size:13px;">
+              🏆 💵 OFFLINE (CASH) ZYADA CHALA!
+            </div>
+            <span style="background:var(--success); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px;">
+              +₹${diff.toFixed(2)} (${pctLead}% Lead)
+            </span>
+          </div>
+          <div style="font-size:12px; color:var(--text-dark); margin-top:5px; line-height:1.4;">
+            Selected duration (${fromVal} se ${toVal}) me <strong>Offline Cash ₹${diff.toFixed(2)}</strong> zyada collect hua.<br>
+            <span style="color:var(--text-muted); font-size:11px;">💵 Offline: ${offlineCount} transactions (₹${offlineTotal.toFixed(2)}) | 💳 Online: ${onlineCount} transactions (₹${onlineTotal.toFixed(2)})</span>
+          </div>
+        </div>`;
+    } else if (onlineTotal > offlineTotal) {
+      const pctLead = offlineTotal > 0 ? ((diff / offlineTotal) * 100).toFixed(1) : '100';
+      winnerHTML = `
+        <div style="background:rgba(0, 123, 255, 0.1); border:1.5px solid var(--blue); padding:12px 14px; border-radius:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+            <div style="font-weight:800; color:var(--blue); font-size:13px;">
+              🏆 💳 ONLINE (UPI/DIGITAL) ZYADA CHALA!
+            </div>
+            <span style="background:var(--blue); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px;">
+              +₹${diff.toFixed(2)} (${pctLead}% Lead)
+            </span>
+          </div>
+          <div style="font-size:12px; color:var(--text-dark); margin-top:5px; line-height:1.4;">
+            Selected duration (${fromVal} se ${toVal}) me <strong>Online UPI/Digital ₹${diff.toFixed(2)}</strong> zyada collect hua.<br>
+            <span style="color:var(--text-muted); font-size:11px;">💳 Online: ${onlineCount} transactions (₹${onlineTotal.toFixed(2)}) | 💵 Offline: ${offlineCount} transactions (₹${offlineTotal.toFixed(2)})</span>
+          </div>
+        </div>`;
+    } else {
+      winnerHTML = `
+        <div style="background:var(--calc-bg); border:1.5px solid var(--primary); padding:12px 14px; border-radius:10px; margin-bottom:12px;">
+          <div style="font-weight:800; color:var(--primary); font-size:13px;">
+            ⚖️ ONLINE AUR OFFLINE 100% BARABAR HAI!
+          </div>
+          <div style="font-size:12px; color:var(--text-dark); margin-top:5px;">
+            Dono modes me barabar ₹${offlineTotal.toFixed(2)} collect hue (${offlineCount} vs ${onlineCount} txns).
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;" class="reinvest-grid">
+        <!-- LEFT: Winner details & metrics -->
+        <div>
+          ${winnerHTML}
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;">
+              <small style="color:var(--text-muted); font-size:10px; font-weight:700;">💵 OFFLINE (CASH)</small>
+              <strong style="color:var(--success); font-size:16px; display:block;">₹${offlineTotal.toFixed(2)}</strong>
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                ${offlineCount} Txns <span style="color:var(--success); font-weight:700;">(${offlineShare}%)</span>
+              </div>
+            </div>
+            <div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;">
+              <small style="color:var(--text-muted); font-size:10px; font-weight:700;">💳 ONLINE (DIGITAL)</small>
+              <strong style="color:var(--blue); font-size:16px; display:block;">₹${onlineTotal.toFixed(2)}</strong>
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                ${onlineCount} Txns <span style="color:var(--blue); font-weight:700;">(${onlineShare}%)</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Difference / Lead Box -->
+          <div style="background:var(--surface); border:1px solid var(--border); padding:8px 12px; border-radius:8px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:var(--text-muted); font-weight:700;">⚡ अन्तर (DIFFERENCE / LEAD):</span>
+            <span style="font-size:12px; font-weight:800; color:${offlineTotal > onlineTotal ? 'var(--success)' : (onlineTotal > offlineTotal ? 'var(--blue)' : 'var(--text-dark)')};">
+              ${offlineTotal === onlineTotal ? 'Barabar (₹0.00)' : (offlineTotal > onlineTotal ? '💵 Offline +₹' + diff.toFixed(2) + ' (' + countDiff + ' txns lead)' : '💳 Online +₹' + diff.toFixed(2) + ' (' + countDiff + ' txns lead)')}
+            </span>
+          </div>
+
+          <!-- Proportional Split Bar -->
+          <div style="margin-top:10px;">
+            <div style="display:flex; height:10px; border-radius:5px; overflow:hidden; background:var(--border);">
+              <div style="width:${offlineShare}%; background:linear-gradient(90deg, #22c55e, #16a34a);" title="Offline: ${offlineShare}%"></div>
+              <div style="width:${onlineShare}%; background:linear-gradient(90deg, #3b82f6, #2563eb);" title="Online: ${onlineShare}%"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; margin-top:4px;">
+              <span style="color:var(--success);">💵 Offline: ${offlineShare}%</span>
+              <span style="color:var(--blue);">💳 Online: ${onlineShare}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Visual Pillar Chart -->
+        <div style="background:var(--surface); border:1px solid var(--border); padding:14px; border-radius:12px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h4 style="margin:0; font-size:12px; color:var(--text-dark);">📊 Mode Comparison Chart</h4>
+            <div style="font-size:10px; display:flex; gap:8px;">
+              <span style="color:var(--success); font-weight:bold;">🟢 Cash (Offline)</span>
+              <span style="color:var(--blue); font-weight:bold;">🔵 Online</span>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; padding:10px 0 0 0; border-bottom:2px solid var(--border); gap:16px; position:relative;">
+            <!-- Offline Bar -->
+            <div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end; position:relative;">
+              ${offlineTotal > onlineTotal ? `<div style="position:absolute; top:0; background:var(--success); color:#fff; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.2); white-space:nowrap;">👑 HIGHER</div>` : ''}
+              <span style="font-size:11px; font-weight:bold; color:var(--success); margin-bottom:4px;">₹${offlineTotal.toFixed(0)}</span>
+              <div style="width:100%; max-width:55px; background:linear-gradient(180deg, #22c55e, #16a34a); height:${offlineHeight}%; border-radius:6px 6px 0 0; min-height:8px; box-shadow:0 2px 6px rgba(34, 197, 94, 0.3);"></div>
+            </div>
+
+            <!-- Online Bar -->
+            <div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end; position:relative;">
+              ${onlineTotal > offlineTotal ? `<div style="position:absolute; top:0; background:var(--blue); color:#fff; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.2); white-space:nowrap;">👑 HIGHER</div>` : ''}
+              <span style="font-size:11px; font-weight:bold; color:var(--blue); margin-bottom:4px;">₹${onlineTotal.toFixed(0)}</span>
+              <div style="width:100%; max-width:55px; background:linear-gradient(180deg, #3b82f6, #2563eb); height:${onlineHeight}%; border-radius:6px 6px 0 0; min-height:8px; box-shadow:0 2px 6px rgba(59, 130, 246, 0.3);"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-around; text-align:center; font-size:10px; font-weight:bold; color:var(--text-muted); margin-top:6px;">
+            <div style="width:45%;">
+              <div>💵 Offline Cash</div>
+              <div style="color:var(--success); font-size:9px;">${offlineCount} Txns (${offlineShare}%)</div>
+            </div>
+            <div style="width:45%;">
+              <div>💳 Online (UPI/Cards)</div>
+              <div style="color:var(--blue); font-size:9px;">${onlineCount} Txns (${onlineShare}%)</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } catch (err) {
+    container.innerHTML = `<div style='color:var(--danger); padding:10px;'>Error: ${err.message}</div>`;
+  }
+}
+
 /* REINVESTMENT COMPARISON */
 async function calculateWeeklyReinvestmentComparison() {
   const container = document.getElementById("reinvestmentComparisonContainer");
@@ -1530,9 +1816,630 @@ async function calculateWeeklyReinvestmentComparison() {
         <div>${recHTML}<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;"><div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;"><small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL COLLECTION</small><strong style="color:var(--success); font-size:16px; display:block;">₹${totalCollection.toFixed(2)}</strong></div><div style="background:var(--surface); border:1px solid var(--border); padding:10px; border-radius:8px;"><small style="color:var(--text-muted); font-size:10px; font-weight:700;">TOTAL REINVESTMENT</small><strong style="color:var(--blue); font-size:16px; display:block;">₹${totalPurchase.toFixed(2)}</strong></div></div></div>
         <div style="background:var(--surface); border:1px solid var(--border); padding:14px; border-radius:12px;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><h4 style="margin:0; font-size:12px; color:var(--text-dark);">📊 Comparison Chart</h4><div style="font-size:10px; display:flex; gap:8px;"><span style="color:var(--success); font-weight:bold;">🟢 Collection</span><span style="color:var(--blue); font-weight:bold;">🔵 Purchase</span></div></div><div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; padding:10px 0 0 0; border-bottom:2px solid var(--border); gap:16px;"><div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;"><span style="font-size:10px; font-weight:bold; color:var(--success); margin-bottom:4px;">₹${totalCollection.toFixed(0)}</span><div style="width:100%; max-width:55px; background:var(--success); height:${collHeight}%; border-radius:6px 6px 0 0; min-height:8px;"></div></div><div style="display:flex; flex-direction:column; align-items:center; width:45%; height:100%; justify-content:flex-end;"><span style="font-size:10px; font-weight:bold; color:var(--blue); margin-bottom:4px;">₹${totalPurchase.toFixed(0)}</span><div style="width:100%; max-width:55px; background:var(--blue); height:${purHeight}%; border-radius:6px 6px 0 0; min-height:8px;"></div></div></div><div style="display:flex; justify-content:space-around; text-align:center; font-size:10px; font-weight:bold; color:var(--text-muted); margin-top:6px;"><span style="width:45%;">Collection</span><span style="width:45%;">Purchase</span></div></div>
       </div>`;
+
+    if (typeof refreshComboAnalyticsData === 'function') {
+      refreshComboAnalyticsData();
+    }
   } catch (err) {
     container.innerHTML = `<div style='color:var(--danger); padding:10px;'>Error: ${err.message}</div>`;
   }
+}
+
+/* ==========================================================================
+   ADVANCED MIXED BAR + MULTI-LINE COMBO ANALYTICS CHART ENGINE
+   Vertical Bars: Cash (Green), Online (Orange), Purchase (Grey)
+   Continuous Lines: Collection Trend (Dark Green), Purchase Trend (Blue), Diff Trend (Yellow)
+   ========================================================================== */
+
+let comboGroupingMode = 'weekly'; // 'daily' | 'weekly' | 'monthly'
+let comboDrilldownWeekKey = null;  // if set, shows daily breakdown for that week
+let comboChartInstance = null;
+let comboRawDailyMap = {};        // key: YYYY-MM-DD -> { cash, online, purchase }
+
+function setComboGroupingMode(mode) {
+  comboGroupingMode = mode;
+  comboDrilldownWeekKey = null;
+  updateComboViewModeButtons();
+  renderComboAnalyticsChart();
+}
+
+function updateComboViewModeButtons() {
+  const dailyBtn = document.getElementById("comboViewDailyBtn");
+  const weeklyBtn = document.getElementById("comboViewWeeklyBtn");
+  const monthlyBtn = document.getElementById("comboViewMonthlyBtn");
+  const backBtn = document.getElementById("comboDrilldownBackBtn");
+
+  const activeStyle = "border:0; padding:5px 10px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:var(--surface); color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,0.1);";
+  const inactiveStyle = "border:0; padding:5px 10px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-muted);";
+
+  if (dailyBtn) dailyBtn.style.cssText = comboGroupingMode === 'daily' && !comboDrilldownWeekKey ? activeStyle : inactiveStyle;
+  if (weeklyBtn) weeklyBtn.style.cssText = comboGroupingMode === 'weekly' && !comboDrilldownWeekKey ? activeStyle : inactiveStyle;
+  if (monthlyBtn) monthlyBtn.style.cssText = comboGroupingMode === 'monthly' && !comboDrilldownWeekKey ? activeStyle : inactiveStyle;
+  
+  if (backBtn) {
+    backBtn.style.display = comboDrilldownWeekKey ? "inline-flex" : "none";
+  }
+}
+
+function exitComboDrilldown() {
+  comboDrilldownWeekKey = null;
+  comboGroupingMode = 'weekly';
+  updateComboViewModeButtons();
+  renderComboAnalyticsChart();
+}
+
+function formatCurrencyINR(num) {
+  const n = Number(num || 0);
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day; // adjust when day is sunday
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getWeekKeyAndRange(dStr) {
+  const dt = new Date(dStr + "T00:00:00");
+  const mon = getMonday(dt);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+
+  const monStr = mon.toISOString().split('T')[0];
+  const sunStr = sun.toISOString().split('T')[0];
+  const key = `${monStr}_${sunStr}`;
+
+  const monLabel = mon.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const sunLabel = sun.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const label = `${monLabel} - ${sunLabel}`;
+
+  return { key, label, monStr, sunStr };
+}
+
+async function refreshComboAnalyticsData() {
+  const canvas = document.getElementById("reinvestComboChartCanvas");
+  if (!canvas) return;
+
+  try {
+    let [fromVal, toVal] = [
+      document.getElementById("reinvestmentFromDate")?.value,
+      document.getElementById("reinvestmentToDate")?.value
+    ];
+
+    if (!fromVal || !toVal) {
+      const { from, to } = getDateRange('week');
+      fromVal = from.toISOString().split('T')[0];
+      toVal = to.toISOString().split('T')[0];
+    }
+
+    const fromDate = new Date(fromVal); fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(toVal); toDate.setHours(23, 59, 59, 999);
+
+    const [{ data: sales }, { data: offlineData }, { data: purchases }] = await Promise.all([
+      db.from("orders").select("*, order_items(*)").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString()),
+      db.from("Collections").select("*").gte("collection_date", fromVal).lte("collection_date", toVal),
+      db.from("purchase_orders").select("*").gte("created_at", fromDate.toISOString()).lte("created_at", toDate.toISOString())
+    ]);
+
+    // Build complete daily timeline from fromVal to toVal
+    const dailyMap = {};
+    const curr = new Date(fromVal);
+    const end = new Date(toVal);
+    while (curr <= end) {
+      const dStr = curr.toISOString().split('T')[0];
+      dailyMap[dStr] = { dateStr: dStr, cash: 0, online: 0, purchase: 0 };
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    // Process customer orders (sales)
+    (sales || []).forEach(ord => {
+      if (ord.status !== 'cancelled') {
+        if (String(ord.order_id || '').startsWith("ORD-CNT-") && offlineData?.length) return;
+        const dStr = (ord.created_at || '').split('T')[0];
+        if (!dailyMap[dStr]) dailyMap[dStr] = { dateStr: dStr, cash: 0, online: 0, purchase: 0 };
+
+        let itemsTotal = (ord.order_items || []).reduce((s, i) => s + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        if (itemsTotal === 0 && String(ord.address || '').includes("Amt: ₹")) {
+          itemsTotal = Number(ord.address.match(/Amt:\s*₹\s*([\d.]+)/)?.[1] || 0);
+        }
+        if (itemsTotal === 0 && ord.total_amount) itemsTotal = Number(ord.total_amount || 0);
+
+        const pMode = `${ord.payment_mode || ''} ${ord.payment_method || ''} ${ord.customer_name || ''} ${ord.address || ''}`.toLowerCase();
+        const isOnline = pMode.includes('[mode:online]') || pMode.includes('online') || pMode.includes('upi') || pMode.includes('card') || pMode.includes('netbanking');
+
+        if (isOnline) {
+          dailyMap[dStr].online += itemsTotal;
+        } else {
+          dailyMap[dStr].cash += itemsTotal;
+        }
+      }
+    });
+
+    // Process manual Collections
+    (offlineData || []).forEach(item => {
+      const dStr = item.collection_date || (item.created_at ? item.created_at.split('T')[0] : fromVal);
+      if (!dailyMap[dStr]) dailyMap[dStr] = { dateStr: dStr, cash: 0, online: 0, purchase: 0 };
+
+      const amt = Number(item.amount || 0);
+      const note = String(item.note || '').toLowerCase();
+      let isOnline = false;
+      if (note.includes("[mode:online]")) isOnline = true;
+      else if (note.includes("[mode:offline]")) isOnline = false;
+      else isOnline = note.includes("online");
+
+      if (isOnline) {
+        dailyMap[dStr].online += amt;
+      } else {
+        dailyMap[dStr].cash += amt;
+      }
+    });
+
+    // Process Purchase orders
+    (purchases || []).forEach(po => {
+      if (po.status !== 'cancelled') {
+        const dStr = (po.created_at || '').split('T')[0];
+        if (!dailyMap[dStr]) dailyMap[dStr] = { dateStr: dStr, cash: 0, online: 0, purchase: 0 };
+        dailyMap[dStr].purchase += Number(po.total_amount || 0);
+      }
+    });
+
+    comboRawDailyMap = dailyMap;
+    updateComboViewModeButtons();
+    renderComboAnalyticsChart();
+  } catch (err) {
+    console.error("Error refreshing combo chart:", err);
+  }
+}
+
+function renderComboAnalyticsChart() {
+  const canvas = document.getElementById("reinvestComboChartCanvas");
+  if (!canvas) return;
+
+  const dates = Object.keys(comboRawDailyMap).sort();
+  if (!dates.length) {
+    if (comboChartInstance) comboChartInstance.destroy();
+    return;
+  }
+
+  let labels = [];
+  let cashData = [];
+  let onlineData = [];
+  let purchaseData = [];
+  let collectionData = [];
+  let diffData = [];
+  let itemMetadata = []; // for tooltip and click drilldown
+
+  const subtitleEl = document.getElementById("comboChartSubtitle");
+
+  if (comboDrilldownWeekKey) {
+    // DRILLDOWN VIEW: Monday to Sunday of selected week
+    const [monStr, sunStr] = comboDrilldownWeekKey.split('_');
+    if (subtitleEl) {
+      subtitleEl.innerHTML = `🔍 <strong>Drill-down:</strong> Week (${monStr} to ${sunStr}) Daily Breakdown`;
+    }
+
+    const startDt = new Date(monStr);
+    const endDt = new Date(sunStr);
+    const curr = new Date(startDt);
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    let dayIdx = 0;
+    while (curr <= endDt) {
+      const dStr = curr.toISOString().split('T')[0];
+      const entry = comboRawDailyMap[dStr] || { cash: 0, online: 0, purchase: 0 };
+      const dLabel = `${dayNames[dayIdx] || ''} (${curr.getDate()} ${curr.toLocaleDateString('en-IN', { month: 'short' })})`;
+      
+      const cCash = entry.cash;
+      const cOnline = entry.online;
+      const cTotal = cCash + cOnline;
+      const cPur = entry.purchase;
+      const cDiff = cTotal - cPur;
+
+      labels.push(dLabel);
+      cashData.push(cCash);
+      onlineData.push(cOnline);
+      purchaseData.push(cPur);
+      collectionData.push(cTotal);
+      diffData.push(cDiff);
+
+      itemMetadata.push({
+        title: dLabel,
+        sub: dStr,
+        cash: cCash,
+        online: cOnline,
+        total: cTotal,
+        purchase: cPur,
+        diff: cDiff,
+        isWeek: false
+      });
+
+      curr.setDate(curr.getDate() + 1);
+      dayIdx++;
+    }
+  } else if (comboGroupingMode === 'weekly') {
+    // WEEKLY VIEW: Grouping Monday to Sunday
+    if (subtitleEl) subtitleEl.innerHTML = `📅 <strong>Weekly View:</strong> Click any bar to drill-down into daily view`;
+
+    const weeksMap = {};
+    dates.forEach(dStr => {
+      const { key, label, monStr, sunStr } = getWeekKeyAndRange(dStr);
+      if (!weeksMap[key]) {
+        weeksMap[key] = { key, label, monStr, sunStr, cash: 0, online: 0, purchase: 0 };
+      }
+      const entry = comboRawDailyMap[dStr];
+      weeksMap[key].cash += entry.cash;
+      weeksMap[key].online += entry.online;
+      weeksMap[key].purchase += entry.purchase;
+    });
+
+    const sortedWeeks = Object.values(weeksMap).sort((a, b) => a.monStr.localeCompare(b.monStr));
+    sortedWeeks.forEach((w, idx) => {
+      const wLabel = `Week ${idx + 1} (${w.label})`;
+      const cTotal = w.cash + w.online;
+      const cDiff = cTotal - w.purchase;
+
+      labels.push(wLabel);
+      cashData.push(w.cash);
+      onlineData.push(w.online);
+      purchaseData.push(w.purchase);
+      collectionData.push(cTotal);
+      diffData.push(cDiff);
+
+      itemMetadata.push({
+        title: `Week ${idx + 1}`,
+        sub: w.label,
+        weekKey: w.key,
+        cash: w.cash,
+        online: w.online,
+        total: cTotal,
+        purchase: w.purchase,
+        diff: cDiff,
+        isWeek: true
+      });
+    });
+  } else if (comboGroupingMode === 'monthly') {
+    // MONTHLY VIEW: Group by Year-Month
+    if (subtitleEl) subtitleEl.innerHTML = `📅 <strong>Monthly View:</strong> Month-wise Summary`;
+
+    const monthsMap = {};
+    dates.forEach(dStr => {
+      const dt = new Date(dStr + "T00:00:00");
+      const mKey = dStr.substring(0, 7); // YYYY-MM
+      const mLabel = dt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
+      if (!monthsMap[mKey]) {
+        monthsMap[mKey] = { mKey, label: mLabel, cash: 0, online: 0, purchase: 0 };
+      }
+      const entry = comboRawDailyMap[dStr];
+      monthsMap[mKey].cash += entry.cash;
+      monthsMap[mKey].online += entry.online;
+      monthsMap[mKey].purchase += entry.purchase;
+    });
+
+    const sortedMonths = Object.values(monthsMap).sort((a, b) => a.mKey.localeCompare(b.mKey));
+    sortedMonths.forEach(m => {
+      const cTotal = m.cash + m.online;
+      const cDiff = cTotal - m.purchase;
+
+      labels.push(m.label);
+      cashData.push(m.cash);
+      onlineData.push(m.online);
+      purchaseData.push(m.purchase);
+      collectionData.push(cTotal);
+      diffData.push(cDiff);
+
+      itemMetadata.push({
+        title: m.label,
+        sub: m.mKey,
+        cash: m.cash,
+        online: m.online,
+        total: cTotal,
+        purchase: m.purchase,
+        diff: cDiff,
+        isWeek: false
+      });
+    });
+  } else {
+    // DAILY VIEW: All dates individual
+    if (subtitleEl) subtitleEl.innerHTML = `📅 <strong>Daily View:</strong> Day by Day Fluctuation`;
+
+    dates.forEach(dStr => {
+      const dt = new Date(dStr + "T00:00:00");
+      const dLabel = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      const entry = comboRawDailyMap[dStr];
+      const cTotal = entry.cash + entry.online;
+      const cDiff = cTotal - entry.purchase;
+
+      labels.push(dLabel);
+      cashData.push(entry.cash);
+      onlineData.push(entry.online);
+      purchaseData.push(entry.purchase);
+      collectionData.push(cTotal);
+      diffData.push(cDiff);
+
+      itemMetadata.push({
+        title: dLabel,
+        sub: dStr,
+        cash: entry.cash,
+        online: entry.online,
+        total: cTotal,
+        purchase: entry.purchase,
+        diff: cDiff,
+        isWeek: false
+      });
+    });
+  }
+
+  // Render Performance Insights Cards
+  renderComboInsights(itemMetadata);
+
+  // Destroy previous Chart instance
+  if (comboChartInstance) {
+    comboChartInstance.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  comboChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        // 1. Vertical Bars: Cash (Green)
+        {
+          type: 'bar',
+          label: 'Cash (Offline)',
+          data: cashData,
+          backgroundColor: 'rgba(34, 197, 94, 0.85)', // Green
+          borderColor: '#16a34a',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 3,
+          barPercentage: 0.8,
+          categoryPercentage: 0.85
+        },
+        // 2. Vertical Bars: Online (Orange)
+        {
+          type: 'bar',
+          label: 'Online (UPI/Card)',
+          data: onlineData,
+          backgroundColor: 'rgba(249, 115, 22, 0.85)', // Orange
+          borderColor: '#ea580c',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 3,
+          barPercentage: 0.8,
+          categoryPercentage: 0.85
+        },
+        // 3. Vertical Bars: Purchase (Grey)
+        {
+          type: 'bar',
+          label: 'Total Purchase',
+          data: purchaseData,
+          backgroundColor: 'rgba(148, 163, 184, 0.85)', // Grey
+          borderColor: '#64748b',
+          borderWidth: 1,
+          borderRadius: 4,
+          order: 3,
+          barPercentage: 0.8,
+          categoryPercentage: 0.85
+        },
+        // 4. Continuous Line: Total Collection Trend (Dark Green)
+        {
+          type: 'line',
+          label: 'Total Collection Trend',
+          data: collectionData,
+          borderColor: '#15803d',
+          backgroundColor: '#15803d',
+          borderWidth: 3.5,
+          tension: 0.35,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#15803d',
+          pointBorderWidth: 2.5,
+          fill: false,
+          order: 1
+        },
+        // 5. Continuous Line: Total Purchase Trend (Blue)
+        {
+          type: 'line',
+          label: 'Total Purchase Trend',
+          data: purchaseData,
+          borderColor: '#2563eb',
+          backgroundColor: '#2563eb',
+          borderWidth: 3.5,
+          tension: 0.35,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#2563eb',
+          pointBorderWidth: 2.5,
+          fill: false,
+          order: 1
+        },
+        // 6. Continuous Line: Collection − Purchase Difference (Yellow)
+        {
+          type: 'line',
+          label: 'Collection − Purchase Difference',
+          data: diffData,
+          borderColor: '#eab308',
+          backgroundColor: '#eab308',
+          borderWidth: 3,
+          borderDash: [5, 4],
+          tension: 0.35,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#eab308',
+          pointBorderWidth: 2.5,
+          fill: false,
+          order: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      onClick: (e, elements) => {
+        if (!elements || !elements.length) return;
+        const index = elements[0].index;
+        const meta = itemMetadata[index];
+        if (meta && meta.isWeek && meta.weekKey) {
+          comboDrilldownWeekKey = meta.weekKey;
+          updateComboViewModeButtons();
+          renderComboAnalyticsChart();
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            boxWidth: 12,
+            font: { size: 11, weight: 'bold' },
+            padding: 12,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleFont: { size: 13, weight: 'bold' },
+          bodyFont: { size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+          callbacks: {
+            title: (tooltipItems) => {
+              const idx = tooltipItems[0].dataIndex;
+              const meta = itemMetadata[idx];
+              return meta ? `${meta.title} (${meta.sub})` : tooltipItems[0].label;
+            },
+            label: (context) => {
+              const label = context.dataset.label || '';
+              const val = context.parsed.y;
+              return ` ${label}: ${formatCurrencyINR(val)}`;
+            },
+            afterBody: (tooltipItems) => {
+              const idx = tooltipItems[0].dataIndex;
+              const meta = itemMetadata[idx];
+              if (!meta) return [];
+              const diffText = meta.diff >= 0
+                ? `🟢 Net Diff: +${formatCurrencyINR(meta.diff)} (Collection Higher)`
+                : `🔴 Net Diff: -${formatCurrencyINR(Math.abs(meta.diff))} (Purchase Exceeded)`;
+              return ['', diffText];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 10, weight: '600' },
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 14
+          }
+        },
+        y: {
+          grid: { color: 'rgba(226, 232, 240, 0.8)' },
+          ticks: {
+            font: { size: 11 },
+            callback: (val) => '₹' + Number(val).toLocaleString('en-IN')
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderComboInsights(items) {
+  const container = document.getElementById("comboInsightsGrid");
+  if (!container) return;
+
+  if (!items || !items.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  let totalColl = 0, totalPur = 0;
+  let lowestCollItem = null;
+  let highestCollItem = null;
+  let highestPurItem = null;
+  let deficitCount = 0;
+
+  items.forEach(it => {
+    totalColl += it.total;
+    totalPur += it.purchase;
+
+    if (it.purchase > it.total) deficitCount++;
+
+    if (!lowestCollItem || it.total < lowestCollItem.total) lowestCollItem = it;
+    if (!highestCollItem || it.total > highestCollItem.total) highestCollItem = it;
+    if (!highestPurItem || it.purchase > highestPurItem.purchase) highestPurItem = it;
+  });
+
+  const netDiff = totalColl - totalPur;
+  const isNetSurplus = netDiff >= 0;
+
+  container.innerHTML = `
+    <!-- 1. Total Collection -->
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:#166534; display:block;">TOTAL COLLECTION</small>
+      <strong style="font-size:14px; color:#15803d; display:block; margin-top:2px;">${formatCurrencyINR(totalColl)}</strong>
+      <span style="font-size:10px; color:#166534;">Cash + Online Total</span>
+    </div>
+
+    <!-- 2. Total Purchase -->
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:#1e40af; display:block;">TOTAL PURCHASE</small>
+      <strong style="font-size:14px; color:#1d4ed8; display:block; margin-top:2px;">${formatCurrencyINR(totalPur)}</strong>
+      <span style="font-size:10px; color:#1e40af;">Reinvestment Total</span>
+    </div>
+
+    <!-- 3. Net Difference -->
+    <div style="background:${isNetSurplus ? '#f0fdf4' : '#fff1f2'}; border:1px solid ${isNetSurplus ? '#bbf7d0' : '#fecdd3'}; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:${isNetSurplus ? '#166534' : '#9f1239'}; display:block;">NET DIFFERENCE</small>
+      <strong style="font-size:14px; color:${isNetSurplus ? '#15803d' : '#e11d48'}; display:block; margin-top:2px;">${(isNetSurplus ? '+' : '-') + formatCurrencyINR(Math.abs(netDiff))}</strong>
+      <span style="font-size:10px; color:${isNetSurplus ? '#166534' : '#9f1239'};">${isNetSurplus ? '🟢 Surplus' : '⚠️ Purchase Exceeded'}</span>
+    </div>
+
+    <!-- 4. Lowest Collection Period -->
+    <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:#92400e; display:block;">LOWEST COLLECTION</small>
+      <strong style="font-size:13px; color:#b45309; display:block; margin-top:2px;">${lowestCollItem ? formatCurrencyINR(lowestCollItem.total) : '₹0'}</strong>
+      <span style="font-size:10px; color:#92400e;">${lowestCollItem ? lowestCollItem.title : '-'}</span>
+    </div>
+
+    <!-- 5. Highest Collection Period -->
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:#166534; display:block;">HIGHEST COLLECTION</small>
+      <strong style="font-size:13px; color:#15803d; display:block; margin-top:2px;">${highestCollItem ? formatCurrencyINR(highestCollItem.total) : '₹0'}</strong>
+      <span style="font-size:10px; color:#166534;">${highestCollItem ? highestCollItem.title : '-'}</span>
+    </div>
+
+    <!-- 6. Highest Purchase Period -->
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:#475569; display:block;">HIGHEST PURCHASE</small>
+      <strong style="font-size:13px; color:#0f172a; display:block; margin-top:2px;">${highestPurItem ? formatCurrencyINR(highestPurItem.purchase) : '₹0'}</strong>
+      <span style="font-size:10px; color:#475569;">${highestPurItem ? highestPurItem.title : '-'}</span>
+    </div>
+
+    <!-- 7. Over-Purchase Alert -->
+    <div style="background:${deficitCount > 0 ? '#fff1f2' : '#f8fafc'}; border:1px solid ${deficitCount > 0 ? '#fecdd3' : '#e2e8f0'}; border-radius:8px; padding:8px 10px;">
+      <small style="font-size:10px; font-weight:700; color:${deficitCount > 0 ? '#9f1239' : '#475569'}; display:block;">OVER-PURCHASE DAYS</small>
+      <strong style="font-size:13px; color:${deficitCount > 0 ? '#e11d48' : '#0f172a'}; display:block; margin-top:2px;">${deficitCount} Period(s)</strong>
+      <span style="font-size:10px; color:${deficitCount > 0 ? '#9f1239' : '#64748b'};">${deficitCount > 0 ? '⚠️ Purchase > Collection' : '✅ Healthy'}</span>
+    </div>
+  `;
 }
 
 /* DRAG & DROP AND ITEM REORDERING HELPERS */
@@ -1818,12 +2725,12 @@ async function submitPurchaseOrder() {
 
   const items = poCart.map(i => ({
     po_id: po.id,
-    product_id: (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0,
+    product_id: cleanPoProductId(i.product_id, i.product_name),
     product_name: i.product_name,
     quantity: Math.round(Number(i.quantity) || 1),
     purchase_price: Number(i.purchase_price) || 0
   }));
-  const { error: itemsErr } = await db.from("purchase_order_items").insert(items);
+  const { error: itemsErr } = await insertPoItemsSafe(items);
   if (itemsErr) alert("Reorder Header saved, but items error: " + itemsErr.message);
   else {
     await ensureProductsLoaded();
@@ -1848,18 +2755,7 @@ async function submitPurchaseOrder() {
       };
     });
 
-    syncOrderToGoogleSheet({
-      targetSheet: "Admin Orders Indent",
-      isPO: true,
-      orderId: poNumber,
-      orderType: "Supplier Reorder",
-      partyName: supplier,
-      buyer: buyerName,
-      itemsArray: sheetItems,
-      totalAmount: totalAmount,
-      status: "pending",
-      notes: "Direct Reorder from Admin Dashboard"
-    });
+    // Google Sheet sync intentionally happens only when stock is received (see receiveStock).
     alert(`Reorder ${poNumber} submit ho gaya! Bill: ₹${totalAmount.toFixed(2)}`);
   }
 
@@ -2265,11 +3161,7 @@ async function openEditPoModal(poId) {
   document.getElementById("editPoSupplierSelect") && (document.getElementById("editPoSupplierSelect").value = po.supplier_name);
 
   editPoCart = (poItems || []).map(i => {
-    let pId = (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0;
-    if (pId === 0 && i.product_name) {
-      const match = productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name).toLowerCase());
-      if (match) pId = Number(match.id);
-    }
+    const pId = cleanPoProductId(i.product_id, i.product_name);
     return {
       product_id: pId,
       product_name: i.product_name || 'Product',
@@ -2302,11 +3194,7 @@ function addItemToEditPoCart() {
   if (qty <= 0 || isNaN(qty)) return alert("Sahi Quantity dalein.");
   if (isNaN(price) || price < 0) return alert("Sahi Rate dalein.");
 
-  let numericPId = (prodId && !isNaN(Number(prodId)) && Number(prodId) > 0) ? Number(prodId) : 0;
-  if (numericPId === 0 && prodName) {
-    const match = productsList.find(p => (p.name || '').toLowerCase() === String(prodName).toLowerCase());
-    if (match) numericPId = Number(match.id);
-  }
+  const numericPId = cleanPoProductId(prodId, prodName);
 
   editPoCart.push({ product_id: numericPId, product_name: prodName, quantity: qty, purchase_price: price });
   ['editPoProductSearch', 'editSelectedProductId', 'editPoPrice'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
@@ -2381,11 +3269,7 @@ async function saveUpdatedPurchaseOrder() {
   if (poErr) return alert("Order update error: " + poErr.message);
 
   const itemsToInsert = editPoCart.map(i => {
-    let pId = (i.product_id && !isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0;
-    if (pId === 0 && i.product_name) {
-      const match = productsList.find(p => (p.name || '').toLowerCase() === String(i.product_name).toLowerCase());
-      if (match) pId = Number(match.id);
-    }
+    const pId = cleanPoProductId(i.product_id, i.product_name);
     return {
       po_id: targetPoId,
       product_id: pId,
@@ -2396,7 +3280,7 @@ async function saveUpdatedPurchaseOrder() {
   });
 
   await db.from("purchase_order_items").delete().or(`po_id.eq.${targetPoId},po_id.eq.${targetPoNum}`);
-  const { error: insErr } = await db.from("purchase_order_items").insert(itemsToInsert);
+  const { error: insErr } = await insertPoItemsSafe(itemsToInsert);
   if (insErr) alert("Items save karne mein error aaya: " + insErr.message);
   else alert("Reorder successfully update ho gaya!");
 
@@ -2436,7 +3320,6 @@ async function syncPoToSheet(poId) {
 
   await syncOrderToGoogleSheet({
     targetSheet: "Admin Orders Indent",
-    isPO: true,
     orderId: po.po_number || ('#' + po.id),
     orderType: "Supplier Reorder",
     partyName: po.supplier_name || 'Akash Sharma',
@@ -2506,12 +3389,13 @@ async function receiveStock(poId) {
 
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
+  if (po && po.status === "received") return alert("Ye order pehle hi Received ho chuka hai.");
   const { data: allItems } = await db.from("purchase_order_items").select("*");
   const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
 
   if (items?.length) {
     for (let item of items) {
-      if (!item.product_id) continue;
+      if (!item.product_id || String(item.product_id) === "0") continue;
       const pIdCond = !isNaN(Number(item.product_id)) ? Number(item.product_id) : item.product_id;
       const { data: prod } = await db.from("products").select("stock_qty").or(`id.eq.${pIdCond},id.eq.${String(item.product_id)}`).single();
       const currentQty = Number(prod?.stock_qty || 0);
