@@ -1,12 +1,12 @@
-/* DATA EXPORT FEATURE: pick From/To date + choose which data -> download CSV (opens in Excel) */
+/* DATA EXPORT FEATURE: pick From/To date + choose which data -> ONE Excel workbook (one sheet per data type) */
 (function () {
   const DATASETS = [
-    { key: "orders", label: "🛍 Customer Orders (with items)", table: "orders", dateCol: "created_at", type: "ts", select: "*, order_items(*)" },
-    { key: "collections", label: "💵 Collections (Cash / Online)", table: "Collections", dateCol: "collection_date", type: "date", select: "*" },
-    { key: "purchase_orders", label: "📋 Supplier Reorders (Purchase Orders)", table: "purchase_orders", dateCol: "created_at", type: "ts", select: "*" },
-    { key: "purchase_items", label: "📦 Supplier Reorder Items", table: "purchase_order_items", dateCol: null, type: "po_items" },
-    { key: "products", label: "🏷 Products List (all)", table: "products", dateCol: null, select: "*" },
-    { key: "suppliers", label: "🏬 Suppliers List (all)", table: "suppliers", dateCol: null, select: "*" }
+    { key: "orders", label: "🛍 Customer Orders (with items)", sheet: "Orders", table: "orders", dateCol: "created_at", type: "ts", select: "*, order_items(*)" },
+    { key: "collections", label: "💵 Collections (Cash / Online)", sheet: "Collections", table: "Collections", dateCol: "collection_date", type: "date", select: "*" },
+    { key: "purchase_orders", label: "📋 Supplier Reorders (Purchase Orders)", sheet: "Supplier Reorders", table: "purchase_orders", dateCol: "created_at", type: "ts", select: "*" },
+    { key: "purchase_items", label: "📦 Supplier Reorder Items", sheet: "Reorder Items", table: "purchase_order_items", dateCol: null, type: "po_items" },
+    { key: "products", label: "🏷 Products List (all)", sheet: "Products", table: "products", dateCol: null, select: "*" },
+    { key: "suppliers", label: "🏬 Suppliers List (all)", sheet: "Suppliers", table: "suppliers", dateCol: null, select: "*" }
   ];
 
   function csvCell(v) {
@@ -108,11 +108,11 @@
         <div style="font-size:12px;font-weight:800;margin-bottom:6px;">Konsa data chahiye? (What data do you need?)</div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;">
           ${DATASETS.map(d => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:8px;border:1px solid var(--border,#ddd);border-radius:10px;cursor:pointer;">
-            <input type="checkbox" class="exportChk" value="${d.key}" ${d.key === "orders" ? "checked" : ""}> ${d.label}</label>`).join("")}
+            <input type="checkbox" class="exportChk" style="width:18px;height:18px;flex:none;margin:0;padding:0;" value="${d.key}" ${d.key === "orders" ? "checked" : ""}> ${d.label}</label>`).join("")}
         </div>
         <div style="font-size:10px;color:var(--text-muted,#777);margin-bottom:10px;">Products &amp; Suppliers list me date filter nahi lagta (poori list export hoti hai).</div>
         <div id="exportStatus" style="font-size:12px;font-weight:700;min-height:16px;margin-bottom:8px;"></div>
-        <button id="exportGoBtn" class="btn-primary" style="width:100%;padding:11px;font-size:14px;font-weight:bold;border-radius:10px;cursor:pointer;" onclick="runExport()">⬇️ Export (CSV / Excel)</button>
+        <button id="exportGoBtn" class="btn-primary" style="width:100%;padding:11px;font-size:14px;font-weight:bold;border-radius:10px;cursor:pointer;" onclick="runExport()">⬇️ Export to Excel (1 Workbook)</button>
       </div>`;
     document.body.appendChild(el);
   };
@@ -130,18 +130,21 @@
     btn.disabled = true;
     let done = 0, empty = [];
     try {
+      if (!window.XLSX) throw new Error("Excel library load nahi hui. Internet check karke page refresh karein.");
+      const wb = XLSX.utils.book_new();
       for (const key of picked) {
         const ds = DATASETS.find(d => d.key === key);
         status.textContent = "⏳ Exporting " + ds.label + "...";
         let rows = await fetchDataset(ds, fromVal, toVal);
         if (key === "orders") rows = flattenOrders(rows);
         if (!rows.length) { empty.push(ds.label); continue; }
-        download(`${key}_${fromVal}_to_${toVal}.csv`, toCSV(rows));
+        const clean = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { const v = r[k]; o[k] = (v !== null && typeof v === "object") ? JSON.stringify(v) : v; }); return o; });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clean), ds.sheet);
         done++;
-        await new Promise(r => setTimeout(r, 400));
       }
-      status.style.color = "#16a34a";
-      status.textContent = `✅ ${done} file export ho gayi.` + (empty.length ? ` (Is date range me data nahi mila: ${empty.join(", ")})` : "");
+      if (done) XLSX.writeFile(wb, `DG_Store_Export_${fromVal}_to_${toVal}.xlsx`);
+      status.style.color = done ? "#16a34a" : "#d97706";
+      status.textContent = (done ? `✅ 1 Excel file ban gayi (${done} sheets).` : "⚠️ Koi data nahi mila.") + (empty.length ? ` (Is date range me data nahi mila: ${empty.join(", ")})` : "");
     } catch (e) {
       status.style.color = "#dc2626";
       status.textContent = "❌ Error: " + (e.message || e);
