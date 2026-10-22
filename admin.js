@@ -1269,6 +1269,23 @@ function renderTickedProductsList() {
   if (container) container.innerHTML = htmlList;
   if (modalContainer) modalContainer.innerHTML = htmlList;
   ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = total.toFixed(2)));
+  refreshTickedProfit();
+}
+
+// Total profit of the ticked reorder = sum(qty x pieces per pack x selling/pc) - sum(qty x packet rate)
+function refreshTickedProfit() {
+  let profit = 0;
+  Object.keys(tickedProductsMap).forEach(k => {
+    const it = tickedProductsMap[k];
+    const prod = productsList.find(p => String(p.id) === String(k));
+    const pc = Math.max(1, getPackCountFromUnit(prod?.unit));
+    const qty = Number(it.quantity || 1);
+    profit += qty * pc * Number(it.selling_price || 0) - qty * Number(it.purchase_price || 0);
+  });
+  const el = document.getElementById("modalTickedTotalProfit");
+  if (el) el.textContent = profit.toFixed(2);
+  const w = document.getElementById("modalTickedTotalProfitWrap");
+  if (w) w.style.color = profit < 0 ? "var(--danger)" : "var(--success)";
 }
 
 function tickedGpText(item, packCount) {
@@ -1283,6 +1300,7 @@ function updateTickedSelling(id, value) {
   const txt = tickedGpText(item, getPackCountFromUnit(prod?.unit));
   document.querySelectorAll(`#ticked_gp_${id}`).forEach(el => { el.textContent = txt; el.style.color = (item.selling_price - Number(item.purchase_price || 0) / Math.max(1, getPackCountFromUnit(prod?.unit))) < 0 ? 'var(--danger)' : 'var(--success)'; });
   document.querySelectorAll(`#ticked_sell_${id}`).forEach(el => { if (document.activeElement !== el) el.value = item.selling_price; });
+  refreshTickedProfit();
 }
 
 function updateTickedQtyAndTotal(id, type, value) {
@@ -1331,6 +1349,9 @@ function updateTickedQtyAndTotal(id, type, value) {
   if (packCount > 1) {
     document.querySelectorAll(`#ticked_pcsrate_${id}`).forEach(el => el.textContent = (rate / packCount).toFixed(2));
   }
+  const gpTxt = tickedGpText(item, packCount);
+  document.querySelectorAll(`#ticked_gp_${id}`).forEach(el => el.textContent = gpTxt);
+  refreshTickedProfit();
 
   let totalBill = 0;
   Object.keys(tickedProductsMap).forEach(k => {
