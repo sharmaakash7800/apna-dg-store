@@ -50,10 +50,24 @@ function cleanPoProductId(id, name) {
 
 // Safe insert: works whether purchase_order_items.product_id is text (new) or still integer (old).
 async function insertPoItemsSafe(items) {
-  let res = await db.from("purchase_order_items").insert(items);
-  if (res.error && /integer|invalid input syntax/i.test(res.error.message || "")) {
-    const numeric = items.map(i => ({ ...i, product_id: (!isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0 }));
-    res = await db.from("purchase_order_items").insert(numeric);
+  // Snapshot the selling price at order time so GP stays correct when prices change later.
+  const withSell = items.map(i => {
+    if (i.selling_price !== undefined && i.selling_price !== null) return i;
+    const p = (typeof productsList !== "undefined" ? productsList : []).find(x => String(x.id) === String(i.product_id) || (x.name || "").trim().toLowerCase() === String(i.product_name || "").trim().toLowerCase());
+    return { ...i, selling_price: p ? Number(p.selling_price || p.price || 0) : 0 };
+  });
+  const attempt = async (rows) => {
+    let r = await db.from("purchase_order_items").insert(rows);
+    if (r.error && /integer|invalid input syntax/i.test(r.error.message || "")) {
+      const numeric = rows.map(i => ({ ...i, product_id: (!isNaN(Number(i.product_id)) && Number(i.product_id) > 0) ? Number(i.product_id) : 0 }));
+      r = await db.from("purchase_order_items").insert(numeric);
+    }
+    return r;
+  };
+  let res = await attempt(withSell);
+  // selling_price column not created yet -> save without it (GP falls back to current price)
+  if (res.error && /selling_price/i.test(res.error.message || "")) {
+    res = await attempt(items.map(({ selling_price, ...rest }) => rest));
   }
   return res;
 }
@@ -1185,7 +1199,7 @@ function toggleProductSelection(prodId, isChecked) {
   const prod = productsList.find(p => String(p.id) === String(prodId));
   if (!prod) return;
   if (isChecked) {
-    tickedProductsMap[prodId] = { product_id: prod.id, product_name: prod.name, quantity: 1, purchase_price: Number(prod.cost_price ?? prod.price ?? 0) };
+    tickedProductsMap[prodId] = { product_id: prod.id, product_name: prod.name, quantity: 1, purchase_price: Number(prod.cost_price ?? prod.price ?? 0), selling_price: Number(prod.selling_price ?? prod.price ?? 0) };
   } else delete tickedProductsMap[prodId];
   renderTickedProductsList();
 }
@@ -1245,6 +1259,8 @@ function renderTickedProductsList() {
           <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" id="ticked_qty_${k}" value="${item.quantity}" style="width:55px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'qty', this.value)" /></div>
           <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate (₹):</label><input type="text" inputmode="decimal" id="ticked_rate_${k}" value="${packetCost.toFixed(2)}" style="width:65px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'rate', this.value)" /></div>
           <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Total Price (₹):</label><input type="text" inputmode="decimal" id="ticked_total_${k}" value="${itemTotal.toFixed(2)}" style="width:85px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="updateTickedQtyAndTotal('${k}', 'total', this.value)" /></div>
+          <div style="display:flex; align-items:center; gap:4px;"><label style="font-size:10px; font-weight:700; color:var(--text-muted);">Selling (₹/pc):</label><input type="text" inputmode="decimal" id="ticked_sell_${k}" value="${Number(item.selling_price || 0)}" style="width:65px; padding:3px 6px; font-size:11px; font-weight:bold; border:1px solid var(--primary); border-radius:6px; color:var(--success);" onfocus="this.select()" oninput="updateTickedSelling('${k}', this.value)" /></div>
+          <div style="font-size:10px; color:var(--text-muted);">GP/pc: <strong id="ticked_gp_${k}">${tickedGpText(item, packCount)}</strong></div>
           <div style="font-size:10px; color:var(--text-muted);">⚡ Per Unit Rate: <strong style="color:var(--success);">₹<span id="ticked_unitrate_${k}">${packetCost.toFixed(2)}</span></strong></div>
         </div>
       </div>`;
@@ -1253,6 +1269,20 @@ function renderTickedProductsList() {
   if (container) container.innerHTML = htmlList;
   if (modalContainer) modalContainer.innerHTML = htmlList;
   ['tickedTotalBill', 'floatingTickedTotalBill', 'modalTickedTotalBill'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = total.toFixed(2)));
+}
+
+function tickedGpText(item, packCount) {
+  const sell = Number(item.selling_price || 0), unitCost = Number(item.purchase_price || 0) / (packCount > 1 ? packCount : 1);
+  const gp = sell - unitCost;
+  return `₹${gp.toFixed(2)} (${sell > 0 ? (gp / sell * 100).toFixed(1) : '0.0'}%)`;
+}
+function updateTickedSelling(id, value) {
+  const item = tickedProductsMap[id]; if (!item) return;
+  item.selling_price = Number(value) || 0;
+  const prod = productsList.find(p => String(p.id) === String(id));
+  const txt = tickedGpText(item, getPackCountFromUnit(prod?.unit));
+  document.querySelectorAll(`#ticked_gp_${id}`).forEach(el => { el.textContent = txt; el.style.color = (item.selling_price - Number(item.purchase_price || 0) / Math.max(1, getPackCountFromUnit(prod?.unit))) < 0 ? 'var(--danger)' : 'var(--success)'; });
+  document.querySelectorAll(`#ticked_sell_${id}`).forEach(el => { if (document.activeElement !== el) el.value = item.selling_price; });
 }
 
 function updateTickedQtyAndTotal(id, type, value) {
@@ -1346,7 +1376,8 @@ async function submitTickedReorder(sourceModal = false) {
     product_id: cleanPoProductId(i.product_id, i.product_name),
     product_name: i.product_name || 'Item',
     quantity: Math.round(Number(i.quantity) || 1),
-    purchase_price: Number(i.purchase_price) || 0
+    purchase_price: Number(i.purchase_price) || 0,
+    selling_price: Number(i.selling_price) || 0
   }));
 
   const { error: itemsErr } = await insertPoItemsSafe(dbItems);
@@ -3058,9 +3089,40 @@ async function deletePurchaseOrder(poId) {
   }
 }
 
+// ---- GP (Gross Profit) helpers for purchase order items ----
+function poSellKey(poId, it) { return `${poId}_${it.product_id || it.product_name}`; }
+function poGetSellOverrides() { try { return JSON.parse(localStorage.getItem("poSellOverrides") || "{}"); } catch (e) { return {}; } }
+function poGetSellPrice(poId, it) {
+  const ov = poGetSellOverrides()[poSellKey(poId, it)];
+  if (it.selling_price !== undefined && it.selling_price !== null && Number(it.selling_price) > 0) return Number(it.selling_price);
+  if (ov !== undefined && ov !== "") return Number(ov) || 0;
+  const p = (typeof productsList !== "undefined" ? productsList : []).find(x => String(x.id) === String(it.product_id) || (x.name || "") === (it.product_name || "\u0000"));
+  return p ? Number(p.selling_price || p.price || 0) : 0;
+}
+function poGpCalc(it, sell) {
+  const cost = Number(it.purchase_price || 0), qty = Number(it.quantity || 0);
+  const gpPack = sell - cost;
+  return { gpPack, gpPct: sell > 0 ? (gpPack / sell) * 100 : 0, totalGp: gpPack * qty };
+}
+function poPaintGp(poId, idx, it) {
+  const inp = document.getElementById(`poSell_${poId}_${idx}`);
+  const sell = Number(inp?.value) || 0;
+  const ov = poGetSellOverrides(); ov[poSellKey(poId, it)] = inp?.value; localStorage.setItem("poSellOverrides", JSON.stringify(ov));
+  it.selling_price = sell;
+  clearTimeout(window.__poSellT);
+  window.__poSellT = setTimeout(() => { if (it.id !== undefined) db.from("purchase_order_items").update({ selling_price: sell }).eq("id", it.id).then(() => {}, () => {}); }, 600);
+  poRefreshGpRow(poId, idx, it, sell);
+}
+function poRefreshGpRow(poId, idx, it, sell) {
+  const g = poGpCalc(it, sell), col = g.gpPack < 0 ? "var(--danger)" : "var(--success)";
+  const set = (k, v) => { const e = document.getElementById(`${k}_${poId}_${idx}`); if (e) { e.textContent = v; e.style.color = col; } };
+  set("poGpPack", `₹${g.gpPack.toFixed(2)}`); set("poGpPct", `${g.gpPct.toFixed(1)}%`); set("poGpTot", `₹${g.totalGp.toFixed(2)}`);
+}
+
 async function loadPurchaseOrders() {
   const container = document.getElementById("purchaseOrdersList");
   if (!container) return;
+  await ensureProductsLoaded();
 
   const [{ data: pos, error }, { data: fetchedItems }] = await Promise.all([
     db.from("purchase_orders").select("*, purchase_order_items(*)").order("created_at", { ascending: false }),
@@ -3133,8 +3195,8 @@ async function loadPurchaseOrders() {
           ${items.length > 0 ? `
             <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:auto; resize:vertical; min-height:auto !important; max-height:320px; height:auto !important; margin-bottom:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead><tr style="background:var(--bg); color:var(--text-muted); text-align:left;"><th style="padding:6px 10px;">Product Name</th><th style="padding:6px 10px; text-align:center;">Qty</th><th style="padding:6px 10px; text-align:right;">Purchase Price (₹)</th><th style="padding:6px 10px; text-align:right;">Total Amount (₹)</th></tr></thead>
-                <tbody>${items.map(it => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td></tr>`).join("")}</tbody>
+                <thead><tr style="background:var(--bg); color:var(--text-muted); text-align:left;"><th style="padding:6px 10px;">Product Name</th><th style="padding:6px 10px; text-align:center;">Qty</th><th style="padding:6px 10px; text-align:right;">Cost/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">Total Amount (₹)</th><th style="padding:6px 10px; text-align:right;">Selling/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">GP/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">GP %</th><th style="padding:6px 10px; text-align:right;">Total GP (₹)</th></tr></thead>
+                <tbody>${(window.__poGpItems = window.__poGpItems || {}, window.__poGpItems[po.id] = items, ''), items.map((it, ix) => { const sell = poGetSellPrice(po.id, it); const g = poGpCalc(it, sell); const col = g.gpPack < 0 ? 'var(--danger)' : 'var(--success)'; return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td><td style="padding:6px 10px; text-align:right;"><input id="poSell_${po.id}_${ix}" type="text" inputmode="decimal" value="${sell}" onfocus="this.select()" oninput="poPaintGp('${po.id}', ${ix}, window.__poGpItems['${po.id}'][${ix}])" style="width:62px; padding:2px 4px; font-size:11px; font-weight:bold; text-align:right; border:1px solid var(--border); border-radius:6px;" /></td><td id="poGpPack_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.gpPack.toFixed(2)}</td><td id="poGpPct_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">${g.gpPct.toFixed(1)}%</td><td id="poGpTot_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.totalGp.toFixed(2)}</td></tr>`; }).join("")}</tbody>
               </table>
             </div>` : `<div style="background:rgba(239,68,68,0.08); border:1px solid var(--danger); border-radius:10px; padding:10px; display:flex; justify-content:space-between; align-items:center;"><strong style="color:var(--danger); font-size:12px;">⚠️ Is Order ke Items Missing hain</strong><button class="btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEditPoModal('${po.id}')">✏️ Add / Edit Items</button></div>`}
         </div>
@@ -3166,7 +3228,8 @@ async function openEditPoModal(poId) {
       product_id: pId,
       product_name: i.product_name || 'Product',
       quantity: Math.round(Number(i.quantity) || 1),
-      purchase_price: Number(i.purchase_price) || 0
+      purchase_price: Number(i.purchase_price) || 0,
+      selling_price: i.selling_price
     };
   });
   renderEditPoCart();
@@ -3275,7 +3338,8 @@ async function saveUpdatedPurchaseOrder() {
       product_id: pId,
       product_name: i.product_name,
       quantity: Math.round(Number(i.quantity) || 1),
-      purchase_price: Number(i.purchase_price) || 0
+      purchase_price: Number(i.purchase_price) || 0,
+      selling_price: i.selling_price
     };
   });
 
@@ -4173,8 +4237,8 @@ function renderProfitabilityTable() {
         <td><span style="font-size:11px; background:var(--surface); padding:2px 6px; border-radius:6px; border:1px solid var(--border);">${d.sku}</span></td>
         <td style="text-align:right;">${d.qtyPurchased}</td>
         <td style="text-align:right;">${d.qtySold}</td>
-        <td style="text-align:right;"><strong style="color: ${d.currentStock <= 5 ? 'var(--danger)' : 'var(--text-dark)'};">${d.currentStock}</strong></td>
-        <td style="text-align:right; color:var(--text-muted);">₹${d.purchaseCost.toFixed(2)}</td>
+        <td style="text-align:right; padding:2px;"><input type="number" min="0" style="width:56px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:4px; padding:2px; text-align:right; background:var(--surface); color:${d.currentStock <= 5 ? 'var(--danger)' : 'var(--text-dark)'};" value="${d.currentStock}" onchange="updateProfitabilityField('${d.id}', 'stock_qty', ${d.currentStock}, this.value)" title="Stock edit karein" /></td>
+        <td style="text-align:right; padding:2px;"><input type="text" inputmode="decimal" style="width:70px; font-size:11px; border:1px solid var(--border); border-radius:4px; padding:2px; text-align:right; background:var(--surface);" value="${d.purchaseCost.toFixed(2)}" onchange="updateProfitabilityField('${d.id}', 'cost_price', ${d.purchaseCost}, this.value)" title="Box Cost edit karein" /></td>
         <td style="text-align:right; padding:2px;">
           <input type="number" min="1" style="width:40px; font-size:11px; border:1px solid var(--border); border-radius:4px; padding:2px; text-align:center; background:var(--surface);" value="${d.packSize}" onchange="updateProfitabilityPackSize('${d.id}', this.value)" title="Pack Size / Pieces per Box" />
         </td>
@@ -4200,16 +4264,29 @@ function sortProfitability(col) {
   else { profitabilitySort.col = col; profitabilitySort.asc = true; }
   renderProfitabilityTable();
 }
+// Inline edit of Box Cost (cost_price) / Stock (stock_qty) from the Profit table.
+async function updateProfitabilityField(prodId, field, oldVal, newVal) {
+  const label = field === 'cost_price' ? 'Box Cost' : 'Stock';
+  const oldN = Number(oldVal) || 0, newN = Number(newVal);
+  if (isNaN(newN) || newN < 0) { alert('Sahi value dalein.'); return applyProfitFilters(); }
+  if (oldN === newN) return;
+
+  const idCond = !isNaN(Number(prodId)) ? Number(prodId) : prodId;
+  const { error } = await db.from("products").update({ [field]: newN }).or(`id.eq.${idCond},id.eq.${String(prodId)}`);
+  if (error) { alert(label + ' update fail hua: ' + error.message); return loadProductProfitability(); }
+  const r = rawProfitProducts.find(d => String(d.id) === String(prodId));
+  if (r) r[field] = newN;
+  loadProductProfitability();
+}
+
 
 async function updateProfitabilitySellingPrice(prodId, oldVal, newVal) {
   const oldPrice = Number(oldVal) || 0;
   const newPrice = Number(newVal) || 0;
   if (oldPrice === newPrice) return;
 
-  if (!confirm(`Update Selling Price?\n\nOld Price: ₹${oldPrice.toFixed(2)}\nNew Price: ₹${newPrice.toFixed(2)}\n\nNote: This will recalculate Current GP% and Potential GP for remaining stock. It will NOT change historical GP.`)) {
-    applyProfitFilters(); // refresh table to revert input
-    return;
-  }
+  // confirm popup removed
+
 
   const idCond = !isNaN(Number(prodId)) ? Number(prodId) : prodId;
   const { error } = await db.from("products").update({ selling_price: newPrice }).or(`id.eq.${idCond},id.eq.${String(prodId)}`);
