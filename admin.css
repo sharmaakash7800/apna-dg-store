@@ -840,3 +840,16 @@ html[data-theme="dark"] .custom-table th { background: #1e293b; color: #f8fafc; 
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+/* HEADER: keep Menu | Search | Log Out | Owner aligned on one row (mobile) */
+header { padding: 8px 10px; }
+header .hdr-left { gap: 6px; }
+header .hdr-search { min-width: 0 !important; }
+header .hdr-search input { height: 34px; box-sizing: border-box; }
+header .hdr-right { gap: 4px; align-items: center; }
+header .hdr-right > * { height: 30px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; white-space: nowrap; line-height: 1; }
+@media (max-width: 520px) {
+  header .menu-toggle-btn { padding: 6px 10px !important; font-size: 16px; }
+  header .menu-toggle-btn span { display: none; }
+  header .hdr-right > * { padding: 0 8px !important; font-size: 10px !important; }
+  header .hdr-search input { font-size: 11px !important; padding: 6px 8px !important; }
+}
