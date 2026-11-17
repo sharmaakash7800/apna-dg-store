@@ -95,303 +95,302 @@ let editingProductIds = new Set(), lastEditExitTimestamp = 0;
 
 function copyAppsScriptCode() {
   const code = [
-    "function doPost(e) { return handleRequest(e); }",
-    "function doGet(e) { return handleRequest(e); }",
+    "function doPost(e) {",
+    "  return handleRequest(e);",
+    "}",
+    "",
+    "function doGet(e) {",
+    "  return handleRequest(e);",
+    "}",
+    "",
+    "// A:K me sabse pehli poori khali row dhoondhta hai (row 2 se start).",
+    "// Isse beech ke gaps bhi fill hote hain aur data row 1200+ par nahi jaata.",
+    "// Formulas wale columns (L:R) ignore hote hain.",
+    "function findFirstEmptyRowInData(sheetData) {",
+    "  for (var i = 1; i < sheetData.length; i++) {",
+    "    var empty = true;",
+    "    for (var c = 0; c < sheetData[i].length; c++) {",
+    "      if (String(sheetData[i][c]).trim() !== \"\") { empty = false; break; }",
+    "    }",
+    "    if (empty) return i + 1; // sheet row number",
+    "  }",
+    "  return sheetData.length + 1;",
+    "}",
     "",
     "function handleRequest(e) {",
+    "  var lock = LockService.getScriptLock();",
+    "  // waitLock: agar doosri request chal rahi hai to ruko (error throw karega agar 30s me lock na mile).",
+    "  // Pehle tryLock tha jo fail hone par bhi aage chal deta tha -> parallel requests duplicate rows banati thi.",
+    "  lock.waitLock(30000);",
+    "",
     "  try {",
     "    var data = null;",
+    "",
+    "    // Read from POST Body",
     "    if (e && e.postData && e.postData.contents) {",
     "      try { data = JSON.parse(e.postData.contents); } catch (err1) {}",
     "    }",
+    "",
+    "    // Read from GET / POST Parameter Payload",
     "    if (!data && e && e.parameter && e.parameter.payload) {",
     "      try { data = JSON.parse(e.parameter.payload); } catch (err2) {}",
     "    }",
+    "",
+    "    // Fallback to query parameters",
     "    if (!data && e && e.parameter) {",
     "      data = e.parameter;",
     "    }",
+    "",
     "    if (!data) {",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'No data received' })).setMimeType(ContentService.MimeType.JSON);",
+    "      return jsonResponse({ status: \"error\", message: \"No data payload received\" });",
     "    }",
     "",
-    "    if (data.record && typeof data.record === 'object') {",
+    "    if (data.record && typeof data.record === \"object\") {",
     "      data = data.record;",
     "    }",
     "",
     "    var ss = SpreadsheetApp.getActiveSpreadsheet();",
+    "    var orderIdStr = String(data.orderId || data.order_id || data.poId || \"\").trim();",
+    "    var partyStr = String(data.partyName || data.customer_name || data.supplierName || data.supplier || \"\").trim();",
+    "    var typeStr = String(data.orderType || \"\").trim();",
+    "    var addressStr = String(data.address || data.notes || \"\").trim();",
+    "    var itemsStr = String(typeof data.items === \"string\" ? data.items : (data.note || \"\")).trim();",
     "",
-    "    var orderIdStr = String(data.orderId || data.order_id || '');",
-    "    var partyStr = String(data.partyName || data.customer_name || '');",
-    "    var addressStr = String(data.address || data.notes || '');",
-    "    var typeStr = String(data.orderType || '');",
-    "    var itemsStr = String(data.items || data.note || '');",
-    "",
-    "    var isCollection = data.isCollection || ",
-    "                       data.targetSheet === 'Collection' ||",
-    "                       typeStr === 'Counter Sale / Collection' || ",
-    "                       orderIdStr.indexOf('ORD-CNT') !== -1 ||",
-    "                       orderIdStr.indexOf('COLL') !== -1 ||",
-    "                       partyStr.indexOf('Counter Cash Sale') !== -1 ||",
-    "                       partyStr.indexOf('Counter Online Sale') !== -1 ||",
-    "                       addressStr.indexOf('[MODE:') !== -1;",
-    "",
-    "    if (isCollection) {",
-    "      var collSheet = ss.getSheetByName('Collection');",
-    "      if (!collSheet) {",
-    "        collSheet = ss.insertSheet('Collection');",
-    "      }",
-    "      ",
-    "      if (collSheet.getLastRow() === 0) {",
-    "        collSheet.appendRow([",
-    "          'Timestamp', ",
-    "          'Unique Id', ",
-    "          'Mode (Cash/Online)', ",
-    "          'Person / Party', ",
-    "          'Item / Note', ",
-    "          'Amount (₹)', ",
-    "          'From Date', ",
-    "          'To Date', ",
-    "          'Status', ",
-    "          'Notes'",
-    "        ]);",
-    "        var headerRange = collSheet.getRange(1, 1, 1, 10);",
-    "        headerRange.setFontWeight('bold');",
-    "        headerRange.setBackground('#0d9488');",
-    "        headerRange.setFontColor('#ffffff');",
-    "      }",
-    "      ",
-    "      var timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
-    "      var collId = orderIdStr || ('COLL-' + Date.now());",
-    "      ",
-    "      var mode = data.mode || '';",
-    "      if (!mode) {",
-    "        if (partyStr.indexOf('Online') !== -1 || addressStr.indexOf('ONLINE') !== -1 || addressStr.indexOf('online') !== -1) {",
-    "          mode = 'Online';",
-    "        } else {",
-    "          mode = 'Cash (Offline)';",
-    "        }",
-    "      }",
-    "      ",
-    "      var party = partyStr || (mode === 'Online' ? 'Counter Online Sale' : 'Counter Cash Sale');",
-    "",
-    "      var itemNote = itemsStr;",
-    "      if (!itemNote && addressStr) {",
-    "        var matchNote = addressStr.match(/\\[MODE:[^\\]]+\\]\\s*([^|\\(]+)/);",
-    "        itemNote = matchNote ? matchNote[1].trim() : addressStr;",
-    "      }",
-    "      if (!itemNote) itemNote = 'Counter Collection';",
-    "",
-    "      var amount = Number(data.totalAmount || data.amount || 0);",
-    "      if (amount === 0 && addressStr) {",
-    "        var matchAmt = addressStr.match(/Amt:\\s*₹?\\s*([\\d.]+)/);",
-    "        if (matchAmt) amount = Number(matchAmt[1]);",
-    "      }",
-    "",
-    "      var fromDate = data.fromDate || '';",
-    "      var toDate = data.toDate || '';",
-    "      var status = data.status || 'completed';",
-    "      var notes = addressStr || data.notes || '';",
-    "",
-    "      collSheet.appendRow([",
-    "        timestamp,",
-    "        collId,",
-    "        mode,",
-    "        party,",
-    "        itemNote,",
-    "        amount,",
-    "        fromDate,",
-    "        toDate,",
-    "        status,",
-    "        notes",
-    "      ]);",
-    "",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Collection' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    if (data.action === 'delete') {",
-    "      var sheetsToClean = ['Admin Orders Indent', 'Admin Orders Log'];",
+    "    // ======================================================",
+    "    // 1. DELETE ACTION",
+    "    // ======================================================",
+    "    if (data.action === \"delete\") {",
+    "      var sheetsToClean = [\"Admin Orders Indent\", \"Admin Orders Log\"];",
     "      for (var s = 0; s < sheetsToClean.length; s++) {",
     "        var sh = ss.getSheetByName(sheetsToClean[s]);",
     "        if (sh) {",
     "          var rows = sh.getDataRange().getValues();",
     "          for (var r = rows.length - 1; r >= 1; r--) {",
-    "            if (String(rows[r][1]) === String(data.orderId)) {",
+    "            if (String(rows[r][1]).trim() === orderIdStr) {",
     "              sh.deleteRow(r + 1);",
     "            }",
     "          }",
     "        }",
     "      }",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', action: 'delete' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
+    "      return jsonResponse({ status: \"success\", action: \"delete\" });",
     "    }",
     "",
-    "    var isPO = !isCollection && (",
-    "      data.isPO || ",
-    "      data.targetSheet === 'Admin Orders Indent' ||",
-    "      typeStr === 'Supplier Reorder' || ",
-    "      typeStr === 'Supplier Stock Received' ||",
-    "      orderIdStr.indexOf('PO-') === 0",
-    "    );",
+    "    // ======================================================",
+    "    // 2. COLLECTION SHEET SYNC",
+    "    // ======================================================",
+    "    var isCollection = data.isCollection === true ||",
+    "                       data.targetSheet === \"Collection\" ||",
+    "                       typeStr.indexOf(\"Collection\") !== -1 ||",
+    "                       orderIdStr.indexOf(\"COLL\") !== -1 ||",
+    "                       orderIdStr.indexOf(\"ORD-CNT\") !== -1;",
     "",
-    "    if (isPO) {",
-    "      var poSheet = ss.getSheetByName('Admin Orders Indent');",
-    "      if (!poSheet) {",
-    "        poSheet = ss.insertSheet('Admin Orders Indent');",
-    "      }",
-    "",
-    "      if (poSheet.getLastRow() === 0) {",
-    "        poSheet.appendRow([",
-    "          'Timestamp',",
-    "          'Unique Id',",
-    "          'Indent Number',",
-    "          'SKU Code',",
-    "          'Item Name',",
-    "          'Quantity',",
-    "          'Cost/Pack',",
-    "          'Supplier',",
-    "          'Buyer(Perchase Person',",
-    "          'Price (₹)',",
-    "          'Total'",
+    "    if (isCollection) {",
+    "      var collSheet = ss.getSheetByName(\"Collection\") || ss.insertSheet(\"Collection\");",
+    "      if (collSheet.getLastRow() === 0) {",
+    "        collSheet.appendRow([",
+    "          \"Timestamp\", \"Unique Id\", \"Mode (Cash/Online)\", \"Person / Party\",",
+    "          \"Item / Note\", \"Amount (₹)\", \"From Date\", \"To Date\", \"Status\", \"Notes\"",
     "        ]);",
-    "        var poHeaderRange = poSheet.getRange(1, 1, 1, 11);",
-    "        poHeaderRange.setFontWeight('bold');",
-    "        poHeaderRange.setBackground('#006666');",
-    "        poHeaderRange.setFontColor('#ffffff');",
+    "        collSheet.getRange(1, 1, 1, 10).setFontWeight(\"bold\").setBackground(\"#0d9488\").setFontColor(\"#ffffff\");",
     "      }",
     "",
-    "      var timestampStr = data.receivedAt || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
+    "      var collTimestamp = data.receivedAt || Utilities.formatDate(new Date(), \"Asia/Kolkata\", \"dd/MM/yyyy, hh:mm a\");",
+    "      var collId = orderIdStr || (\"COLL-\" + Date.now());",
+    "      var mode = data.mode || (partyStr.indexOf(\"Online\") !== -1 ? \"Online\" : \"Cash (Offline)\");",
+    "      var party = partyStr || (mode === \"Online\" ? \"Counter Online Sale\" : \"Counter Cash Sale\");",
+    "      var noteContent = itemsStr || \"Counter Collection\";",
+    "      var amountVal = Number(data.amount || data.totalAmount || 0);",
     "",
-    "      var idVals = poSheet.getRange(1, 2, Math.max(poSheet.getMaxRows(), 1), 1).getValues();",
-    "      var lastDataRow = 1;",
-    "      for (var k = idVals.length - 1; k >= 1; k--) {",
-    "        if (String(idVals[k][0]).trim() !== '') { lastDataRow = k + 1; break; }",
-    "      }",
-    "      var existingKeys = {};",
-    "      if (lastDataRow > 1) {",
-    "        var exVals = poSheet.getRange(2, 2, lastDataRow - 1, 3).getValues();",
-    "        for (var e = 0; e < exVals.length; e++) {",
-    "          existingKeys[String(exVals[e][0]).trim() + '|' + String(exVals[e][2]).trim()] = true;",
-    "        }",
-    "      }",
-    "      var newRows = [];",
-    "",
-    "      if (data.itemsArray && Array.isArray(data.itemsArray)) {",
-    "        var totalItems = data.itemsArray.length;",
-    "        for (var i = 0; i < totalItems; i++) {",
-    "          var item = data.itemsArray[i];",
-    "          var cleanSku = String(item.sku || '0').replace(/^SKU-/i, '').trim();",
-    "          cleanSku = cleanSku.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
-    "          if (existingKeys[orderIdStr.trim() + '|' + cleanSku]) continue;",
-    "          var isLastItem = (i === totalItems - 1);",
-    "          var billTotalVal = isLastItem ? (item.orderTotal || data.totalAmount || data.price || '') : '';",
-    "          newRows.push([",
-    "            timestampStr,",
-    "            orderIdStr,",
-    "            item.indentNo || (101 + i),",
-    "            cleanSku,",
-    "            item.name || '',",
-    "            item.quantity || 1,",
-    "            item.costPack || item.cost_pack || 0,",
-    "            item.supplier || partyStr || 'N/A',",
-    "            data.buyer || partyStr || item.person || 'Akash sharma',",
-    "            item.price || item.totalPrice || 0,",
-    "            billTotalVal",
-    "          ]);",
-    "        }",
-    "      } else {",
-    "        var cleanSkuSingle = String(data.sku || '0').replace(/^SKU-/i, '').trim();",
-    "        cleanSkuSingle = cleanSkuSingle.replace(/^([A-Z0-9]{2,4}-)\\1/gi, '$1');",
-    "        if (!existingKeys[orderIdStr.trim() + '|' + cleanSkuSingle]) {",
-    "          newRows.push([",
-    "            timestampStr,",
-    "            orderIdStr,",
-    "            101,",
-    "            cleanSkuSingle,",
-    "            itemsStr || 'Purchase Order Item',",
-    "            data.quantity || 1,",
-    "            data.costPack || data.cost_pack || 0,",
-    "            partyStr || 'N/A',",
-    "            data.buyer || partyStr || 'Akash sharma',",
-    "            data.totalAmount || data.price || 0,",
-    "            data.totalAmount || data.price || 0",
-    "          ]);",
-    "        }",
-    "      }",
-    "",
-    "      if (newRows.length > 0) {",
-    "        if (lastDataRow + newRows.length > poSheet.getMaxRows()) {",
-    "          poSheet.insertRowsAfter(poSheet.getMaxRows(), newRows.length);",
-    "        }",
-    "        poSheet.getRange(lastDataRow + 1, 1, newRows.length, 11).setValues(newRows);",
-    "      }",
-    "",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Indent' }))",
-    "        .setMimeType(ContentService.MimeType.JSON);",
-    "    }",
-    "",
-    "    var logSheet = ss.getSheetByName('Admin Orders Log');",
-    "    if (!logSheet) {",
-    "      logSheet = ss.insertSheet('Admin Orders Log');",
-    "    }",
-    "",
-    "    if (logSheet.getLastRow() === 0) {",
-    "      logSheet.appendRow([",
-    "        'Timestamp',",
-    "        'Order Code',",
-    "        'Customer Name',",
-    "        'Items',",
-    "        'Quantity',",
-    "        'Total Amount (₹)',",
-    "        'Status',",
-    "        'Notes / Contact'",
+    "      collSheet.appendRow([",
+    "        collTimestamp, collId, mode, party, noteContent, amountVal,",
+    "        data.fromDate || \"\", data.toDate || \"\", data.status || \"completed\",",
+    "        data.notes || addressStr || \"\"",
     "      ]);",
-    "      var logHeader = logSheet.getRange(1, 1, 1, 8);",
-    "      logHeader.setFontWeight('bold');",
-    "      logHeader.setBackground('#1e293b');",
-    "      logHeader.setFontColor('#ffffff');",
+    "",
+    "      return jsonResponse({ status: \"success\", target: \"Collection\" });",
     "    }",
     "",
-    "    var logTimestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });",
-    "    logSheet.appendRow([",
-    "      logTimestamp,",
-    "      orderIdStr,",
-    "      partyStr,",
-    "      itemsStr,",
-    "      data.quantity || 1,",
-    "      data.totalAmount || 0,",
-    "      data.status || 'pending',",
-    "      addressStr || data.notes || ''",
-    "    ]);",
+    "    // ======================================================",
+    "    // 3. CUSTOMER ORDERS LOG SYNC",
+    "    // ======================================================",
+    "    var isCustomerOrder = data.isCustomerOrder === true || data.targetSheet === \"Admin Orders Log\";",
     "",
-    "    if (data.targetSheet === 'Product Profitability') {",
-    "      var profitSheet = ss.getSheetByName('Product Profitability');",
-    "      if (!profitSheet) profitSheet = ss.insertSheet('Product Profitability');",
-    "      if (profitSheet.getLastRow() === 0) {",
-    "        profitSheet.appendRow(['Product', 'SKU', 'Purchased Qty', 'Sold Qty', 'Remaining Qty', 'Purchase Cost', 'Purchase Value', 'Current Selling Price', 'Sales Value', 'GP / Unit', 'GP%', 'Actual GP Generated', 'Potential GP', 'Last Updated']);",
-    "        var pHeader = profitSheet.getRange(1, 1, 1, 14);",
-    "        pHeader.setFontWeight('bold'); pHeader.setBackground('#4f46e5'); pHeader.setFontColor('#ffffff');",
+    "    if (isCustomerOrder) {",
+    "      var logSheet = ss.getSheetByName(\"Admin Orders Log\") || ss.insertSheet(\"Admin Orders Log\");",
+    "      if (logSheet.getLastRow() === 0) {",
+    "        logSheet.appendRow([",
+    "          \"Timestamp\", \"Order Code\", \"Customer Name\", \"Items\",",
+    "          \"Quantity\", \"Total Amount (₹)\", \"Status\", \"Notes / Contact\"",
+    "        ]);",
+    "        logSheet.getRange(1, 1, 1, 8).setFontWeight(\"bold\").setBackground(\"#1e293b\").setFontColor(\"#ffffff\");",
     "      }",
-    "      var pData = profitSheet.getDataRange().getValues();",
-    "      var rowIndex = -1;",
-    "      for (var i = 1; i < pData.length; i++) {",
-    "        if (String(pData[i][1]) === String(data.sku) || String(pData[i][0]) === String(data.productName)) {",
-    "          rowIndex = i + 1; break;",
+    "",
+    "      var logTimestamp = Utilities.formatDate(new Date(), \"Asia/Kolkata\", \"dd/MM/yyyy, hh:mm a\");",
+    "      logSheet.appendRow([",
+    "        logTimestamp, orderIdStr, partyStr, itemsStr,",
+    "        Number(data.quantity || 1), Number(data.totalAmount || 0),",
+    "        data.status || \"pending\", data.notes || addressStr || \"\"",
+    "      ]);",
+    "",
+    "      return jsonResponse({ status: \"success\", target: \"Admin Orders Log\" });",
+    "    }",
+    "",
+    "    // ======================================================",
+    "    // 4. STRICT STOCK RECEIVED GATEWAY (Admin Orders Indent)",
+    "    // ======================================================",
+    "    var action = String(data.action || \"\").trim().toLowerCase().replace(/[\\s_-]+/g, \"\");",
+    "    var status = String(data.status || \"\").trim().toLowerCase().replace(/[\\s_-]+/g, \"\");",
+    "    var isStockReceived = (action === \"stockreceived\" || status === \"received\" ||",
+    "                           typeStr.indexOf(\"Stock Received\") !== -1 || data.isPO === true);",
+    "",
+    "    if (!isStockReceived) {",
+    "      return jsonResponse({",
+    "        status: \"ignored\",",
+    "        message: \"Google Sheet sync ONLY allowed when Stock is Received.\"",
+    "      });",
+    "    }",
+    "",
+    "    var NUM_COLS = 11; // A:K",
+    "    var sheet = ss.getSheetByName(\"Admin Orders Indent\") || ss.insertSheet(\"Admin Orders Indent\");",
+    "",
+    "    if (sheet.getLastRow() === 0) {",
+    "      sheet.appendRow([",
+    "        \"Timestamp\", \"Unique Id\", \"Indent Number\", \"SKU Code\", \"Item Name\",",
+    "        \"Quantity\", \"Cost/Pack\", \"Supplier\", \"Buyer(Perchase Person\", \"Price (₹)\", \"Total\"",
+    "      ]);",
+    "      sheet.getRange(1, 1, 1, NUM_COLS).setFontWeight(\"bold\").setBackground(\"#006666\").setFontColor(\"#ffffff\");",
+    "    }",
+    "",
+    "    var poId = orderIdStr;",
+    "    var supplier = partyStr || \"N/A\";",
+    "    var buyer = String(data.buyer || \"Akash sharma\").trim();",
+    "    var grandTotal = data.totalAmount || data.grandTotal || \"\";",
+    "    var timestampStr = data.receivedAt || Utilities.formatDate(new Date(), \"Asia/Kolkata\", \"dd/MM/yyyy, hh:mm a\");",
+    "",
+    "    var items = [];",
+    "    if (Array.isArray(data.itemsArray)) {",
+    "      items = data.itemsArray;",
+    "    } else if (Array.isArray(data.items)) {",
+    "      items = data.items;",
+    "    } else if (itemsStr) {",
+    "      items = [{ name: itemsStr, quantity: Number(data.quantity || 1), costPack: Number(data.totalAmount || 0), price: Number(data.totalAmount || 0) }];",
+    "    }",
+    "",
+    "    // POORI A:K range padho (sirf last row tak nahi) taaki match aur gap-fill sahi ho.",
+    "    var maxRows = sheet.getMaxRows();",
+    "    var sheetData = sheet.getRange(1, 1, maxRows, NUM_COLS).getValues();",
+    "",
+    "    items.forEach(function (item, index) {",
+    "      var indentNo = item.indentNo || item.indentNumber || (101 + index);",
+    "      var sku = String(item.sku || item.skuCode || \"-\").replace(/^SKU-/i, \"\").trim();",
+    "      var itemName = String(item.name || item.itemName || item.product_name || \"Item\").trim();",
+    "      var qty = Number(item.quantity || item.qty || 1);",
+    "      var costPack = Number(item.costPack || item.cost_pack || item.purchase_price || 0);",
+    "      var price = Number(item.price || item.totalPrice || (qty * costPack));",
+    "      var totalColVal = (index === items.length - 1) ? (grandTotal || price) : \"\";",
+    "",
+    "      // Same PO + same item pehle se hai to update karo.",
+    "      // SKU hai to PO + SKU se match, warna PO + item name se.",
+    "      var existingRowIndex = -1;",
+    "      for (var r = 1; r < sheetData.length; r++) {",
+    "        var rowPoId = String(sheetData[r][1]).trim();",
+    "        if (rowPoId !== poId) continue;",
+    "        var rowSku = String(sheetData[r][3]).trim();",
+    "        var rowItemName = String(sheetData[r][4]).trim();",
+    "        var matched = (sku !== \"-\" && sku !== \"\")",
+    "          ? (rowSku === sku)",
+    "          : (rowItemName === itemName);",
+    "        if (matched) {",
+    "          existingRowIndex = r + 1;",
+    "          break;",
     "        }",
     "      }",
-    "      var rowValues = [data.productName, data.sku, data.qtyPurchased, data.qtySold, data.remainingQty, data.purchaseCost, data.purchaseValue, data.currentSellingPrice, data.salesValue, data.gpUnit, data.gpPercent, data.actualGP, data.potentialGP, new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })];",
-    "      if (rowIndex !== -1) { profitSheet.getRange(rowIndex, 1, 1, 14).setValues([rowValues]); }",
-    "      else { profitSheet.appendRow(rowValues); }",
-    "      return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Product Profitability' })).setMimeType(ContentService.MimeType.JSON);",
-    "    }",
     "",
-    "    return ContentService.createTextOutput(JSON.stringify({ status: 'success', target: 'Admin Orders Log' }))",
-    "      .setMimeType(ContentService.MimeType.JSON);",
+    "      var rowValues = [timestampStr, poId, indentNo, sku, itemName, qty, costPack, supplier, buyer, price, totalColVal];",
+    "",
+    "      if (existingRowIndex > 0) {",
+    "        sheet.getRange(existingRowIndex, 1, 1, NUM_COLS).setValues([rowValues]);",
+    "        sheetData[existingRowIndex - 1] = rowValues;",
+    "      } else {",
+    "        // Naya data: A:K ki sabse pehli khali row me likho (gaps fill honge)",
+    "        var targetRow = findFirstEmptyRowInData(sheetData);",
+    "        if (targetRow > sheet.getMaxRows()) {",
+    "          sheet.insertRowsAfter(sheet.getMaxRows(), 1);",
+    "        }",
+    "        sheet.getRange(targetRow, 1, 1, NUM_COLS).setValues([rowValues]);",
+    "        sheetData[targetRow - 1] = rowValues; // targetRow == length+1 par ye array extend karta hai",
+    "      }",
+    "    });",
+    "",
+    "    return jsonResponse({",
+    "      status: \"success\",",
+    "      message: \"Stock Received synced successfully to Admin Orders Indent.\"",
+    "    });",
     "",
     "  } catch (err) {",
-    "    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))",
-    "      .setMimeType(ContentService.MimeType.JSON);",
+    "    return jsonResponse({ status: \"error\", message: err.toString() });",
+    "  } finally {",
+    "    lock.releaseLock();",
     "  }",
+    "}",
+    "",
+    "function jsonResponse(obj) {",
+    "  return ContentService.createTextOutput(JSON.stringify(obj))",
+    "    .setMimeType(ContentService.MimeType.JSON);",
+    "}",
+    "",
+    "// ======================================================",
+    "// ONE-TIME CLEANUP: Pehle sheet ki copy bana lo, phir editor se ye function ek baar run karo.",
+    "// A:K ka saara data upar ek continuous block me aa jaata hai. L:R formulas touch nahi hote.",
+    "// ======================================================",
+    "function compactIndentSheet() {",
+    "  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(\"Admin Orders Indent\");",
+    "  var n = 11;",
+    "  var rng = sh.getRange(2, 1, sh.getMaxRows() - 1, n);",
+    "  var vals = rng.getValues();",
+    "  var kept = vals.filter(function (row) {",
+    "    return row.some(function (v) { return String(v).trim() !== \"\"; });",
+    "  });",
+    "  rng.clearContent();",
+    "  if (kept.length) sh.getRange(2, 1, kept.length, n).setValues(kept);",
+    "}",
+    "",
+    "// ======================================================",
+    "// ONE-TIME DEDUPE: Pehle sheet ki copy bana lo, phir editor se ye function ek baar run karo.",
+    "// Same PO + same SKU (SKU nahi hai to same item name) ki repeat rows hata kar ek hi row rakhta hai.",
+    "// Row order pehli baar aane wale item ke hisaab se rehta hai, aur Total (K) value kho nahi jaati.",
+    "// L:R formulas touch nahi hote.",
+    "// ======================================================",
+    "function removeDuplicateIndentRows() {",
+    "  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(\"Admin Orders Indent\");",
+    "  var n = 11;",
+    "  var rng = sh.getRange(2, 1, sh.getMaxRows() - 1, n);",
+    "  var vals = rng.getValues();",
+    "",
+    "  var order = [];   // keys ka order",
+    "  var map = {};     // key -> row",
+    "  vals.forEach(function (row) {",
+    "    var isEmpty = !row.some(function (v) { return String(v).trim() !== \"\"; });",
+    "    if (isEmpty) return;",
+    "    var po = String(row[1]).trim();",
+    "    var sku = String(row[3]).trim();",
+    "    var name = String(row[4]).trim();",
+    "    var key = po + \"||\" + ((sku && sku !== \"-\") ? sku : name);",
+    "    if (!(key in map)) {",
+    "      order.push(key);",
+    "      map[key] = row;",
+    "    } else {",
+    "      var prevTotal = map[key][10];",
+    "      map[key] = row.slice();            // baad wali row rakho",
+    "      if (String(map[key][10]).trim() === \"\" && String(prevTotal).trim() !== \"\") {",
+    "        map[key][10] = prevTotal;        // Total column na kho jaye",
+    "      }",
+    "    }",
+    "  });",
+    "",
+    "  var kept = order.map(function (k) { return map[k]; });",
+    "  rng.clearContent();",
+    "  if (kept.length) sh.getRange(2, 1, kept.length, n).setValues(kept);",
     "}"
   ].join("\n");
 
@@ -2625,7 +2624,7 @@ async function ensureProductsLoaded() {
   }
 }
 
-function setupProductSearch(inputId, resultsId, hiddenId, priceInputId) {
+function setupProductSearch(inputId, resultsId, hiddenId, priceInputId, qtyInputId) {
   const input = document.getElementById(inputId);
   const results = document.getElementById(resultsId);
   if (!input || !results) return;
@@ -2633,26 +2632,71 @@ function setupProductSearch(inputId, resultsId, hiddenId, priceInputId) {
   const renderDropdown = async () => {
     await ensureProductsLoaded();
     const val = input.value.toLowerCase().trim();
-    const matches = productsList.filter(p => !val || [p.name, p.category, p.id].some(f => String(f || '').toLowerCase().includes(val))).slice(0, 15);
+    const matches = (productsList || []).filter(p => !val || [p.name, p.category, p.id, p.sku].some(f => String(f || '').toLowerCase().includes(val))).slice(0, 15);
     if (!matches.length) { results.style.display = "none"; return; }
 
     results.innerHTML = matches.map(p => `
-      <div class="search-results-item" style="padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);" onclick="selectSearchProduct('${p.id}', '${(p.name || '').replace(/'/g, "\\'")}', '${p.cost_price || p.price || 0}', '${inputId}', '${resultsId}', '${hiddenId}', '${priceInputId}')">
-        <strong>${p.name}</strong> <small style="color:var(--text-muted);">(${p.category || 'Item'}) - Rate: ₹${Number(p.cost_price || p.price || 0).toFixed(2)}</small>
+      <div class="search-results-item" style="padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);" onmousedown="selectSearchProductById('${p.id}', '${inputId}', '${resultsId}', '${hiddenId}', '${priceInputId}', '${qtyInputId || ''}')">
+        <strong style="color:var(--text-dark);">${p.name}</strong> <small style="color:var(--text-muted);">(${p.category || 'Item'}) - Rate: ₹${Number(p.cost_price || p.purchase_price || p.price || 0).toFixed(2)}</small>
       </div>`).join('');
     results.style.display = "block";
   };
 
-  input.addEventListener("input", renderDropdown);
-  input.addEventListener("focus", renderDropdown);
+  input.oninput = renderDropdown;
+  input.onfocus = renderDropdown;
+
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const firstItem = results.querySelector(".search-results-item");
+      if (firstItem && results.style.display !== "none") {
+        firstItem.dispatchEvent(new MouseEvent("mousedown"));
+      } else {
+        const nextId = qtyInputId || (inputId.startsWith('edit') ? 'editPoQty' : 'poQty');
+        const nextEl = document.getElementById(nextId);
+        if (nextEl) { nextEl.focus(); nextEl.select && nextEl.select(); }
+      }
+    } else if (e.key === "Escape") {
+      results.style.display = "none";
+    }
+  };
+}
+
+function selectSearchProductById(id, inputId, resultsId, hiddenId, priceInputId, qtyInputId) {
+  const p = (productsList || []).find(x => String(x.id) === String(id));
+  const input = document.getElementById(inputId);
+  const hidden = document.getElementById(hiddenId);
+  const priceInput = document.getElementById(priceInputId);
+  const results = document.getElementById(resultsId);
+
+  if (p) {
+    if (input) input.value = p.name || '';
+    if (hidden) hidden.value = p.id;
+    const defaultRate = Number(p.cost_price !== undefined && p.cost_price !== null && p.cost_price !== '' ? p.cost_price : (p.price || 0));
+    if (priceInput) priceInput.value = defaultRate > 0 ? defaultRate.toFixed(2) : (Number(p.price || 0).toFixed(2));
+  }
+  if (results) results.style.display = "none";
+
+  const nextId = qtyInputId || (inputId.startsWith('edit') ? 'editPoQty' : 'poQty');
+  const nextEl = document.getElementById(nextId);
+  if (nextEl) {
+    setTimeout(() => { nextEl.focus(); nextEl.select && nextEl.select(); }, 40);
+  }
 }
 
 function selectSearchProduct(id, name, price, inputId, resultsId, hiddenId, priceInputId) {
-  document.getElementById(inputId) && (document.getElementById(inputId).value = name);
-  document.getElementById(hiddenId) && (document.getElementById(hiddenId).value = id);
-  document.getElementById(priceInputId) && (document.getElementById(priceInputId).value = Number(price).toFixed(2));
-  document.getElementById(resultsId) && (document.getElementById(resultsId).style.display = "none");
+  selectSearchProductById(id, inputId, resultsId, hiddenId, priceInputId);
 }
+
+// Global outside click to close all product search dropdowns
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-select-wrapper")) {
+    const r1 = document.getElementById("poSearchResults");
+    if (r1) r1.style.display = "none";
+    const r2 = document.getElementById("editPoSearchResults");
+    if (r2) r2.style.display = "none";
+  }
+});
 
 function togglePoRateCalc(p = '') {
   const box = document.getElementById(p + "poRateCalcBox");
@@ -3138,6 +3182,67 @@ function poRefreshGpRow(poId, idx, it, sell) {
   const g = poGpCalc(it, sell), col = g.gpPack < 0 ? "var(--danger)" : "var(--success)";
   const set = (k, v) => { const e = document.getElementById(`${k}_${poId}_${idx}`); if (e) { e.textContent = v; e.style.color = col; } };
   set("poGpPack", `₹${g.gpPack.toFixed(2)}`); set("poGpPct", `${g.gpPct.toFixed(1)}%`); set("poGpTot", `₹${g.totalGp.toFixed(2)}`);
+  // Refresh order-level and day-level total profit
+  const arr = (window.__poGpItems && window.__poGpItems[poId]) || [];
+  let tot = 0;
+  arr.forEach((x, i) => { const inp = document.getElementById(`poSell_${poId}_${i}`); tot += poGpCalc(x, Number(inp?.value) || 0).totalGp; });
+  const te = document.getElementById(`poTotGp_${poId}`);
+  if (te) {
+    te.textContent = `₹${tot.toFixed(2)}`; te.dataset.gp = tot; te.style.color = tot < 0 ? "var(--danger)" : "var(--success)";
+    const day = te.dataset.day;
+    if (day) {
+      let s = 0; document.querySelectorAll(`[data-day="${day}"]`).forEach(e => s += Number(e.dataset.gp) || 0);
+      const de = document.getElementById(`poDayGp_${day}`); if (de) { de.textContent = `₹${s.toFixed(2)}`; de.style.color = s < 0 ? "var(--danger)" : "var(--success)"; }
+    }
+  }
+}
+
+// Export the currently filtered Supplier Reorders (vendor-wise, then date-wise) to an Excel-friendly CSV.
+function exportPoHistoryCSV() {
+  const list = window.__poExportList || [];
+  if (!list.length) return alert("Export ke liye koi data nahi hai (filters check karein).");
+  const esc = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const num = v => Number(v || 0).toFixed(2);
+  const sorted = [...list].sort((a, b) =>
+    String(a.po.supplier_name || "").localeCompare(String(b.po.supplier_name || "")) ||
+    new Date(a.po.created_at) - new Date(b.po.created_at));
+
+  const lines = [["Vendor", "Date", "PO Number", "Status", "Product", "Qty", "Cost/Pack", "Total Amount", "Selling/Pack", "GP/Pack", "GP %", "Total GP"].map(esc).join(",")];
+  let vBill = 0, vGp = 0, gBill = 0, gGp = 0, curVendor = null;
+  const flushVendor = () => {
+    if (curVendor === null) return;
+    lines.push([`${curVendor} - SUBTOTAL`, "", "", "", "", "", "", num(vBill), "", "", "", num(vGp)].map(esc).join(","));
+    lines.push("");
+    vBill = 0; vGp = 0;
+  };
+
+  sorted.forEach(({ po, items }) => {
+    const vendor = po.supplier_name || "N/A";
+    if (vendor !== curVendor) { flushVendor(); curVendor = vendor; }
+    const d = new Date(po.created_at);
+    const dateStr = isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-IN");
+    const status = String(po.status || "pending");
+    const counted = status.toLowerCase() !== "cancelled";
+    items.forEach((it, ix) => {
+      const inp = document.getElementById(`poSell_${po.id}_${ix}`);
+      const sell = inp ? (Number(inp.value) || 0) : poGetSellPrice(po.id, it);
+      const g = poGpCalc(it, sell);
+      const qty = Number(it.quantity || 0), cost = Number(it.purchase_price || 0);
+      lines.push([vendor, dateStr, po.po_number || ("#" + po.id), status, it.product_name || "Item", qty, num(cost), num(qty * cost), num(sell), num(g.gpPack), g.gpPct.toFixed(1) + "%", num(g.totalGp)].map(esc).join(","));
+      if (counted) { vBill += qty * cost; vGp += g.totalGp; gBill += qty * cost; gGp += g.totalGp; }
+    });
+  });
+  flushVendor();
+  lines.push(["GRAND TOTAL (cancelled excluded)", "", "", "", "", "", "", num(gBill), "", "", "", num(gGp)].map(esc).join(","));
+
+  const from = document.getElementById("poFilterFrom")?.value || "", to = document.getElementById("poFilterTo")?.value || "";
+  const vend = document.getElementById("poFilterSupplier")?.value || "";
+  const name = `Supplier_Reorders_${vend ? vend.replace(/[^A-Za-z0-9]+/g, "_") + "_" : "AllVendors_"}${from || "start"}_to_${to || "today"}.csv`;
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function loadPurchaseOrders() {
@@ -3152,7 +3257,22 @@ async function loadPurchaseOrders() {
 
   if (error || !pos?.length) return container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Koi supplier order nahi mila.</div>";
 
-  container.innerHTML = pos.map(po => {
+  // ---- Filters: date range / supplier / product ----
+  const supSel = document.getElementById("poFilterSupplier");
+  if (supSel) {
+    const cur = supSel.value;
+    const names = [...new Set(pos.map(p => p.supplier_name).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+    supSel.innerHTML = '<option value="">All Suppliers</option>' + names.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    supSel.value = names.includes(cur) ? cur : "";
+  }
+  const fFrom = document.getElementById("poFilterFrom")?.value || "";
+  const fTo = document.getElementById("poFilterTo")?.value || "";
+  const fSup = supSel?.value || "";
+  const fProd = (document.getElementById("poFilterProduct")?.value || "").trim().toLowerCase();
+  const poLocalDate = d => { const x = new Date(d); if (isNaN(x.getTime())) return ""; return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+
+  window.__poExportList = [];
+  const poCards = pos.map(po => {
     let items = [];
     if (Array.isArray(po.purchase_order_items) && po.purchase_order_items.length > 0) {
       items = po.purchase_order_items;
@@ -3170,6 +3290,13 @@ async function loadPurchaseOrders() {
         );
       });
     }
+    if (fSup && po.supplier_name !== fSup) return null;
+    const dLocal = poLocalDate(po.created_at);
+    if (fFrom && (!dLocal || dLocal < fFrom)) return null;
+    if (fTo && (!dLocal || dLocal > fTo)) return null;
+    if (fProd && !items.some(it => String(it.product_name || "").toLowerCase().includes(fProd))) return null;
+
+    window.__poExportList.push({ po, items });
     const supObj = suppliersList.find(s => s.name === po.supplier_name);
     const phone = supObj ? supObj.phone : null;
     const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
@@ -3179,7 +3306,12 @@ async function loadPurchaseOrders() {
     const isOwn = isOwner();
     const cfg = isOwn ? panelCustomizerConfig : staffPermissions;
 
-    return `
+    const poGpSum = items.reduce((s, it) => s + poGpCalc(it, poGetSellPrice(po.id, it)).totalGp, 0);
+    const poDateObj = new Date(po.created_at);
+    const dayLabel = isNaN(poDateObj.getTime()) ? 'Date unknown' : poDateObj.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+    const dayKey = dayLabel.replace(/[^A-Za-z0-9]/g, '_');
+    const isCancelled = statusLower === 'cancelled';
+    return { dayLabel, dayKey, cancelled: isCancelled, bill: Number(po.total_amount || 0), gp: poGpSum, html: `
       <div class="order-card">
         <div class="order-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div style="flex:1; min-width:0; padding-right:4px;">
@@ -3217,83 +3349,269 @@ async function loadPurchaseOrders() {
             <div class="table-responsive" style="border-radius:10px; border:1px solid var(--border); overflow:auto; resize:vertical; min-height:auto !important; max-height:320px; height:auto !important; margin-bottom:8px;">
               <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead><tr style="background:var(--bg); color:var(--text-muted); text-align:left;"><th style="padding:6px 10px;">Product Name</th><th style="padding:6px 10px; text-align:center;">Qty</th><th style="padding:6px 10px; text-align:right;">Cost/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">Total Amount (₹)</th><th style="padding:6px 10px; text-align:right;">Selling/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">GP/Pack (₹)</th><th style="padding:6px 10px; text-align:right;">GP %</th><th style="padding:6px 10px; text-align:right;">Total GP (₹)</th></tr></thead>
-                <tbody>${(window.__poGpItems = window.__poGpItems || {}, window.__poGpItems[po.id] = items, ''), items.map((it, ix) => { const sell = poGetSellPrice(po.id, it); const g = poGpCalc(it, sell); const col = g.gpPack < 0 ? 'var(--danger)' : 'var(--success)'; return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td><td style="padding:6px 10px; text-align:right;"><input id="poSell_${po.id}_${ix}" type="text" inputmode="decimal" value="${sell}" onfocus="this.select()" oninput="poPaintGp('${po.id}', ${ix}, window.__poGpItems['${po.id}'][${ix}])" style="width:62px; padding:2px 4px; font-size:11px; font-weight:bold; text-align:right; border:1px solid var(--border); border-radius:6px;" /></td><td id="poGpPack_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.gpPack.toFixed(2)}</td><td id="poGpPct_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">${g.gpPct.toFixed(1)}%</td><td id="poGpTot_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.totalGp.toFixed(2)}</td></tr>`; }).join("")}</tbody>
+                <tbody>${(window.__poGpItems = window.__poGpItems || {}, window.__poGpItems[po.id] = items, (po.po_number && (window.__poGpItems[po.po_number] = items)), ''), items.map((it, ix) => { const sell = poGetSellPrice(po.id, it); const g = poGpCalc(it, sell); const col = g.gpPack < 0 ? 'var(--danger)' : 'var(--success)'; return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px; font-weight:700;">${it.product_name || 'Item'}</td><td style="padding:6px 10px; text-align:center;">${it.quantity}</td><td style="padding:6px 10px; text-align:right; color:var(--blue);">₹${Number(it.purchase_price || 0).toFixed(2)}</td><td style="padding:6px 10px; text-align:right; font-weight:700; color:var(--success);">₹${(Number(it.quantity) * Number(it.purchase_price || 0)).toFixed(2)}</td><td style="padding:6px 10px; text-align:right;"><input id="poSell_${po.id}_${ix}" type="text" inputmode="decimal" value="${sell}" onfocus="this.select()" oninput="poPaintGp('${po.id}', ${ix}, window.__poGpItems['${po.id}'][${ix}])" style="width:62px; padding:2px 4px; font-size:11px; font-weight:bold; text-align:right; border:1px solid var(--border); border-radius:6px;" /></td><td id="poGpPack_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.gpPack.toFixed(2)}</td><td id="poGpPct_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">${g.gpPct.toFixed(1)}%</td><td id="poGpTot_${po.id}_${ix}" style="padding:6px 10px; text-align:right; font-weight:700; color:${col};">₹${g.totalGp.toFixed(2)}</td></tr>`; }).join("")}</tbody>
               </table>
             </div>` : `<div style="background:rgba(239,68,68,0.08); border:1px solid var(--danger); border-radius:10px; padding:10px; display:flex; justify-content:space-between; align-items:center;"><strong style="color:var(--danger); font-size:12px;">⚠️ Is Order ke Items Missing hain</strong><button class="btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEditPoModal('${po.id}')">✏️ Add / Edit Items</button></div>`}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:6px;">
-          <strong>Bill: ₹${Number(po.total_amount || 0).toFixed(2)}</strong>
+          <div style="display:flex; flex-direction:column; gap:2px;"><strong>Bill: ₹${Number(po.total_amount || 0).toFixed(2)}</strong><strong style="font-size:12px;">Total Profit: <span id="poTotGp_${po.id}" data-day="${isCancelled ? '' : dayKey}" data-gp="${poGpSum}" style="color:${poGpSum < 0 ? 'var(--danger)' : 'var(--success)'};">₹${poGpSum.toFixed(2)}</span></strong></div>
           ${statusLower === 'pending' ? `<div style="display:flex; gap:6px;"><button class="btn-danger" style="padding:5px 10px; font-size:11px;" onclick="cancelPurchaseOrder('${po.id}')">❌ Cancel</button><button class="btn-green" style="padding:5px 10px; font-size:11px;" onclick="receiveStock('${po.id}')">✅ Receive Stock</button></div>` :
         (statusLower === 'cancelled' ? `<small style="color:var(--danger); font-weight:bold;">Order Cancelled</small>` : `<small style="color:var(--success); font-weight:bold;">Stock Received (${formatTime(po.received_at)})</small>`)}
         </div>
-      </div>`;
-  }).join("");
+      </div>` };
+  });
+
+  // Group orders date-wise (newest first) with per-day bill & profit totals
+  const groups = [];
+  poCards.filter(Boolean).forEach(c => {
+    let g = groups[groups.length - 1];
+    if (!g || g.key !== c.dayKey) { g = { key: c.dayKey, label: c.dayLabel, bill: 0, gp: 0, count: 0, html: '' }; groups.push(g); }
+    if (!c.cancelled) { g.bill += c.bill; g.gp += c.gp; }
+    g.count++; g.html += c.html;
+  });
+  if (!groups.length) { container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Is filter me koi order nahi mila.</div>"; return; }
+  container.innerHTML = groups.map(g => `
+    <div style="position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin:12px 0 8px; padding:8px 12px; border-radius:10px; background:var(--bg); border:1px solid var(--border);">
+      <strong style="font-size:13px;">📅 ${g.label} <small style="color:var(--text-muted); font-weight:600;">(${g.count} order${g.count > 1 ? 's' : ''})</small></strong>
+      <span style="font-size:12px; font-weight:700;">Bill: <span style="color:var(--blue);">₹${g.bill.toFixed(2)}</span> &nbsp;|&nbsp; Profit: <span id="poDayGp_${g.key}" style="color:${g.gp < 0 ? 'var(--danger)' : 'var(--success)'};">₹${g.gp.toFixed(2)}</span></span>
+    </div>${g.html}`).join("");
 }
 
 async function openEditPoModal(poId) {
   await Promise.all([ensureProductsLoaded(), loadSuppliers()]);
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`).single();
+
+  // 1. Fetch PO details (try with joined items first)
+  let po = null;
+  try {
+    const { data: poWithItems } = await db.from("purchase_orders")
+      .select("*, purchase_order_items(*)")
+      .or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`)
+      .maybeSingle();
+    po = poWithItems;
+  } catch (e) {}
+
+  if (!po) {
+    const { data: poPlain } = await db.from("purchase_orders")
+      .select("*")
+      .or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`)
+      .maybeSingle();
+    po = poPlain;
+  }
   if (!po) return alert("Order load nahi ho paya.");
 
-  const { data: allItems } = await db.from("purchase_order_items").select("*");
-  const poItems = (allItems || []).filter(i => String(i.po_id) === String(po.id) || String(i.po_id) === String(po.po_number));
+  // 2. Fetch items with multi-layer fallback
+  let poItems = [];
 
-  document.getElementById("editPoId") && (document.getElementById("editPoId").value = po.id);
-  document.getElementById("editPoNumberText") && (document.getElementById("editPoNumberText").textContent = po.po_number || '#' + po.id);
-  document.getElementById("editPoSupplierSelect") && (document.getElementById("editPoSupplierSelect").value = po.supplier_name);
+  // A) From joined relationship if present
+  if (Array.isArray(po.purchase_order_items) && po.purchase_order_items.length > 0) {
+    poItems = po.purchase_order_items;
+  }
 
+  // B) From in-memory cache of currently displayed order table
+  if (!poItems.length && window.__poGpItems) {
+    if (window.__poGpItems[po.id]?.length) poItems = window.__poGpItems[po.id];
+    else if (window.__poGpItems[poId]?.length) poItems = window.__poGpItems[poId];
+    else if (po.po_number && window.__poGpItems[po.po_number]?.length) poItems = window.__poGpItems[po.po_number];
+  }
+
+  // C) Targeted DB query for this PO only (avoids 1000 row truncation limit)
+  if (!poItems.length) {
+    const filters = [`po_id.eq.${po.id}`];
+    if (po.po_number) filters.push(`po_id.eq.${po.po_number}`);
+    if (poId && String(poId) !== String(po.id) && String(poId) !== String(po.po_number)) {
+      filters.push(`po_id.eq.${poId}`);
+    }
+    const { data: directItems } = await db.from("purchase_order_items").select("*").or(filters.join(','));
+    if (directItems && directItems.length > 0) poItems = directItems;
+  }
+
+  // D) Alternate query
+  if (!poItems.length) {
+    const ids = [po.id, po.po_number, poId].filter(Boolean).map(String);
+    const { data: altItems } = await db.from("purchase_order_items").select("*").in("po_id", ids);
+    if (altItems && altItems.length > 0) poItems = altItems;
+  }
+
+  // Populate header & fields
+  const idEl = document.getElementById("editPoId");
+  if (idEl) idEl.value = po.id;
+  const numEl = document.getElementById("editPoNumberText");
+  if (numEl) numEl.textContent = po.po_number || '#' + po.id;
+
+  const supSelect = document.getElementById("editPoSupplierSelect");
+  if (supSelect) {
+    if (suppliersList && suppliersList.length) {
+      supSelect.innerHTML = suppliersList.map(s => `<option value="${s.name}" ${s.name === po.supplier_name ? 'selected' : ''}>${s.name}${s.phone ? ` (${s.phone})` : ' (No No.)'}</option>`).join("");
+    }
+    supSelect.value = po.supplier_name;
+  }
+
+  // Populate cart
   editPoCart = (poItems || []).map(i => {
     const pId = cleanPoProductId(i.product_id, i.product_name);
     return {
       product_id: pId,
       product_name: i.product_name || 'Product',
-      quantity: Math.round(Number(i.quantity) || 1),
+      quantity: Math.max(1, Math.round(Number(i.quantity) || 1)),
       purchase_price: Number(i.purchase_price) || 0,
       selling_price: i.selling_price
     };
   });
+
+  // Setup search & keyboard listeners
+  setupProductSearch("editPoProductSearch", "editPoSearchResults", "editSelectedProductId", "editPoPrice", "editPoQty");
+
+  const qtyInput = document.getElementById("editPoQty");
+  if (qtyInput) {
+    qtyInput.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const pEl = document.getElementById("editPoPrice");
+        if (pEl) { pEl.focus(); pEl.select && pEl.select(); }
+      }
+    };
+  }
+
+  const priceInput = document.getElementById("editPoPrice");
+  if (priceInput) {
+    priceInput.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addItemToEditPoCart();
+      }
+    };
+  }
+
+  // Reset inputs
+  const searchInput = document.getElementById("editPoProductSearch");
+  if (searchInput) searchInput.value = "";
+  const hid = document.getElementById("editSelectedProductId");
+  if (hid) hid.value = "";
+  if (priceInput) priceInput.value = "";
+  if (qtyInput) qtyInput.value = "1";
+
+  // Hide calculator container
+  const calcBox = document.getElementById("editPoCalcContainer");
+  if (calcBox) calcBox.style.display = "none";
+  const calcBtn = document.getElementById("editPoCalcToggleBtn");
+  if (calcBtn) calcBtn.textContent = "🧮 Rate Calculator (Optional) ▾";
+
   renderEditPoCart();
+
   const modal = document.getElementById("editPoModal");
   if (modal) modal.style.display = "flex";
 }
 
-const closeEditPoModal = () => { const m = document.getElementById("editPoModal"); if (m) m.style.display = "none"; editPoCart = []; };
+const closeEditPoModal = () => {
+  const m = document.getElementById("editPoModal");
+  if (m) m.style.display = "none";
+  editPoCart = [];
+};
+
+function toggleEditCalcBox() {
+  const box = document.getElementById("editPoCalcContainer");
+  const btn = document.getElementById("editPoCalcToggleBtn");
+  if (!box) return;
+  const isHidden = box.style.display === "none" || !box.style.display;
+  box.style.display = isHidden ? "block" : "none";
+  if (btn) btn.textContent = isHidden ? "🧮 Calculator ▲" : "🧮 Rate Calculator (Optional) ▾";
+}
 
 function addItemToEditPoCart() {
   let prodId = document.getElementById("editSelectedProductId")?.value;
-  const typedText = document.getElementById("editPoProductSearch")?.value.trim() || "";
-  const qty = Number(document.getElementById("editPoQty")?.value);
-  const price = Number(document.getElementById("editPoPrice")?.value);
+  const searchInput = document.getElementById("editPoProductSearch");
+  const typedText = searchInput?.value.trim() || "";
+  const qtyInput = document.getElementById("editPoQty");
+  const priceInput = document.getElementById("editPoPrice");
+  const qty = parseFloat(qtyInput?.value);
+  const price = parseFloat(priceInput?.value);
   let prodName = "";
 
-  if (prodId) prodName = productsList.find(p => String(p.id) === String(prodId))?.name || typedText;
-  else if (typedText) {
-    const matched = productsList.find(p => (p.name || '').toLowerCase().includes(typedText.toLowerCase()));
-    if (matched) { prodId = matched.id; prodName = matched.name; }
-    else { prodId = 'custom_' + Date.now(); prodName = typedText; }
+  if (prodId) {
+    prodName = productsList.find(p => String(p.id) === String(prodId))?.name || typedText;
+  } else if (typedText) {
+    const matched = productsList.find(p => (p.name || '').toLowerCase() === typedText.toLowerCase()) ||
+                    productsList.find(p => (p.name || '').toLowerCase().includes(typedText.toLowerCase()));
+    if (matched) {
+      prodId = matched.id;
+      prodName = matched.name;
+    } else {
+      prodId = 'custom_' + Date.now();
+      prodName = typedText;
+    }
   }
 
-  if (!prodName) return alert("Pehle Product select karein.");
-  if (qty <= 0 || isNaN(qty)) return alert("Sahi Quantity dalein.");
-  if (isNaN(price) || price < 0) return alert("Sahi Rate dalein.");
+  if (!prodName) return alert("Pehle Product select karein ya naam dalein.");
+  if (isNaN(qty) || qty <= 0) return alert("Sahi Quantity dalein (kam se kam 1).");
+  if (isNaN(price) || price < 0) return alert("Sahi Rate (₹) dalein.");
 
   const numericPId = cleanPoProductId(prodId, prodName);
 
-  editPoCart.push({ product_id: numericPId, product_name: prodName, quantity: qty, purchase_price: price });
-  ['editPoProductSearch', 'editSelectedProductId', 'editPoPrice'].forEach(id => document.getElementById(id) && (document.getElementById(id).value = ""));
-  document.getElementById("editPoQty") && (document.getElementById("editPoQty").value = "1");
+  // Check if item already exists in cart
+  const existingIdx = editPoCart.findIndex(i => String(i.product_id) === String(numericPId) || (i.product_name || '').toLowerCase() === prodName.toLowerCase());
+  if (existingIdx >= 0) {
+    editPoCart[existingIdx].quantity = (Number(editPoCart[existingIdx].quantity) || 0) + qty;
+    if (price > 0) editPoCart[existingIdx].purchase_price = price;
+  } else {
+    const prodObj = productsList.find(p => String(p.id) === String(numericPId) || (p.name || '').toLowerCase() === prodName.toLowerCase());
+    const sellPrice = prodObj ? (prodObj.selling_price || prodObj.price || 0) : 0;
+    editPoCart.push({
+      product_id: numericPId,
+      product_name: prodName,
+      quantity: qty,
+      purchase_price: price,
+      selling_price: sellPrice
+    });
+  }
+
+  if (searchInput) searchInput.value = "";
+  const hid = document.getElementById("editSelectedProductId");
+  if (hid) hid.value = "";
+  if (priceInput) priceInput.value = "";
+  if (qtyInput) qtyInput.value = "1";
+
   renderEditPoCart();
+  if (searchInput) searchInput.focus();
 }
 
 function updateEditPoTotal() {
   let total = 0;
   editPoCart.forEach((item, idx) => {
-    const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
+    const q = Number(item.quantity) || 0;
+    const p = Number(item.purchase_price) || 0;
+    const itemTotal = q * p;
     total += itemTotal;
-    document.getElementById(`editItemTotal_${idx}`) && (document.getElementById(`editItemTotal_${idx}`).textContent = `₹${itemTotal.toFixed(2)}`);
+    const el = document.getElementById(`editItemTotal_${idx}`);
+    if (el) el.textContent = `₹${itemTotal.toFixed(2)}`;
   });
-  document.getElementById("editPoTotalBill") && (document.getElementById("editPoTotalBill").textContent = total.toFixed(2));
+  const totEl = document.getElementById("editPoTotalBill");
+  if (totEl) totEl.textContent = total.toFixed(2);
+  const countEl = document.getElementById("editPoItemsCount");
+  if (countEl) countEl.textContent = editPoCart.length;
+}
+
+function setEditPoQty(idx, val) {
+  const q = parseFloat(val);
+  if (!isNaN(q) && q >= 0) {
+    editPoCart[idx].quantity = q;
+  }
+  updateEditPoTotal();
+}
+
+function adjustEditPoQty(idx, delta) {
+  const cur = Number(editPoCart[idx].quantity) || 1;
+  const next = Math.max(1, cur + delta);
+  editPoCart[idx].quantity = next;
+  renderEditPoCart();
+}
+
+function setEditPoPrice(idx, val) {
+  const p = parseFloat(val);
+  if (!isNaN(p) && p >= 0) {
+    editPoCart[idx].purchase_price = p;
+  }
+  updateEditPoTotal();
 }
 
 function renderEditPoCart() {
@@ -3301,9 +3619,13 @@ function renderEditPoCart() {
   if (!container) return;
   let total = 0;
 
+  const countEl = document.getElementById("editPoItemsCount");
+  if (countEl) countEl.textContent = editPoCart.length;
+
   if (!editPoCart.length) {
-    container.innerHTML = '<div style="text-align:center; padding:8px; font-size:12px; color:var(--text-muted);">Koi item nahi hai. Niche se item add karein.</div>';
-    document.getElementById("editPoTotalBill") && (document.getElementById("editPoTotalBill").textContent = "0.00");
+    container.innerHTML = '<div style="text-align:center; padding:15px; font-size:12px; color:var(--text-muted);">ℹ️ Is order mein abhi koi item nahi hai. Niche form se naya item add karein.</div>';
+    const totEl = document.getElementById("editPoTotalBill");
+    if (totEl) totEl.textContent = "0.00";
     return;
   }
 
@@ -3311,65 +3633,120 @@ function renderEditPoCart() {
     const itemTotal = (Number(item.quantity) || 0) * (Number(item.purchase_price) || 0);
     total += itemTotal;
     return `
-      <div class="item-row" draggable="true" ondragstart="onEditCartDragStart(event, ${idx})" ondragover="onEditCartDragOver(event)" ondrop="onEditCartDrop(event, ${idx})" ondragend="onEditCartDragEnd(event)" style="padding:8px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+      <div class="item-row" draggable="true" ondragstart="onEditCartDragStart(event, ${idx})" ondragover="onEditCartDragOver(event)" ondrop="onEditCartDrop(event, ${idx})" ondragend="onEditCartDragEnd(event)" style="padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface); border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
           <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:2px 4px; user-select:none;">⠿</span>
+            <span class="drag-handle" title="Drag to reorder" style="cursor:grab; font-size:14px; color:var(--text-muted); padding:1px 4px; user-select:none;">⠿</span>
             <div style="display:flex; gap:2px;">
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, -1)" title="Move Top / Up">⬆</button>
-              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:10px; border-radius:4px; line-height:1;" ${idx === editPoCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, 1)" title="Move Bottom / Down">⬇</button>
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:9px; border-radius:4px; line-height:1;" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, -1)" title="Move Up">⬆</button>
+              <button type="button" class="btn-outline" style="padding:1px 4px; font-size:9px; border-radius:4px; line-height:1;" ${idx === editPoCart.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} onclick="moveEditCartItem(${idx}, 1)" title="Move Down">⬇</button>
             </div>
           </div>
-          <div style="flex:1;">
-            <strong style="font-size:12px; color:var(--text-dark);">${item.product_name}</strong>
-            <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label><input type="text" inputmode="numeric" value="${item.quantity}" style="width:55px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].quantity = Number(this.value)||1; updateEditPoTotal();" />
-              <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label><input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:70px; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:6px;" onfocus="this.select()" oninput="editPoCart[${idx}].purchase_price = Number(this.value)||0; updateEditPoTotal();" />
+          <div style="flex:1; min-width:0;">
+            <strong style="font-size:12px; color:var(--text-dark); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.product_name}</strong>
+            <div style="display:flex; gap:8px; margin-top:4px; align-items:center; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:2px;">
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Qty:</label>
+                <button type="button" onclick="adjustEditPoQty(${idx}, -1)" style="padding:1px 5px; font-size:10px; border:1px solid var(--border); background:var(--bg); border-radius:4px; cursor:pointer; line-height:1;">-</button>
+                <input type="text" inputmode="numeric" value="${item.quantity}" style="width:42px; text-align:center; padding:2px 3px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text-dark);" onfocus="this.select()" oninput="setEditPoQty(${idx}, this.value)" />
+                <button type="button" onclick="adjustEditPoQty(${idx}, 1)" style="padding:1px 5px; font-size:10px; border:1px solid var(--border); background:var(--bg); border-radius:4px; cursor:pointer; line-height:1;">+</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:2px;">
+                <label style="font-size:10px; font-weight:700; color:var(--text-muted);">Rate:</label>
+                <input type="text" inputmode="decimal" value="${item.purchase_price}" style="width:65px; text-align:right; padding:2px 4px; font-size:11px; font-weight:bold; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text-dark);" onfocus="this.select()" oninput="setEditPoPrice(${idx}, this.value)" />
+              </div>
             </div>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <strong id="editItemTotal_${idx}" style="font-size:13px; color:var(--success);">₹${itemTotal.toFixed(2)}</strong>
-          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();" title="Delete item">✕</button>
+          <strong id="editItemTotal_${idx}" style="font-size:13px; color:var(--success); min-width:60px; text-align:right; font-weight:800;">₹${itemTotal.toFixed(2)}</strong>
+          <button type="button" class="btn-danger" style="padding:3px 6px; border-radius:6px; font-size:11px; cursor:pointer;" onclick="editPoCart.splice(${idx}, 1); renderEditPoCart();" title="Delete item">✕</button>
         </div>
       </div>`;
   }).join("");
 
-  document.getElementById("editPoTotalBill") && (document.getElementById("editPoTotalBill").textContent = total.toFixed(2));
+  const totEl = document.getElementById("editPoTotalBill");
+  if (totEl) totEl.textContent = total.toFixed(2);
 }
 
 async function saveUpdatedPurchaseOrder() {
   const poId = document.getElementById("editPoId")?.value;
   const supplierName = document.getElementById("editPoSupplierSelect")?.value;
-  if (!poId || !supplierName || !editPoCart.length) return alert("Sahi details dalein aur kam se kam 1 item add karein.");
+  if (!poId || !supplierName || !editPoCart.length) {
+    return alert("Kripya Supplier select karein aur kam se kam 1 item add karein.");
+  }
 
-  const totalAmount = editPoCart.reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.purchase_price) || 0)), 0);
-  const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
-  const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`).single();
-  const targetPoId = po ? po.id : idCond;
-  const targetPoNum = po ? po.po_number : String(poId);
+  const saveBtn = document.querySelector("#editPoModal .btn-green");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "⏳ Saving...";
+  }
 
-  const { error: poErr } = await db.from("purchase_orders").update({ supplier_name: supplierName, total_amount: totalAmount }).or(`id.eq.${targetPoId},po_number.eq.${targetPoNum}`);
-  if (poErr) return alert("Order update error: " + poErr.message);
+  try {
+    const totalAmount = editPoCart.reduce((s, i) => s + ((Number(i.quantity) || 0) * (Number(i.purchase_price) || 0)), 0);
+    const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
+    
+    // Find target PO
+    const { data: po } = await db.from("purchase_orders")
+      .select("*")
+      .or(`id.eq.${idCond},id.eq.${String(poId)},po_number.eq.${String(poId)}`)
+      .maybeSingle();
 
-  const itemsToInsert = editPoCart.map(i => {
-    const pId = cleanPoProductId(i.product_id, i.product_name);
-    return {
-      po_id: targetPoId,
-      product_id: pId,
-      product_name: i.product_name,
-      quantity: Math.round(Number(i.quantity) || 1),
-      purchase_price: Number(i.purchase_price) || 0,
-      selling_price: i.selling_price
-    };
-  });
+    const targetPoId = po ? po.id : idCond;
+    const targetPoNum = po?.po_number || String(poId);
 
-  await db.from("purchase_order_items").delete().or(`po_id.eq.${targetPoId},po_id.eq.${targetPoNum}`);
-  const { error: insErr } = await insertPoItemsSafe(itemsToInsert);
-  if (insErr) alert("Items save karne mein error aaya: " + insErr.message);
-  else alert("Reorder successfully update ho gaya!");
+    // Update PO header
+    const updateConds = [`id.eq.${targetPoId}`];
+    if (targetPoNum && String(targetPoNum) !== String(targetPoId)) {
+      updateConds.push(`po_number.eq.${targetPoNum}`);
+    }
+    const { error: poErr } = await db.from("purchase_orders")
+      .update({ supplier_name: supplierName, total_amount: totalAmount })
+      .or(updateConds.join(','));
 
-  closeEditPoModal(); loadPurchaseOrders();
+    if (poErr) throw new Error("Order update error: " + poErr.message);
+
+    // Prepare items
+    const itemsToInsert = editPoCart.map(i => {
+      const pId = cleanPoProductId(i.product_id, i.product_name);
+      return {
+        po_id: targetPoId,
+        product_id: pId,
+        product_name: i.product_name,
+        quantity: Math.max(1, Math.round(Number(i.quantity) || 1)),
+        purchase_price: Number(i.purchase_price) || 0,
+        selling_price: i.selling_price
+      };
+    });
+
+    // Delete existing items for this PO safely
+    const delConds = [`po_id.eq.${targetPoId}`];
+    if (targetPoNum && String(targetPoNum) !== String(targetPoId)) {
+      delConds.push(`po_id.eq.${targetPoNum}`);
+    }
+    await db.from("purchase_order_items").delete().or(delConds.join(','));
+
+    // Insert updated items
+    const { error: insErr } = await insertPoItemsSafe(itemsToInsert);
+    if (insErr) throw new Error("Items save karne mein error: " + insErr.message);
+
+    // Update in-memory cache
+    if (window.__poGpItems) {
+      window.__poGpItems[targetPoId] = itemsToInsert;
+      if (targetPoNum) window.__poGpItems[targetPoNum] = itemsToInsert;
+    }
+
+    alert(`✅ Order ${targetPoNum || '#' + targetPoId} successfully update ho gaya!\nTotal Bill: ₹${totalAmount.toFixed(2)}`);
+    closeEditPoModal();
+    loadPurchaseOrders();
+  } catch (err) {
+    alert("❌ Error: " + (err.message || err));
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "💾 Save Changes";
+    }
+  }
 }
 
 async function syncPoToSheet(poId) {
@@ -3475,8 +3852,17 @@ async function receiveStock(poId) {
   const idCond = !isNaN(Number(poId)) ? Number(poId) : poId;
   const { data: po } = await db.from("purchase_orders").select("*").or(`id.eq.${idCond},id.eq.${String(poId)}`).single();
   if (po && po.status === "received") return alert("Ye order pehle hi Received ho chuka hai.");
-  const { data: allItems } = await db.from("purchase_order_items").select("*");
-  const items = (allItems || []).filter(i => String(i.po_id) === String(po?.id) || String(i.po_id) === String(po?.po_number));
+  
+  let items = [];
+  if (window.__poGpItems && (window.__poGpItems[po?.id] || window.__poGpItems[poId])) {
+    items = window.__poGpItems[po?.id] || window.__poGpItems[poId] || [];
+  }
+  if (!items.length) {
+    const filters = [`po_id.eq.${po?.id}`];
+    if (po?.po_number) filters.push(`po_id.eq.${po.po_number}`);
+    const { data: dbItems } = await db.from("purchase_order_items").select("*").or(filters.join(','));
+    items = dbItems || [];
+  }
 
   if (items?.length) {
     for (let item of items) {
